@@ -1,0 +1,221 @@
+.hero {
+  position: relative;
+
+  width: 100%;
+  height: calc(100dvh - 86px);
+  min-height: 560px;
+
+  /*
+   * Solo dejamos el espacio del navbar.
+   * La cinta se muestra encima del video.
+   */
+  margin-top: 86px;
+
+  scroll-margin-top: 86px;
+
+  overflow: hidden;
+  background: #000;
+}
+
+/*
+ * Fuerza al video a ocupar todo el hero.
+ */
+.heroVideo {
+  position: absolute;
+  inset: 0;
+
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  min-width: 100%;
+  min-height: 100%;
+
+  object-fit: cover;
+  object-position: center center;
+
+  background: transparent;
+}
+
+/* Capa oscura ligera sobre el video */
+.hero::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.04),
+      rgba(0, 0, 0, 0.18)
+    );
+}
+
+/*
+ * Contenedor de los botones.
+ * Siempre aparece en la esquina inferior derecha.
+ */
+.heroVideoControls {
+  position: absolute;
+  z-index: 4;
+
+  top: auto;
+  left: auto;
+  right: 20px;
+  bottom: 20px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 10px;
+}
+
+/*
+ * Botones compactos.
+ * Solo muestran los iconos.
+ */
+.replayButton,
+.soundButton {
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+
+  padding: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.24);
+
+  border-radius: 50%;
+
+  background:
+    rgba(0, 0, 0, 0.72);
+
+  color: #fff;
+
+  backdrop-filter: blur(10px);
+
+  box-shadow:
+    0 8px 24px
+    rgba(0, 0, 0, 0.3);
+
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+/*
+ * El texto continúa en el HTML
+ * para accesibilidad, pero no se muestra.
+ */
+.replayButton span,
+.soundButton span {
+  display: none;
+}
+
+.replayButton svg,
+.soundButton svg {
+  width: 21px;
+  height: 21px;
+
+  flex-shrink: 0;
+}
+
+.replayButton:hover,
+.soundButton:hover {
+  transform: translateY(-2px);
+
+  color: var(--gold);
+
+  border-color: var(--gold);
+
+  background:
+    rgba(0, 0, 0, 0.88);
+}
+
+.replayButton:focus-visible,
+.soundButton:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* Tabletas */
+@media (max-width: 900px) {
+  .hero {
+    height: calc(100svh - 128px);
+    min-height: 540px;
+  }
+
+  .heroVideoControls {
+    right: 17px;
+    bottom: 17px;
+  }
+
+  .replayButton,
+  .soundButton {
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+  }
+
+  .replayButton svg,
+  .soundButton svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Celulares */
+@media (max-width: 540px) {
+  .hero {
+    /*
+     * Navbar móvil: 76px
+     * Cinta móvil: 38px
+     * Total: 114px
+     */
+    height: calc(100svh - 114px);
+    min-height: 500px;
+
+    margin-top: 114px;
+  }
+
+  .heroVideo {
+    object-position: center center;
+  }
+
+  .heroVideoControls {
+    right: 13px;
+    bottom: 14px;
+
+    gap: 8px;
+  }
+
+  .replayButton,
+  .soundButton {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .replayButton svg,
+  .soundButton svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .replayButton:hover,
+  .soundButton:hover {
+    transform: none;
+  }
+}

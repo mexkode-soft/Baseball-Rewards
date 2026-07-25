@@ -1,0 +1,12 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#14213D"/>
+  <circle cx="920" cy="160" r="240" fill="#E0A52B" fill-opacity=".9"/>
+  <rect x="110" y="150" width="710" height="500" rx="42" fill="white"/>
+  <rect x="170" y="220" width="360" height="34" rx="17" fill="#E5EAF3"/>
+  <rect x="170" y="285" width="560" height="24" rx="12" fill="#EEF1F6"/>
+  <rect x="170" y="335" width="500" height="24" rx="12" fill="#EEF1F6"/>
+  <rect x="170" y="415" width="250" height="160" rx="22" fill="#FFF6DD"/>
+  <rect x="450" y="415" width="280" height="160" rx="22" fill="#DCE7F8"/>
+  <path d="M860 570C860 470 940 390 1040 390V750H680C680 650 760 570 860 570Z" fill="#E0A52B"/>
+  <text x="170" y="725" fill="white" font-family="Arial" font-size="40" font-weight="700">IMAGEN DE REFERENCIA</text>
+</svg>

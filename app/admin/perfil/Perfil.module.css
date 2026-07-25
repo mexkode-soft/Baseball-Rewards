@@ -1,0 +1,582 @@
+.pageTitle {
+  margin-bottom: 28px;
+}
+
+.pageTitle > span {
+  display: inline-flex;
+
+  margin-bottom: 10px;
+
+  color: var(--gold);
+
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.pageTitle h1 {
+  margin: 0;
+
+  color: #fff;
+
+  font-size: clamp(36px, 5vw, 58px);
+  line-height: 1;
+}
+
+.pageTitle p {
+  margin: 12px 0 0;
+
+  color: var(--muted);
+
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.profileCard {
+  display: grid;
+  grid-template-columns:
+    minmax(250px, 0.72fr)
+    minmax(0, 1.8fr);
+
+  gap: 28px;
+
+  padding: 30px;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.09);
+
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.012)
+    );
+
+  box-shadow:
+    0 26px 65px
+    rgba(0, 0, 0, 0.18);
+}
+
+/* Columna izquierda */
+.photoColumn {
+  min-width: 0;
+
+  padding: 24px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+
+  border: 1px solid
+    rgba(242, 189, 69, 0.16);
+
+  border-radius: 20px;
+
+  background:
+    radial-gradient(
+      circle at 50% 22%,
+      rgba(242, 189, 69, 0.08),
+      transparent 50%
+    ),
+    rgba(255, 255, 255, 0.015);
+
+  text-align: center;
+}
+
+/* Fotografía */
+.profilePhoto {
+  position: relative;
+
+  width: 170px;
+  height: 170px;
+
+  display: grid;
+  place-items: center;
+
+  overflow: hidden;
+
+  border: 2px solid
+    rgba(242, 189, 69, 0.48);
+
+  border-radius: 50%;
+
+  background:
+    rgba(242, 189, 69, 0.045);
+
+  color: var(--gold);
+
+  box-shadow:
+    0 22px 45px
+    rgba(0, 0, 0, 0.26),
+    0 0 0 5px
+    rgba(242, 189, 69, 0.035);
+}
+
+.profilePhoto img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  /*
+   * Este valor sube ligeramente el rostro
+   * dentro del círculo.
+   */
+  object-position: center 32%;
+
+  transform: scale(1.06);
+  transform-origin: center center;
+
+  border-radius: 50%;
+}
+
+.profilePhoto svg {
+  width: 68px;
+  height: 68px;
+}
+
+/* Botón para cambiar foto */
+.photoButton {
+  min-height: 46px;
+
+  margin-top: 22px;
+  padding: 10px 17px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  border: 1px solid
+    rgba(242, 189, 69, 0.36);
+
+  border-radius: 999px;
+
+  background:
+    rgba(242, 189, 69, 0.055);
+
+  color: var(--gold);
+
+  font-size: 12px;
+  font-weight: 900;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.photoButton:hover {
+  transform: translateY(-2px);
+
+  border-color:
+    rgba(242, 189, 69, 0.7);
+
+  background:
+    rgba(242, 189, 69, 0.12);
+}
+
+.photoButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.photoButton input {
+  display: none;
+}
+
+.imageHelp {
+  margin: 13px 0 0;
+
+  color: var(--muted);
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* Tarjeta inferior: ranking o administrador */
+.statusCard {
+  width: min(220px, 100%);
+
+  margin-top: 24px;
+  padding: 15px 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 14px;
+
+  border: 1px solid
+    rgba(242, 189, 69, 0.3);
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(242, 189, 69, 0.1),
+      rgba(242, 189, 69, 0.025)
+    );
+
+  box-shadow:
+    0 15px 30px
+    rgba(0, 0, 0, 0.18);
+}
+
+.statusIcon {
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background:
+    rgba(242, 189, 69, 0.12);
+
+  color: var(--gold);
+}
+
+.statusIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.statusCard > div:last-child {
+  min-width: 0;
+
+  text-align: left;
+}
+
+.statusCard span,
+.statusCard strong {
+  display: block;
+}
+
+.statusCard span {
+  color: var(--muted);
+
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.statusCard strong {
+  margin-top: 3px;
+
+  color: var(--gold);
+
+  font-size: 23px;
+  line-height: 1;
+}
+
+.adminStatus {
+  width: min(240px, 100%);
+}
+
+.adminStatus strong {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+/* Formulario */
+.profileForm {
+  min-width: 0;
+
+  padding: 10px 4px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.formHeading > span {
+  color: var(--gold);
+
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.formHeading h2 {
+  margin: 9px 0 8px;
+
+  color: #fff;
+
+  font-size: clamp(25px, 3vw, 34px);
+}
+
+.formHeading p {
+  max-width: 610px;
+
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.formGrid {
+  margin-top: 26px;
+
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 18px;
+}
+
+.formGrid label {
+  display: grid;
+
+  gap: 8px;
+
+  color: #fff;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.inputWrap {
+  min-height: 52px;
+  padding: 0 14px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.1);
+
+  border-radius: 13px;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.inputWrap:focus-within {
+  border-color:
+    rgba(242, 189, 69, 0.46);
+
+  background:
+    rgba(242, 189, 69, 0.025);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(242, 189, 69, 0.07);
+}
+
+.inputWrap svg {
+  width: 18px;
+  height: 18px;
+
+  flex-shrink: 0;
+
+  color: var(--gold);
+}
+
+.inputWrap input {
+  width: 100%;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+  color: #fff;
+
+  font-size: 13px;
+}
+
+.inputWrap input::placeholder {
+  color: #747985;
+}
+
+/* Acciones */
+.formActions {
+  margin-top: auto;
+  padding-top: 26px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 16px;
+}
+
+.formActions button {
+  min-height: 50px;
+
+  padding: 11px 22px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  border: 0;
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f3d77a,
+      #dfb93f
+    );
+
+  color: #111;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.formActions button:hover {
+  transform: translateY(-2px);
+
+  filter: brightness(1.05);
+}
+
+.formActions button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.savedMessage {
+  color: #71e59b;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Tablet */
+@media (max-width: 800px) {
+  .profileCard {
+    grid-template-columns: 1fr;
+
+    padding: 22px;
+  }
+
+  .photoColumn {
+    padding: 22px;
+  }
+
+  .profilePhoto {
+    width: 145px;
+    height: 145px;
+  }
+
+  .profilePhoto img {
+    object-position: center 30%;
+    transform: scale(1.05);
+  }
+}
+
+/* Celular */
+@media (max-width: 560px) {
+  .pageTitle {
+    margin-bottom: 22px;
+  }
+
+  .pageTitle h1 {
+    font-size: 38px;
+  }
+
+  .pageTitle p {
+    font-size: 13px;
+  }
+
+  .profileCard {
+    gap: 22px;
+
+    padding: 15px;
+
+    border-radius: 19px;
+  }
+
+  .photoColumn {
+    padding: 20px 14px;
+
+    border-radius: 16px;
+  }
+
+  .profilePhoto {
+    width: 125px;
+    height: 125px;
+  }
+
+  .profilePhoto img {
+    object-position: center 30%;
+    transform: scale(1.05);
+  }
+
+  .profilePhoto svg {
+    width: 50px;
+    height: 50px;
+  }
+
+  .photoButton {
+    width: 100%;
+    max-width: 220px;
+  }
+
+  .statusCard,
+  .adminStatus {
+    width: 100%;
+    max-width: 240px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+
+    gap: 15px;
+  }
+
+  .fullWidth {
+    grid-column: auto;
+  }
+
+  .formActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .savedMessage {
+    text-align: center;
+  }
+
+  .formActions button {
+    width: 100%;
+  }
+}

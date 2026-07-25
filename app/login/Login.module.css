@@ -1,0 +1,611 @@
+.loginPage {
+  width: 100%;
+  height: 100svh;
+  min-height: 620px;
+
+  display: grid;
+
+  /*
+   * Distribución similar a tu referencia:
+   * 53% presentación y 47% formulario.
+   */
+  grid-template-columns:
+    minmax(0, 53%)
+    minmax(0, 47%);
+
+  overflow: hidden;
+
+  color: #fff;
+
+  background:
+    radial-gradient(
+      circle at 75% 20%,
+      rgba(242, 189, 69, 0.07),
+      transparent 28%
+    ),
+    linear-gradient(
+      180deg,
+      #07080b,
+      #090a0d
+    );
+}
+
+.loginVisual {
+  grid-column: 1;
+  grid-row: 1;
+
+  min-width: 0;
+  min-height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 22px 54px;
+
+  border-right:
+    1px solid
+    rgba(242, 189, 69, 0.08);
+}
+
+.visualInner {
+  width: min(630px, 100%);
+  max-height: calc(100svh - 36px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  gap: 14px;
+}
+
+.visualEyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 38px;
+  margin-top: 4px;
+  padding: 8px 15px;
+
+  border: 1px solid rgba(242, 189, 69, 0.4);
+  border-radius: 999px;
+
+  background: rgba(242, 189, 69, 0.025);
+  color: var(--gold);
+
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+
+  font-size: 9px;
+  font-weight: 900;
+}
+.visualTitle {
+  max-width: 580px;
+
+  margin: 8px 0 10px;
+
+  color: #fff;
+
+  font-size: clamp(31px, 3.15vw, 50px);
+  line-height: 1.02;
+  font-weight: 900;
+}
+
+.visualTitle span {
+  color: var(--gold);
+}
+
+.visualDescription {
+  max-width: 540px;
+
+  margin: 4px 0 0;
+
+  color: #b8bbc4;
+
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.visualFeature {
+  width: min(540px, 100%);
+
+  margin-top: 10px;
+  padding: 16px 18px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  border: 1px solid rgba(242, 189, 69, 0.19);
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.01)
+    );
+}
+
+.featureIcon {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  border:
+    1px solid
+    rgba(242, 189, 69, 0.32);
+
+  border-radius: 50%;
+
+  color: var(--gold);
+
+  background:
+    rgba(242, 189, 69, 0.05);
+}
+
+.featureIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.visualFeature strong {
+  display: block;
+
+  color: var(--gold);
+
+  text-align: left;
+
+  font-size: 13px;
+}
+
+.visualFeature p {
+  margin: 3px 0 0;
+
+  color: var(--muted);
+
+  text-align: left;
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.loginFormSection {
+  grid-column: 2;
+  grid-row: 1;
+
+  min-width: 0;
+  min-height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px 48px;
+}
+
+.formContainer {
+  width: min(540px, 100%);
+  max-height: calc(100svh - 30px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 22px;
+}
+
+.formLogo {
+  display: block;
+
+  width: 178px;
+  height: 102px;
+
+  margin-bottom: 4px;
+
+  object-fit: contain;
+
+  filter:
+    drop-shadow(
+      0 14px 24px
+      rgba(0, 0, 0, 0.55)
+    );
+}
+
+.loginCard {
+  width: 100%;
+
+  padding: 32px 32px 28px;
+
+  border: 1px solid rgba(242, 189, 69, 0.29);
+  border-radius: 23px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 19, 24, 0.96),
+      rgba(9, 10, 13, 0.98)
+    );
+
+  box-shadow:
+    0 28px 68px
+    rgba(0, 0, 0, 0.4);
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 11px;
+
+  margin-bottom: 19px;
+}
+
+.back {
+  min-height: 38px;
+  padding: 8px 13px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.11);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  color: #fff;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.back:hover {
+  color: var(--gold);
+
+  border-color:
+    rgba(242, 189, 69, 0.5);
+}
+
+.back svg {
+  width: 14px;
+  height: 14px;
+}
+
+.badge {
+  min-height: 38px;
+  padding: 8px 14px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border:
+    1px solid
+    rgba(242, 189, 69, 0.4);
+
+  border-radius: 999px;
+
+  color: var(--gold);
+
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.title {
+  margin: 0 0 8px;
+
+  color: #fff;
+
+  font-size:
+    clamp(37px, 3.2vw, 50px);
+
+  line-height: 1;
+}
+
+.subtitle {
+  margin: 0 0 20px;
+
+  color: #b7bac2;
+
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.form {
+  display: grid;
+  gap: 19px;
+}
+
+.label {
+  display: grid;
+  gap: 7px;
+
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.inputWrap {
+  min-height: 50px;
+  padding: 0 14px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.1);
+
+  border-radius: 12px;
+
+  background:
+    rgba(255, 255, 255, 0.026);
+}
+
+.inputWrap:focus-within {
+  border-color:
+    rgba(242, 189, 69, 0.5);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(242, 189, 69, 0.07);
+}
+
+.inputWrap svg {
+  width: 17px;
+  height: 17px;
+
+  flex: 0 0 auto;
+
+  color: var(--gold);
+}
+
+.inputWrap input {
+  width: 100%;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+  color: #fff;
+
+  font-size: 13px;
+}
+
+.inputWrap input::placeholder {
+  color: #777d88;
+}
+
+.error {
+  margin: 0;
+
+  color: #ff8b8b;
+
+  font-size: 11px;
+}
+
+.submitButton {
+  min-height: 49px;
+
+  border: 0;
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f3d77a,
+      #ddb73e
+    );
+
+  color: #111;
+
+  font-size: 14px;
+  font-weight: 900;
+
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.submitButton:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+  transform: none;
+}
+
+.demoText {
+  color: #9298a4;
+
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+/* Monitores con poca altura */
+@media (min-width: 1101px) and (max-height: 760px) {
+  .loginVisual,
+  .loginFormSection {
+    padding-block: 10px;
+  }
+
+  .formLogo {
+    width: 145px;
+    height: 76px;
+  }
+
+  .loginCard {
+    padding: 21px 25px 19px;
+  }
+
+  .title {
+    font-size: 38px;
+  }
+
+  .subtitle {
+    margin-bottom: 14px;
+  }
+
+  .form {
+    gap: 11px;
+  }
+
+  .inputWrap {
+    min-height: 44px;
+  }
+
+  .submitButton {
+    min-height: 44px;
+  }
+
+  .visualTitle {
+    font-size:
+      clamp(28px, 2.7vw, 42px);
+  }
+
+  .visualFeature {
+    margin-top: 13px;
+  }
+}
+
+/* Tablet y celular */
+@media (max-width: 1100px) {
+  .loginPage {
+    height: auto;
+    min-height: 100svh;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: visible;
+  }
+
+  /*
+   * El formulario aparece primero.
+   */
+  .loginFormSection {
+    order: 1;
+
+    min-height: auto;
+
+    padding: 26px 20px 17px;
+  }
+
+  .loginVisual {
+    order: 2;
+
+    min-height: auto;
+
+    padding: 16px 20px 44px;
+
+    border-right: 0;
+  }
+
+  .formContainer {
+    width: min(540px, 100%);
+    max-height: none;
+  }
+
+  .visualInner {
+    width: min(620px, 100%);
+    max-height: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .loginFormSection {
+    padding:
+      18px 13px 15px;
+  }
+
+  .loginVisual {
+    padding:
+      12px 13px 35px;
+  }
+
+  .formLogo {
+    width: 142px;
+    height: 82px;
+  }
+
+  .loginCard {
+    padding:
+      21px 17px 19px;
+
+    border-radius: 19px;
+  }
+
+  .topActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  margin-bottom: 26px;
+}
+
+  .back,
+  .badge {
+    width: 100%;
+  }
+
+  .title {
+  margin: 0 0 12px;
+
+  color: #fff;
+
+  font-size: clamp(37px, 3.2vw, 50px);
+  line-height: 1;
+}
+
+  .subtitle {
+  margin: 0 0 26px;
+
+  color: #b7bac2;
+
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+  .visualTitle {
+    font-size: 30px;
+  }
+
+  .visualDescription {
+    font-size: 12px;
+  }
+
+  .visualFeature {
+    width: 100%;
+  }
+}

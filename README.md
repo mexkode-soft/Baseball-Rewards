@@ -1,31 +1,47 @@
-# Home Run Rewards — prototipo inicial
+# Home Run Rewards
 
-Proyecto visual en Next.js para comenzar el diseño de Home Run Rewards.
+Proyecto inicial en Next.js basado visualmente en Ari Comunicación y adaptado a campañas interactivas de béisbol.
 
 ## Incluye
 
-- Página de inicio responsive.
-- Navbar con ¿Quiénes somos?, Campañas, Patrocinadores y Login.
-- Secciones iniciales para contenido institucional, campañas y patrocinadores.
-- Página de login con correo y contraseña.
-- Botón visual para registro con Google.
-- Interacciones simuladas, sin base de datos ni autenticación real.
-- Logotipo proporcionado dentro de `public/`.
+- Portada con video automático, silenciado por defecto y control de sonido.
+- Cambio automático del video al logo al finalizar.
+- Navegación manual entre video y logo.
+- Sección ¿Quiénes somos?, campañas y footer social.
+- Login con pelota de béisbol giratoria.
+- Acceso con Supabase cuando se agregan variables de entorno.
+- Modo demo sin Supabase: un correo que contenga `admin` abre el perfil administrador; cualquier otro correo abre el perfil usuario.
+- Menús diferenciados por rol.
+- Foto de perfil visible en el menú lateral.
+- Configuración visual de mapas y premios.
+- Simulación de búsqueda y captura de recompensas.
+- Diseño responsivo.
 
-## Requisitos
+## Configuración
 
-- Node.js 20.9 o superior.
-- npm.
-
-## Ejecutar
+1. Copia `.env.example` a `.env.local`.
+2. Agrega las credenciales de Supabase y enlaces sociales.
+3. Ejecuta:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abrir `http://localhost:3000`.
+## Roles con Supabase
 
-## Nota sobre autenticación
+Guarda el rol en `user_metadata.role` con uno de estos valores:
 
-El login y Google son demostrativos. No guardan información ni crean sesiones. Cuando se conecte una solución real, se recomienda usar una librería de autenticación compatible con Next.js o un proveedor como Supabase/Auth.js.
+- `admin`
+- `usuario`
+
+La integración final puede moverse a una tabla `profiles` para mayor control y seguridad.
+
+## Archivos incluidos
+
+- `public/media/portada.mp4`
+- `public/images/logo-home-run.png`
+- `public/images/logo-home-run-alt.png`
+- `public/models/baseball.glb`
+
+El modelo GLB queda disponible para una etapa posterior de integración 3D completa. La primera versión usa una pelota CSS animada para mantener el login ligero y compatible.

@@ -1,0 +1,111 @@
+.wrapper {
+  position: relative;
+
+  width: 100%;
+  max-width: 430px;
+  height: 290px;
+
+  margin-inline: auto;
+
+  display: grid;
+  place-items: center;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+
+  z-index: 2;
+
+  width: 100%;
+  height: 100%;
+
+  pointer-events: none;
+}
+
+.scene canvas {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * Aura suave.
+ * No tiene bordes ni círculos visibles.
+ */
+.aura {
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  width: 300px;
+  height: 230px;
+
+  transform:
+    translate(-50%, -50%);
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(242, 189, 69, 0.27),
+      rgba(242, 189, 69, 0.09) 42%,
+      transparent 72%
+    );
+
+  filter: blur(27px);
+
+  opacity: 0.9;
+
+  pointer-events: none;
+
+  animation:
+    auraPulse
+    4s ease-in-out infinite;
+}
+
+@keyframes auraPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+
+    transform:
+      translate(-50%, -50%)
+      scale(0.96);
+  }
+
+  50% {
+    opacity: 1;
+
+    transform:
+      translate(-50%, -50%)
+      scale(1.04);
+  }
+}
+
+@media (max-width: 1100px) {
+  .wrapper {
+    max-width: 380px;
+    height: 270px;
+  }
+
+  .aura {
+    width: 270px;
+    height: 210px;
+  }
+}
+
+@media (max-width: 600px) {
+  .wrapper {
+    max-width: 330px;
+    height: 245px;
+  }
+
+  .aura {
+    width: 235px;
+    height: 185px;
+  }
+}

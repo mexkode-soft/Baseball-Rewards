@@ -1,0 +1,258 @@
+.scene {
+  position: relative;
+
+  width: 100%;
+  max-width: 360px;
+  height: 320px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auraPrimary {
+  position: absolute;
+
+  width: 250px;
+  height: 250px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(242, 189, 69, 0.34),
+      rgba(242, 189, 69, 0.12) 42%,
+      rgba(242, 189, 69, 0.02) 70%,
+      transparent 78%
+    );
+
+  filter: blur(10px);
+
+  animation:
+    pulseAura 3.8s ease-in-out infinite;
+}
+
+.auraSecondary {
+  position: absolute;
+
+  width: 320px;
+  height: 320px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(242, 189, 69, 0.08),
+      transparent 68%
+    );
+
+  filter: blur(20px);
+
+  animation:
+    pulseAuraTwo 5s ease-in-out infinite;
+}
+
+.ringOne,
+.ringTwo {
+  position: absolute;
+
+  border-radius: 50%;
+  border: 1px solid
+    rgba(242, 189, 69, 0.12);
+}
+
+.ringOne {
+  width: 220px;
+  height: 220px;
+}
+
+.ringTwo {
+  width: 270px;
+  height: 270px;
+}
+
+.ball {
+  position: relative;
+  z-index: 3;
+
+  width: 165px;
+  height: 165px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      #ffffff 0%,
+      #f3f0ea 42%,
+      #dfd8cf 72%,
+      #cfc7bb 100%
+    );
+
+  box-shadow:
+    inset -20px -22px 34px rgba(0, 0, 0, 0.16),
+    inset 14px 16px 24px rgba(255, 255, 255, 0.55),
+    0 24px 42px rgba(0, 0, 0, 0.35),
+    0 0 34px rgba(242, 189, 69, 0.18);
+
+  animation:
+    spinBall 9s linear infinite;
+}
+
+.ball::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle at 36% 30%,
+      rgba(255, 255, 255, 0.6),
+      transparent 22%
+    );
+
+  pointer-events: none;
+}
+
+.seam,
+.seamShadow {
+  position: absolute;
+
+  width: 72px;
+  height: 140px;
+
+  border-radius: 50%;
+}
+
+.seam {
+  border: 4px dashed #c63939;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+.seamShadow {
+  border: 4px dashed rgba(120, 25, 25, 0.26);
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+.seamOne {
+  top: 8px;
+  left: 20px;
+
+  transform:
+    rotate(22deg);
+}
+
+.seamTwo {
+  top: 8px;
+  right: 20px;
+
+  transform:
+    rotate(-22deg);
+}
+
+.seamShadowOne {
+  top: 10px;
+  left: 24px;
+
+  transform:
+    rotate(22deg);
+}
+
+.seamShadowTwo {
+  top: 10px;
+  right: 24px;
+
+  transform:
+    rotate(-22deg);
+}
+
+@keyframes spinBall {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulseAura {
+  0%,
+  100% {
+    transform: scale(0.98);
+    opacity: 0.88;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseAuraTwo {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scale(1.04);
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 640px) {
+  .scene {
+    max-width: 290px;
+    height: 250px;
+  }
+
+  .auraPrimary {
+    width: 210px;
+    height: 210px;
+  }
+
+  .auraSecondary {
+    width: 270px;
+    height: 270px;
+  }
+
+  .ringOne {
+    width: 180px;
+    height: 180px;
+  }
+
+  .ringTwo {
+    width: 225px;
+    height: 225px;
+  }
+
+  .ball {
+    width: 140px;
+    height: 140px;
+  }
+
+  .seam,
+  .seamShadow {
+    width: 60px;
+    height: 118px;
+  }
+
+  .seamOne,
+  .seamShadowOne {
+    left: 17px;
+  }
+
+  .seamTwo,
+  .seamShadowTwo {
+    right: 17px;
+  }
+}

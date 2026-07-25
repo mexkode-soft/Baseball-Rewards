@@ -1,0 +1,8 @@
+<svg width="1200" height="700" viewBox="0 0 1200 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="700" fill="#E8EEF8"/>
+  <rect x="0" y="470" width="1200" height="230" fill="#14213D"/>
+  <circle cx="960" cy="150" r="110" fill="#E0A52B"/>
+  <path d="M0 470L260 260L470 440L720 190L1010 470H0Z" fill="#27457F"/>
+  <path d="M0 470L320 350L580 470H0Z" fill="#5272A8"/>
+  <text x="70" y="610" fill="white" font-family="Arial" font-size="48" font-weight="700">PUBLICACIÓN DE REFERENCIA</text>
+</svg>

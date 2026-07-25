@@ -1,7 +1,27 @@
-node_modules
-.next
-out
-.env*
-!.env.example
+# Dependencias
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Variables de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Sistema operativo
 .DS_Store
-*.log
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
