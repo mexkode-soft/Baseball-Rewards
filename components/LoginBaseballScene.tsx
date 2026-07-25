@@ -245,34 +245,40 @@ export default function LoginBaseballScene() {
       new THREE.Clock();
 
     function resizeScene() {
-      if (disposed) {
+    if (disposed) {
         return;
-      }
+    }
 
-      const currentWidth =
-        wrapperElement.clientWidth;
+    const currentWrapper =
+        wrapperRef.current;
 
-      const currentHeight =
-        wrapperElement.clientHeight;
+    if (!currentWrapper) {
+        return;
+    }
 
-      if (
+    const currentWidth =
+        currentWrapper.clientWidth;
+
+    const currentHeight =
+        currentWrapper.clientHeight;
+
+    if (
         currentWidth <= 0 ||
         currentHeight <= 0
-      ) {
+    ) {
         return;
-      }
+    }
 
-      camera.aspect =
-        currentWidth /
-        currentHeight;
+    camera.aspect =
+        currentWidth / currentHeight;
 
-      camera.updateProjectionMatrix();
+    camera.updateProjectionMatrix();
 
-      renderer.setSize(
+    renderer.setSize(
         currentWidth,
         currentHeight,
         false
-      );
+    );
     }
 
     function animate() {
