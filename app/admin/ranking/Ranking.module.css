@@ -1,0 +1,951 @@
+.pageTitle {
+  margin-bottom: 30px;
+}
+
+.pageTitle > span {
+  display: inline-flex;
+
+  margin-bottom: 10px;
+
+  color: var(--gold);
+
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.pageTitle h1 {
+  margin: 0;
+
+  color: #fff;
+
+  font-size: clamp(
+    36px,
+    5vw,
+    58px
+  );
+
+  line-height: 1;
+}
+
+.pageTitle p {
+  max-width: 620px;
+
+  margin: 12px 0 0;
+
+  color: var(--muted);
+
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* Podio */
+.podiumSection {
+  padding: 30px;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.09);
+
+  border-radius: 24px;
+
+  background:
+    radial-gradient(
+      circle at 50% 18%,
+      rgba(242, 189, 69, 0.09),
+      transparent 36%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.012)
+    );
+}
+
+.podiumHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+}
+
+.podiumHeading > div:first-child > span,
+.tableHeading > div:first-child > span {
+  color: var(--gold);
+
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.podiumHeading h2,
+.tableHeading h2 {
+  margin: 8px 0 0;
+
+  color: #fff;
+
+  font-size: clamp(
+    24px,
+    3vw,
+    34px
+  );
+}
+
+.seasonBadge {
+  min-height: 44px;
+
+  padding: 9px 15px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 9px;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid
+    rgba(242, 189, 69, 0.26);
+
+  border-radius: 999px;
+
+  background:
+    rgba(242, 189, 69, 0.055);
+
+  color: var(--gold);
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.seasonBadge svg {
+  width: 18px;
+  height: 18px;
+}
+
+.podium {
+  min-height: 470px;
+
+  margin-top: 35px;
+
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  align-items: end;
+
+  gap: 22px;
+}
+
+.podiumPlayer {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  text-align: center;
+}
+
+.firstPlace {
+  order: 2;
+}
+
+.secondPlace {
+  order: 1;
+}
+
+.thirdPlace {
+  order: 3;
+}
+
+.medal {
+  position: absolute;
+  z-index: 4;
+
+  top: 5px;
+  right: calc(50% - 88px);
+
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  color: #111;
+}
+
+.medal svg {
+  width: 23px;
+  height: 23px;
+}
+
+.medal span {
+  position: absolute;
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.championCrown {
+  position: absolute;
+  z-index: 5;
+
+  top: -32px;
+  left: 50%;
+
+  transform:
+    translateX(-50%)
+    rotate(-5deg);
+
+  color: #f2bd45;
+}
+
+.championCrown svg {
+  width: 43px;
+  height: 43px;
+
+  fill:
+    rgba(242, 189, 69, 0.22);
+}
+
+.podiumPhoto {
+  position: relative;
+  z-index: 2;
+
+  width: 154px;
+  height: 154px;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  background: #17181d;
+}
+
+.podiumPhoto img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+  object-position: center;
+}
+
+.firstPlace .podiumPhoto {
+  width: 184px;
+  height: 184px;
+
+  border:
+    4px solid
+    #f2bd45;
+
+  box-shadow:
+    0 0 0 7px
+    rgba(242, 189, 69, 0.07);
+}
+
+.secondPlace .podiumPhoto {
+  border:
+    4px solid
+    #c9d0d9;
+
+  box-shadow:
+    0 0 0 7px
+    rgba(201, 208, 217, 0.06);
+}
+
+.thirdPlace .podiumPhoto {
+  border:
+    4px solid
+    #b97546;
+
+  box-shadow:
+    0 0 0 7px
+    rgba(185, 117, 70, 0.07);
+}
+
+.firstPlace .medal {
+  background:
+    linear-gradient(
+      135deg,
+      #ffe88b,
+      #d9a924
+    );
+}
+
+.secondPlace .medal {
+  background:
+    linear-gradient(
+      135deg,
+      #eef2f6,
+      #9ea6b1
+    );
+}
+
+.thirdPlace .medal {
+  background:
+    linear-gradient(
+      135deg,
+      #d89a6b,
+      #8d4d28
+    );
+}
+
+.playerInformation {
+  position: relative;
+  z-index: 3;
+
+  width: 100%;
+
+  margin-top: 17px;
+}
+
+.playerInformation strong,
+.playerInformation span,
+.playerInformation b {
+  display: block;
+}
+
+.playerInformation strong {
+  color: #fff;
+
+  font-size: 17px;
+}
+
+.firstPlace .playerInformation strong {
+  font-size: 20px;
+}
+
+.playerInformation span {
+  margin-top: 5px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+.playerInformation b {
+  margin-top: 9px;
+
+  color: var(--gold);
+
+  font-size: 15px;
+}
+
+.podiumBase {
+  width: 100%;
+
+  margin-top: 18px;
+  padding: 17px 12px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.08);
+
+  border-radius:
+    18px 18px 5px 5px;
+}
+
+.podiumBase span {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.podiumBase strong {
+  margin-top: 6px;
+
+  font-size: 38px;
+  line-height: 1;
+}
+
+.firstPlace .podiumBase {
+  min-height: 142px;
+
+  border-color:
+    rgba(242, 189, 69, 0.3);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(242, 189, 69, 0.2),
+      rgba(242, 189, 69, 0.045)
+    );
+
+  color: #f2bd45;
+}
+
+.secondPlace .podiumBase {
+  min-height: 112px;
+
+  border-color:
+    rgba(201, 208, 217, 0.23);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(201, 208, 217, 0.13),
+      rgba(201, 208, 217, 0.025)
+    );
+
+  color: #c9d0d9;
+}
+
+.thirdPlace .podiumBase {
+  min-height: 90px;
+
+  border-color:
+    rgba(185, 117, 70, 0.25);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(185, 117, 70, 0.15),
+      rgba(185, 117, 70, 0.025)
+    );
+
+  color: #c98352;
+}
+
+/* Tabla */
+.rankingCard {
+  margin-top: 28px;
+  padding: 30px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.09);
+
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.012)
+    );
+}
+
+.tableHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  margin-bottom: 25px;
+}
+
+.tableHeading p {
+  max-width: 620px;
+
+  margin: 8px 0 0;
+
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.playersCount {
+  min-width: 135px;
+
+  padding: 13px 17px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  border:
+    1px solid
+    rgba(242, 189, 69, 0.2);
+
+  border-radius: 15px;
+
+  background:
+    rgba(242, 189, 69, 0.045);
+}
+
+.playersCount > svg {
+  width: 23px;
+  height: 23px;
+
+  color: var(--gold);
+}
+
+.playersCount strong,
+.playersCount span {
+  display: block;
+}
+
+.playersCount strong {
+  color: #fff;
+
+  font-size: 20px;
+}
+
+.playersCount span {
+  margin-top: 2px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+}
+
+.tableScroller {
+  width: 100%;
+  overflow-x: auto;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.075);
+
+  border-radius: 17px;
+}
+
+.rankingTable {
+  width: 100%;
+  min-width: 790px;
+
+  border-collapse: collapse;
+}
+
+.rankingTable th {
+  padding: 15px 18px;
+
+  border-bottom:
+    1px solid
+    rgba(255, 255, 255, 0.08);
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  color: var(--muted);
+
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.rankingTable td {
+  padding: 14px 18px;
+
+  border-bottom:
+    1px solid
+    rgba(255, 255, 255, 0.055);
+
+  color: #fff;
+
+  font-size: 12px;
+}
+
+.rankingTable tbody tr {
+  transition:
+    background 0.2s ease;
+}
+
+.rankingTable tbody tr:hover {
+  background:
+    rgba(255, 255, 255, 0.025);
+}
+
+.rankingTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.highlightedRow {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(242, 189, 69, 0.035),
+      transparent
+    );
+}
+
+.position {
+  width: 44px;
+  height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.08);
+
+  border-radius: 11px;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  color: var(--muted);
+}
+
+.position svg {
+  width: 17px;
+  height: 17px;
+}
+
+.position > span {
+  font-size: 12px;
+}
+
+.position strong {
+  font-size: 13px;
+}
+
+.goldPosition {
+  border-color:
+    rgba(242, 189, 69, 0.35);
+
+  background:
+    rgba(242, 189, 69, 0.095);
+
+  color: #f2bd45;
+}
+
+.silverPosition {
+  border-color:
+    rgba(201, 208, 217, 0.3);
+
+  background:
+    rgba(201, 208, 217, 0.08);
+
+  color: #c9d0d9;
+}
+
+.bronzePosition {
+  border-color:
+    rgba(185, 117, 70, 0.34);
+
+  background:
+    rgba(185, 117, 70, 0.09);
+
+  color: #c98352;
+}
+
+.userCell {
+  display: flex;
+  align-items: center;
+
+  gap: 11px;
+}
+
+.userCell img {
+  width: 42px;
+  height: 42px;
+
+  display: block;
+  flex-shrink: 0;
+
+  border:
+    1px solid
+    rgba(242, 189, 69, 0.24);
+
+  border-radius: 50%;
+
+  object-fit: cover;
+}
+
+.userCell strong,
+.userCell span {
+  display: block;
+}
+
+.userCell strong {
+  color: #fff;
+
+  font-size: 12px;
+}
+
+.userCell span {
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+}
+
+.stateCell {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color: #c5c8d0;
+}
+
+.stateCell svg {
+  width: 16px;
+  height: 16px;
+
+  color: var(--gold);
+}
+
+.points {
+  color: var(--gold);
+
+  font-size: 13px;
+}
+
+.levelBadge {
+  width: fit-content;
+  min-height: 34px;
+
+  padding: 7px 11px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.1);
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.levelBadge svg {
+  width: 15px;
+  height: 15px;
+}
+
+.legendLevel {
+  border-color:
+    rgba(242, 189, 69, 0.32);
+
+  background:
+    rgba(242, 189, 69, 0.075);
+
+  color: #f2bd45;
+}
+
+.allStarLevel {
+  border-color:
+    rgba(230, 75, 60, 0.28);
+
+  background:
+    rgba(230, 75, 60, 0.065);
+
+  color: #ff8b7f;
+}
+
+.rookieLevel {
+  border-color:
+    rgba(120, 174, 255, 0.25);
+
+  background:
+    rgba(120, 174, 255, 0.06);
+
+  color: #91bcff;
+}
+
+/* Tableta */
+@media (max-width: 850px) {
+  .podiumSection,
+  .rankingCard {
+    padding: 22px;
+  }
+
+  .podium {
+    min-height: 420px;
+
+    gap: 14px;
+  }
+
+  .firstPlace .podiumPhoto {
+    width: 155px;
+    height: 155px;
+  }
+
+  .secondPlace .podiumPhoto,
+  .thirdPlace .podiumPhoto {
+    width: 130px;
+    height: 130px;
+  }
+
+  .playerInformation strong {
+    font-size: 14px;
+  }
+
+  .firstPlace .playerInformation strong {
+    font-size: 16px;
+  }
+}
+
+/* Celular */
+@media (max-width: 650px) {
+  .pageTitle {
+    margin-bottom: 22px;
+  }
+
+  .pageTitle h1 {
+    font-size: 39px;
+  }
+
+  .pageTitle p {
+    font-size: 13px;
+  }
+
+  .podiumSection,
+  .rankingCard {
+    padding: 16px;
+
+    border-radius: 19px;
+  }
+
+  .podiumHeading,
+  .tableHeading {
+    align-items: flex-start;
+    flex-direction: column;
+
+    gap: 15px;
+  }
+
+  .seasonBadge {
+    min-height: 40px;
+  }
+
+  .podium {
+    min-height: auto;
+
+    margin-top: 45px;
+
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+
+    gap: 7px;
+  }
+
+  .podiumPhoto {
+    width: 82px;
+    height: 82px;
+  }
+
+  .firstPlace .podiumPhoto {
+    width: 100px;
+    height: 100px;
+
+    border-width: 3px;
+  }
+
+  .secondPlace .podiumPhoto,
+  .thirdPlace .podiumPhoto {
+    width: 82px;
+    height: 82px;
+
+    border-width: 3px;
+  }
+
+  .medal {
+    top: -5px;
+    right: calc(50% - 52px);
+
+    width: 30px;
+    height: 30px;
+  }
+
+  .medal svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .medal span {
+    font-size: 8px;
+  }
+
+  .championCrown {
+    top: -29px;
+  }
+
+  .championCrown svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .playerInformation {
+    margin-top: 11px;
+  }
+
+  .playerInformation strong,
+  .firstPlace .playerInformation strong {
+    font-size: 11px;
+  }
+
+  .playerInformation span {
+    display: none;
+  }
+
+  .playerInformation b {
+    margin-top: 6px;
+
+    font-size: 10px;
+  }
+
+  .podiumBase {
+    margin-top: 11px;
+    padding: 10px 5px;
+
+    border-radius:
+      12px 12px 4px 4px;
+  }
+
+  .firstPlace .podiumBase {
+    min-height: 92px;
+  }
+
+  .secondPlace .podiumBase {
+    min-height: 75px;
+  }
+
+  .thirdPlace .podiumBase {
+    min-height: 62px;
+  }
+
+  .podiumBase span {
+    font-size: 7px;
+  }
+
+  .podiumBase strong {
+    font-size: 25px;
+  }
+
+  .playersCount {
+    min-width: 0;
+  }
+
+  .rankingCard {
+    margin-top: 20px;
+  }
+}

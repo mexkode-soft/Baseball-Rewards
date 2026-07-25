@@ -12,6 +12,7 @@ import {
   Menu,
   Percent,
   Radio,
+  Settings2,
   Trophy,
   UserRound,
   UserRoundCog,
@@ -35,7 +36,9 @@ import {
 
 import styles from "./AdminShell.module.css";
 
-type Role = "admin" | "usuario";
+type Role =
+  | "admin"
+  | "usuario";
 
 type MenuItem = readonly [
   href: string,
@@ -43,85 +46,104 @@ type MenuItem = readonly [
   icon: typeof UserRound,
 ];
 
-const adminItems: readonly MenuItem[] = [
-  [
-    "/admin/mapas-premios",
-    "Mapas / Premios",
-    MapPinned,
-  ],
-  [
-    "/admin/crear-campana",
-    "Crear campaña",
-    Trophy,
-  ],
-  [
-    "/admin/preguntas",
-    "Listado de preguntas",
-    CircleHelp,
-  ],
-  [
-    "/admin/niveles",
-    "Niveles",
-    ChartNoAxesColumnIncreasing,
-  ],
-  [
-    "/admin/ranking",
-    "Ranking",
-    Trophy,
-  ],
-  [
-    "/admin/promociones",
-    "Promociones",
-    Percent,
-  ],
-  [
-    "/admin/anuncios",
-    "Anuncios",
-    Megaphone,
-  ],
-  [
-    "/admin/canal-difusion",
-    "Canal de difusión",
-    Radio,
-  ],
-];
+const adminItems:
+  readonly MenuItem[] = [
+    [
+      "/admin/mapas-premios",
+      "Mapas / Premios",
+      MapPinned,
+    ],
+    [
+      "/admin/crear-campana",
+      "Crear campaña",
+      Trophy,
+    ],
+    [
+      "/admin/preguntas",
+      "Listado de preguntas",
+      CircleHelp,
+    ],
+    [
+      "/admin/niveles",
+      "Niveles",
+      ChartNoAxesColumnIncreasing,
+    ],
+    [
+      "/admin/ranking",
+      "Ranking",
+      Trophy,
+    ],
+    [
+      "/admin/promociones",
+      "Promociones",
+      Percent,
+    ],
+    [
+      "/admin/anuncios",
+      "Anuncios",
+      Megaphone,
+    ],
+    [
+      "/admin/canal-difusion",
+      "Canal de difusión",
+      Radio,
+    ],
+    [
+      "/admin/demo",
+      "Demo",
+      Settings2,
+    ],
+  ];
 
-const userItems: readonly MenuItem[] = [
-  [
-    "/admin/ranking",
-    "Ranking",
-    Trophy,
-  ],
-  [
-    "/admin/cazar-recompensas",
-    "Cazar recompensas",
-    MapPinned,
-  ],
-  [
-    "/admin/promociones",
-    "Promociones",
-    Gift,
-  ],
-];
+const userItems:
+  readonly MenuItem[] = [
+    [
+      "/admin/ranking",
+      "Ranking",
+      Trophy,
+    ],
+    [
+      "/admin/cazar-recompensas",
+      "Cazar recompensas",
+      MapPinned,
+    ],
+    [
+      "/admin/promociones",
+      "Promociones",
+      Gift,
+    ],
+  ];
 
 interface AdminShellProps {
-  children: React.ReactNode;
+  children:
+    React.ReactNode;
 }
 
 export default function AdminShell({
   children,
 }: AdminShellProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname =
+    usePathname();
 
-  const [menuOpen, setMenuOpen] =
-    useState(false);
+  const router =
+    useRouter();
 
-  const [role, setRole] =
-    useState<Role>("usuario");
+  const [
+    menuOpen,
+    setMenuOpen,
+  ] = useState(false);
 
-  const [photo, setPhoto] =
-    useState("");
+  const [
+    role,
+    setRole,
+  ] = useState<Role>(
+    "usuario"
+  );
+
+  const [
+    photo,
+    setPhoto,
+  ] = useState("");
 
   useEffect(() => {
     const demoRole =
@@ -157,18 +179,22 @@ export default function AdminShell({
         .getUser()
         .then(({ data }) => {
           const metadataRole =
-            data.user?.user_metadata
+            data.user
+              ?.user_metadata
               ?.role;
 
           setRole(
-            metadataRole === "admin"
+            metadataRole ===
+              "admin"
               ? "admin"
               : "usuario"
           );
 
           setPhoto(
-            data.user?.user_metadata
-              ?.avatar_url ?? ""
+            data.user
+              ?.user_metadata
+              ?.avatar_url ??
+              ""
           );
         });
     }
@@ -187,14 +213,17 @@ export default function AdminShell({
 
   async function logout() {
     if (hasSupabaseConfig) {
-      await supabase.auth.signOut();
+      await supabase.auth
+        .signOut();
     }
 
     localStorage.removeItem(
       "hrr-demo-role"
     );
 
-    router.replace("/login");
+    router.replace(
+      "/login"
+    );
   }
 
   const menuItems =
@@ -208,7 +237,11 @@ export default function AdminShell({
       : "Usuario";
 
   return (
-    <div className={styles.adminShell}>
+    <div
+      className={
+        styles.adminShell
+      }
+    >
       <button
         type="button"
         className={`${styles.sidebarOverlay} ${
@@ -229,7 +262,11 @@ export default function AdminShell({
             : ""
         }`}
       >
-        <div className={styles.sidebarBrand}>
+        <div
+          className={
+            styles.sidebarBrand
+          }
+        >
           <img
             src="/images/logo-home-run.png"
             alt="Home Run Rewards"
@@ -248,7 +285,9 @@ export default function AdminShell({
 
         <button
           type="button"
-          className={styles.sidebarClose}
+          className={
+            styles.sidebarClose
+          }
           onClick={() =>
             setMenuOpen(false)
           }
@@ -259,9 +298,15 @@ export default function AdminShell({
 
         <Link
           href="/admin/perfil"
-          className={styles.profileHead}
+          className={
+            styles.profileHead
+          }
         >
-          <div className={styles.avatar}>
+          <div
+            className={
+              styles.avatar
+            }
+          >
             {photo ? (
               <img
                 src={photo}
@@ -287,7 +332,11 @@ export default function AdminShell({
           </div>
         </Link>
 
-        <nav className={styles.navigation}>
+        <nav
+          className={
+            styles.navigation
+          }
+        >
           {menuItems.map(
             ([
               href,
@@ -295,7 +344,8 @@ export default function AdminShell({
               Icon,
             ]) => {
               const active =
-                pathname === href ||
+                pathname ===
+                  href ||
                 pathname.startsWith(
                   `${href}/`
                 );
@@ -323,7 +373,9 @@ export default function AdminShell({
 
         <button
           type="button"
-          className={styles.logout}
+          className={
+            styles.logout
+          }
           onClick={logout}
         >
           <LogOut />
@@ -334,11 +386,21 @@ export default function AdminShell({
         </button>
       </aside>
 
-      <section className={styles.adminMain}>
-        <header className={styles.mobileHeader}>
+      <section
+        className={
+          styles.adminMain
+        }
+      >
+        <header
+          className={
+            styles.mobileHeader
+          }
+        >
           <button
             type="button"
-            className={styles.menuButton}
+            className={
+              styles.menuButton
+            }
             onClick={() =>
               setMenuOpen(true)
             }
@@ -347,7 +409,11 @@ export default function AdminShell({
             <Menu />
           </button>
 
-          <div className={styles.headerTitle}>
+          <div
+            className={
+              styles.headerTitle
+            }
+          >
             <strong>
               Home Run Rewards
             </strong>
@@ -363,7 +429,11 @@ export default function AdminShell({
           />
         </header>
 
-        <main className={styles.adminContent}>
+        <main
+          className={
+            styles.adminContent
+          }
+        >
           {children}
         </main>
       </section>

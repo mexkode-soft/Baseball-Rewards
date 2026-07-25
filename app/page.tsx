@@ -8,14 +8,13 @@ export default function Home() {
   return (
     <>
       <PublicHeader />
-      
+      <PromoTicker />
 
       <main>
-        <HeroExperience />       
+        <HeroExperience />
         <AboutSection />
-        
       </main>
-      <PromoTicker />
+
       <PublicFooter />
     </>
   );

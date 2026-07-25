@@ -1,0 +1,393 @@
+.pageTitle {
+  margin-bottom: 30px;
+}
+
+.pageTitle > span,
+.summaryCard > div:nth-child(2) > span,
+.actionsCard > div:first-child > span {
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pageTitle h1 {
+  margin: 8px 0 0;
+  color: #fff;
+  font-size: clamp(36px, 5vw, 58px);
+  line-height: 1;
+}
+
+.pageTitle p {
+  max-width: 680px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.summaryCard,
+.ruleCard,
+.actionsCard {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 24px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.012)
+    );
+}
+
+.summaryCard {
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+
+.summaryIcon,
+.ruleIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(242, 189, 69, 0.24);
+  background: rgba(242, 189, 69, 0.07);
+  color: var(--gold);
+}
+
+.summaryIcon {
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+}
+
+.summaryIcon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.summaryCard h2 {
+  margin: 7px 0 5px;
+  color: #fff;
+  font-size: 25px;
+}
+
+.summaryCard p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.summaryStatus {
+  min-height: 43px;
+  margin-left: auto;
+  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(242, 189, 69, 0.22);
+  border-radius: 999px;
+  background: rgba(242, 189, 69, 0.05);
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.summaryStatus svg {
+  width: 17px;
+  height: 17px;
+}
+
+.rulesGrid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.ruleCard {
+  min-width: 0;
+  padding: 26px;
+}
+
+.ruleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.ruleIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+}
+
+.ruleIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.statusBadge {
+  min-height: 29px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.enabledBadge {
+  border: 1px solid rgba(113, 229, 155, 0.3);
+  background: rgba(113, 229, 155, 0.08);
+  color: #71e59b;
+}
+
+.disabledBadge {
+  border: 1px solid rgba(255, 149, 139, 0.28);
+  background: rgba(255, 149, 139, 0.07);
+  color: #ff958b;
+}
+
+.ruleCard h2 {
+  margin: 20px 0 8px;
+  color: #fff;
+  font-size: 23px;
+}
+
+.ruleCard > p {
+  min-height: 54px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.switchRow {
+  position: relative;
+  margin-top: 22px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.018);
+  cursor: pointer;
+}
+
+.switchRow > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.switchRow strong,
+.switchRow > div > span {
+  display: block;
+}
+
+.switchRow strong {
+  color: #fff;
+  font-size: 12px;
+}
+
+.switchRow > div > span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.switchRow input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.22s ease;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.22s ease;
+}
+
+.switchRow input:checked + .switch {
+  background: var(--gold);
+}
+
+.switchRow input:checked + .switch::after {
+  transform: translateX(24px);
+  background: #111;
+}
+
+.switchRow:focus-within {
+  border-color: rgba(242, 189, 69, 0.45);
+  box-shadow: 0 0 0 3px rgba(242, 189, 69, 0.07);
+}
+
+.actionsCard {
+  margin-top: 24px;
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.actionsCard h2 {
+  margin: 7px 0 5px;
+  color: #fff;
+  font-size: 25px;
+}
+
+.actionsCard p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.actions button {
+  min-height: 45px;
+  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.actions button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.actions .primaryButton {
+  border: 0;
+  background:
+    linear-gradient(
+      135deg,
+      #f3d77a,
+      #dfb93f
+    );
+  color: #111;
+}
+
+.actions .dangerButton {
+  border-color: rgba(255, 149, 139, 0.25);
+  background: rgba(255, 149, 139, 0.05);
+  color: #ff958b;
+}
+
+.toast {
+  position: fixed;
+  z-index: 50;
+  right: 24px;
+  bottom: 24px;
+  min-height: 47px;
+  padding: 11px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(113, 229, 155, 0.27);
+  border-radius: 13px;
+  background: rgba(13, 22, 17, 0.94);
+  color: #71e59b;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.toast svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 900px) {
+  .rulesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actionsCard {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .actions button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 620px) {
+  .summaryCard,
+  .ruleCard,
+  .actionsCard {
+    padding: 16px;
+    border-radius: 19px;
+  }
+
+  .summaryCard {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .summaryStatus {
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .switchRow {
+    align-items: flex-start;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+
+  .toast {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    justify-content: center;
+  }
+}
