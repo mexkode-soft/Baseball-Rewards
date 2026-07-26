@@ -6,7 +6,6 @@ import {
 } from "react";
 
 import * as THREE from "three";
-
 import {
   GLTFLoader,
 } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -14,23 +13,14 @@ import {
 import styles from "./LoginBaseballScene.module.css";
 
 export default function LoginBaseballScene() {
-  const wrapperRef =
+  const containerRef =
     useRef<HTMLDivElement>(null);
 
-  const canvasRef =
-    useRef<HTMLCanvasElement>(null);
-
   useEffect(() => {
-    const wrapper =
-      wrapperRef.current;
+    const container =
+      containerRef.current;
 
-    const canvas =
-      canvasRef.current;
-
-    if (
-      !wrapper ||
-      !canvas
-    ) {
+    if (!container) {
       return;
     }
 
@@ -54,13 +44,8 @@ export default function LoginBaseballScene() {
         100
       );
 
-    /*
-     * React es propietario del canvas.
-     * Three.js solamente lo utiliza.
-     */
     const renderer =
       new THREE.WebGLRenderer({
-        canvas,
         antialias: true,
         alpha: true,
       });
@@ -80,6 +65,10 @@ export default function LoginBaseballScene() {
 
     renderer.toneMappingExposure =
       1.25;
+
+    container.appendChild(
+      renderer.domElement
+    );
 
     scene.add(
       new THREE.AmbientLight(
@@ -141,11 +130,17 @@ export default function LoginBaseballScene() {
       const short =
         isShortView();
 
+      /*
+       * Tamaño final recomendado.
+       * En compacto queda más grande
+       * que en las versiones anteriores,
+       * pero sigue entrando completa.
+       */
       const responsiveFactor =
         compact
           ? short
-            ? 0.92
-            : 1.08
+            ? 1.05
+            : 1.22
           : 1;
 
       baseballModel.scale.setScalar(
@@ -158,33 +153,32 @@ export default function LoginBaseballScene() {
         0,
         compact
           ? short
-            ? 4.9
-            : 4.55
+            ? 4.55
+            : 4.2
           : 4.8
       );
     }
 
     function resizeScene() {
-      if (disposed) {
-        return;
-      }
+      const currentContainer =
+        containerRef.current;
 
-      const currentWrapper =
-        wrapperRef.current;
-
-      if (!currentWrapper) {
+      if (
+        !currentContainer ||
+        disposed
+      ) {
         return;
       }
 
       const width =
         Math.max(
-          currentWrapper.clientWidth,
+          currentContainer.clientWidth,
           1
         );
 
       const height =
         Math.max(
-          currentWrapper.clientHeight,
+          currentContainer.clientHeight,
           1
         );
 
@@ -210,31 +204,6 @@ export default function LoginBaseballScene() {
 
       (gltf) => {
         if (disposed) {
-          gltf.scene.traverse(
-            (object) => {
-              if (
-                object instanceof
-                THREE.Mesh
-              ) {
-                object.geometry?.dispose();
-
-                const materials =
-                  Array.isArray(
-                    object.material
-                  )
-                    ? object.material
-                    : [
-                        object.material,
-                      ];
-
-                materials.forEach(
-                  (material) =>
-                    material.dispose()
-                );
-              }
-            }
-          );
-
           return;
         }
 
@@ -308,12 +277,10 @@ export default function LoginBaseballScene() {
       undefined,
 
       (error) => {
-        if (!disposed) {
-          console.error(
-            "No fue posible cargar la pelota:",
-            error
-          );
-        }
+        console.error(
+          "No fue posible cargar la pelota:",
+          error
+        );
       }
     );
 
@@ -342,7 +309,7 @@ export default function LoginBaseballScene() {
             elapsed * 1.25
           ) *
           (isCompactView()
-            ? 0.02
+            ? 0.026
             : 0.045);
       }
 
@@ -358,7 +325,7 @@ export default function LoginBaseballScene() {
       );
 
     resizeObserver.observe(
-      wrapper
+      container
     );
 
     window.addEventListener(
@@ -408,18 +375,20 @@ export default function LoginBaseballScene() {
         }
       );
 
-      /*
-       * No eliminamos el canvas.
-       * React se encarga de desmontarlo.
-       */
       renderer.renderLists.dispose();
       renderer.dispose();
+
+      if (
+        renderer.domElement
+          .isConnected
+      ) {
+        renderer.domElement.remove();
+      }
     };
   }, []);
 
   return (
     <div
-      ref={wrapperRef}
       className={
         styles.sceneWrapper
       }
@@ -431,8 +400,8 @@ export default function LoginBaseballScene() {
         }
       />
 
-      <canvas
-        ref={canvasRef}
+      <div
+        ref={containerRef}
         className={
           styles.scene
         }
