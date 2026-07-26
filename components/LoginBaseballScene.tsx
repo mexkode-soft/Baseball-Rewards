@@ -6,7 +6,6 @@ import {
 } from "react";
 
 import * as THREE from "three";
-
 import {
   GLTFLoader,
 } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -14,63 +13,39 @@ import {
 import styles from "./LoginBaseballScene.module.css";
 
 export default function LoginBaseballScene() {
-  const wrapperRef =
+  const containerRef =
     useRef<HTMLDivElement>(null);
 
-  const canvasRef =
-    useRef<HTMLCanvasElement>(null);
-
   useEffect(() => {
-    const wrapperElement =
-      wrapperRef.current;
+    const container =
+      containerRef.current;
 
-    const canvasElement =
-      canvasRef.current;
-
-    if (
-      !wrapperElement ||
-      !canvasElement
-    ) {
+    if (!container) {
       return;
     }
 
     let disposed = false;
-    let animationFrameId = 0;
+    let animationFrame = 0;
 
-    let baseball:
+    let baseballModel:
       | THREE.Object3D
       | null = null;
 
-    const initialWidth =
-      wrapperElement.clientWidth || 430;
-
-    const initialHeight =
-      wrapperElement.clientHeight || 290;
+    let modelBaseScale = 1;
 
     const scene =
       new THREE.Scene();
 
     const camera =
       new THREE.PerspectiveCamera(
-        35,
-        initialWidth / initialHeight,
+        38,
+        1,
         0.1,
         100
       );
 
-    camera.position.set(
-      0,
-      0,
-      3.65
-    );
-
-    /*
-     * Three.js utilizará el canvas
-     * que React ya creó.
-     */
     const renderer =
       new THREE.WebGLRenderer({
-        canvas: canvasElement,
         antialias: true,
         alpha: true,
       });
@@ -82,12 +57,6 @@ export default function LoginBaseballScene() {
       )
     );
 
-    renderer.setSize(
-      initialWidth,
-      initialHeight,
-      false
-    );
-
     renderer.outputColorSpace =
       THREE.SRGBColorSpace;
 
@@ -97,57 +66,120 @@ export default function LoginBaseballScene() {
     renderer.toneMappingExposure =
       1.25;
 
-    const ambientLight =
+    container.appendChild(
+      renderer.domElement
+    );
+
+    scene.add(
       new THREE.AmbientLight(
         0xffffff,
-        2.35
-      );
+        2.3
+      )
+    );
 
-    scene.add(ambientLight);
-
-    const frontLight =
+    const mainLight =
       new THREE.DirectionalLight(
         0xffffff,
-        3.4
+        3
       );
 
-    frontLight.position.set(
+    mainLight.position.set(
       3,
       4,
       5
     );
 
-    scene.add(frontLight);
+    scene.add(mainLight);
 
-    const goldLight =
-      new THREE.PointLight(
+    const warmLight =
+      new THREE.DirectionalLight(
         0xf2bd45,
-        7,
-        10
+        2.1
       );
 
-    goldLight.position.set(
-      -2,
-      1.5,
-      2.5
+    warmLight.position.set(
+      -4,
+      1,
+      2
     );
 
-    scene.add(goldLight);
+    scene.add(warmLight);
 
-    const redLight =
-      new THREE.PointLight(
-        0xe64b3c,
-        2.7,
-        8
+    function isCompactView() {
+      return (
+        window.innerWidth <= 1200 &&
+        window.innerHeight <= 900
+      );
+    }
+
+    function applyResponsiveModelSize() {
+      if (!baseballModel) {
+        return;
+      }
+
+      const compact =
+        isCompactView();
+
+      /*
+       * En escritorio normal conserva
+       * el tamaño grande.
+       *
+       * En celular o ventana reducida
+       * baja realmente la escala del
+       * modelo 3D, evitando que solo se
+       * recorte mediante CSS.
+       */
+      const responsiveFactor =
+        compact ? 0.8 : 1;
+
+      baseballModel.scale.setScalar(
+        modelBaseScale *
+          responsiveFactor
       );
 
-    redLight.position.set(
-      2.5,
-      -2,
-      1
-    );
+      camera.position.set(
+        0,
+        0,
+        compact ? 5.6: 4.8
+      );
+    }
 
-    scene.add(redLight);
+    function resizeScene() {
+      const currentContainer =
+        containerRef.current;
+
+      if (
+        !currentContainer ||
+        disposed
+      ) {
+        return;
+      }
+
+      const width =
+        Math.max(
+          currentContainer.clientWidth,
+          1
+        );
+
+      const height =
+        Math.max(
+          currentContainer.clientHeight,
+          1
+        );
+
+      camera.aspect =
+        width / height;
+
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(
+        width,
+        height,
+        false
+      );
+
+      applyResponsiveModelSize();
+    }
 
     const loader =
       new GLTFLoader();
@@ -157,61 +189,55 @@ export default function LoginBaseballScene() {
 
       (gltf) => {
         if (disposed) {
-          disposeModel(
-            gltf.scene
-          );
-
           return;
         }
 
-        baseball = gltf.scene;
+        baseballModel =
+          gltf.scene;
 
-        const boundingBox =
+        const box =
           new THREE.Box3()
             .setFromObject(
-              baseball
+              baseballModel
             );
 
-        const modelSize =
-          boundingBox.getSize(
+        const size =
+          box.getSize(
             new THREE.Vector3()
           );
 
-        const modelCenter =
-          boundingBox.getCenter(
+        const center =
+          box.getCenter(
             new THREE.Vector3()
           );
 
-        baseball.position.sub(
-          modelCenter
+        baseballModel.position.sub(
+          center
         );
 
         const largestDimension =
           Math.max(
-            modelSize.x,
-            modelSize.y,
-            modelSize.z
+            size.x,
+            size.y,
+            size.z
           );
 
         if (
-          largestDimension > 0
+          largestDimension >
+          0
         ) {
-          const scale =
-            2.75 /
+          modelBaseScale =
+            2.3 /
             largestDimension;
-
-          baseball.scale.setScalar(
-            scale
-          );
         }
 
-        baseball.rotation.set(
-          0.12,
-          -0.3,
+        baseballModel.rotation.set(
+          0.18,
+          -0.35,
           0.08
         );
 
-        baseball.traverse(
+        baseballModel.traverse(
           (child) => {
             if (
               child instanceof
@@ -226,67 +252,32 @@ export default function LoginBaseballScene() {
           }
         );
 
-        scene.add(baseball);
+        scene.add(
+          baseballModel
+        );
+
+        applyResponsiveModelSize();
       },
 
       undefined,
 
       (error) => {
-        if (!disposed) {
-          console.error(
-            "No se pudo cargar baseball.glb:",
-            error
-          );
-        }
+        console.error(
+          "No fue posible cargar la pelota:",
+          error
+        );
       }
     );
 
     const clock =
       new THREE.Clock();
 
-    function resizeScene() {
-    if (disposed) {
-        return;
-    }
-
-    const currentWrapper =
-        wrapperRef.current;
-
-    if (!currentWrapper) {
-        return;
-    }
-
-    const currentWidth =
-        currentWrapper.clientWidth;
-
-    const currentHeight =
-        currentWrapper.clientHeight;
-
-    if (
-        currentWidth <= 0 ||
-        currentHeight <= 0
-    ) {
-        return;
-    }
-
-    camera.aspect =
-        currentWidth / currentHeight;
-
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(
-        currentWidth,
-        currentHeight,
-        false
-    );
-    }
-
     function animate() {
       if (disposed) {
         return;
       }
 
-      animationFrameId =
+      animationFrame =
         window.requestAnimationFrame(
           animate
         );
@@ -294,30 +285,18 @@ export default function LoginBaseballScene() {
       const elapsed =
         clock.getElapsedTime();
 
-      if (baseball) {
-        baseball.rotation.y +=
-          0.0065;
+      if (baseballModel) {
+        baseballModel.rotation.y +=
+          0.006;
 
-        baseball.rotation.x =
-          0.12 +
+        baseballModel.position.y =
           Math.sin(
-            elapsed * 0.9
+            elapsed * 1.25
           ) *
-            0.035;
-
-        baseball.position.y =
-          Math.sin(
-            elapsed * 1.15
-          ) *
-          0.055;
+          (isCompactView()
+            ? 0.015
+            : 0.045);
       }
-
-      goldLight.intensity =
-        6.5 +
-        Math.sin(
-          elapsed * 1.7
-        ) *
-          0.75;
 
       renderer.render(
         scene,
@@ -326,12 +305,12 @@ export default function LoginBaseballScene() {
     }
 
     const resizeObserver =
-      new ResizeObserver(() => {
-        resizeScene();
-      });
+      new ResizeObserver(
+        resizeScene
+      );
 
     resizeObserver.observe(
-      wrapperElement
+      container
     );
 
     window.addEventListener(
@@ -345,98 +324,73 @@ export default function LoginBaseballScene() {
     return () => {
       disposed = true;
 
+      resizeObserver.disconnect();
+
       window.removeEventListener(
         "resize",
         resizeScene
       );
 
-      resizeObserver.disconnect();
-
       window.cancelAnimationFrame(
-        animationFrameId
+        animationFrame
       );
 
-      if (baseball) {
-        scene.remove(baseball);
+      scene.traverse(
+        (object) => {
+          if (
+            object instanceof
+            THREE.Mesh
+          ) {
+            object.geometry?.dispose();
 
-        disposeModel(
-          baseball
-        );
+            const materials =
+              Array.isArray(
+                object.material
+              )
+                ? object.material
+                : [
+                    object.material,
+                  ];
 
-        baseball = null;
-      }
+            materials.forEach(
+              (material) =>
+                material.dispose()
+            );
+          }
+        }
+      );
 
-      scene.clear();
-
-      /*
-       * Liberamos WebGL, pero no quitamos
-       * el canvas del DOM. React lo hará.
-       */
       renderer.renderLists.dispose();
       renderer.dispose();
+
+      if (
+        renderer.domElement
+          .isConnected
+      ) {
+        renderer.domElement.remove();
+      }
     };
   }, []);
 
   return (
     <div
-      ref={wrapperRef}
-      className={styles.wrapper}
-      aria-label="Pelota de béisbol tridimensional giratoria"
+      className={
+        styles.sceneWrapper
+      }
+      aria-label="Pelota de béisbol tridimensional girando"
     >
       <div
-        className={styles.aura}
+        className={
+          styles.glow
+        }
       />
 
-      <canvas
-        ref={canvasRef}
-        className={styles.canvas}
+      <div
+        ref={containerRef}
+        className={
+          styles.scene
+        }
       />
     </div>
-  );
-}
-
-function disposeModel(
-  model: THREE.Object3D
-) {
-  model.traverse((child) => {
-    if (
-      !(child instanceof THREE.Mesh)
-    ) {
-      return;
-    }
-
-    child.geometry?.dispose();
-
-    const materials =
-      Array.isArray(
-        child.material
-      )
-        ? child.material
-        : [child.material];
-
-    materials.forEach(
-      (material) => {
-        disposeMaterialTextures(
-          material
-        );
-
-        material.dispose();
-      }
-    );
-  });
-}
-
-function disposeMaterialTextures(
-  material: THREE.Material
-) {
-  Object.values(material).forEach(
-    (value) => {
-      if (
-        value instanceof
-        THREE.Texture
-      ) {
-        value.dispose();
-      }
-    }
   );
 }

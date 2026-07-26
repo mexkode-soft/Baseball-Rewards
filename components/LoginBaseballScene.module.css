@@ -1,14 +1,14 @@
-.wrapper {
+.sceneWrapper {
   position: relative;
 
-  width: 100%;
-  max-width: 430px;
-  height: 290px;
+  width: min(720px, 100%);
+  height: 430px;
 
   margin-inline: auto;
 
-  display: grid;
-  place-items: center;
+  overflow: hidden;
+
+  background: transparent;
 }
 
 .scene {
@@ -19,8 +19,6 @@
 
   width: 100%;
   height: 100%;
-
-  pointer-events: none;
 }
 
 .scene canvas {
@@ -30,18 +28,14 @@
   height: 100%;
 }
 
-/*
- * Aura suave.
- * No tiene bordes ni círculos visibles.
- */
-.aura {
+.glow {
   position: absolute;
 
   top: 50%;
   left: 50%;
 
-  width: 300px;
-  height: 230px;
+  width: 310px;
+  height: 310px;
 
   transform:
     translate(-50%, -50%);
@@ -50,62 +44,54 @@
 
   background:
     radial-gradient(
-      ellipse,
-      rgba(242, 189, 69, 0.27),
-      rgba(242, 189, 69, 0.09) 42%,
-      transparent 72%
+      circle,
+      rgba(242, 189, 69, 0.18),
+      rgba(230, 75, 60, 0.05) 48%,
+      transparent 70%
     );
 
-  filter: blur(27px);
-
-  opacity: 0.9;
+  filter: blur(16px);
 
   pointer-events: none;
-
-  animation:
-    auraPulse
-    4s ease-in-out infinite;
 }
 
-@keyframes auraPulse {
-  0%,
-  100% {
-    opacity: 0.7;
+/*
+ * Celulares y ventanas de escritorio angostas:
+ * el componente ocupa una franja pequeña.
+ * El tamaño real de la pelota se controla
+ * también desde LoginBaseballScene.tsx.
+ */
+@media (max-width: 1200px) and (max-height: 900px) {
+  .sceneWrapper {
+    width: 190px;
+    height: 112px;
 
-    transform:
-      translate(-50%, -50%)
-      scale(0.96);
+    margin: 0 auto;
   }
 
-  50% {
-    opacity: 1;
+  .glow {
+    width: 105px;
+    height: 105px;
 
-    transform:
-      translate(-50%, -50%)
-      scale(1.04);
-  }
-}
-
-@media (max-width: 1100px) {
-  .wrapper {
-    max-width: 380px;
-    height: 270px;
-  }
-
-  .aura {
-    width: 270px;
-    height: 210px;
+    filter: blur(10px);
   }
 }
 
 @media (max-width: 600px) {
-  .wrapper {
-    max-width: 330px;
-    height: 245px;
+  .sceneWrapper {
+    width: 170px;
+    height: 104px;
+  }
+}
+
+@media (max-width: 1200px) and (max-height: 720px) {
+  .sceneWrapper {
+    width: 145px;
+    height: 82px;
   }
 
-  .aura {
-    width: 235px;
-    height: 185px;
+  .glow {
+    width: 78px;
+    height: 78px;
   }
 }
