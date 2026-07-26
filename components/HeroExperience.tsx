@@ -28,6 +28,9 @@ export default function HeroExperience() {
       null
     );
 
+  const initializedRef =
+    useRef(false);
+
   const [muted, setMuted] =
     useState(true);
 
@@ -80,6 +83,12 @@ export default function HeroExperience() {
     }, []);
 
   useEffect(() => {
+    if (initializedRef.current) {
+      return;
+    }
+
+    initializedRef.current = true;
+
     let cancelled = false;
 
     let introTimer:
@@ -88,9 +97,9 @@ export default function HeroExperience() {
 
     async function initializeVideo() {
       /*
-       * Primero intentamos reproducir
-       * automáticamente en cualquier
-       * navegador que lo permita.
+       * En computadora y navegadores
+       * compatibles intentará reproducir
+       * automáticamente.
        */
       const autoplayWorked =
         await startMutedVideo();
@@ -103,8 +112,8 @@ export default function HeroExperience() {
       }
 
       /*
-       * Solo cuando el autoplay falla,
-       * mostramos la pantalla inicial.
+       * Solamente cuando el autoplay
+       * falla mostramos la introducción.
        */
       setIntroStage("loading");
 
@@ -120,22 +129,75 @@ export default function HeroExperience() {
 
     void initializeVideo();
 
+    return () => {
+      cancelled = true;
+
+      if (
+        introTimer !==
+        undefined
+      ) {
+        window.clearTimeout(
+          introTimer
+        );
+      }
+    };
+  }, [startMutedVideo]);
+
+  useEffect(() => {
     function handleVisibilityChange() {
       if (
-        document.visibilityState ===
-          "visible" &&
-        introStage === "hidden"
+        document.visibilityState !==
+        "visible"
       ) {
-        void startMutedVideo();
+        return;
       }
+
+      const videoElement =
+        videoRef.current;
+
+      /*
+       * Solo reanudamos cuando la
+       * experiencia ya había iniciado.
+       * No modificamos la portada.
+       */
+      if (
+        !videoElement ||
+        introStage !== "hidden" ||
+        !videoElement.paused
+      ) {
+        return;
+      }
+
+      void videoElement
+        .play()
+        .catch((error) => {
+          console.warn(
+            "No se pudo reanudar el video:",
+            error
+          );
+        });
     }
 
     function handlePageShow() {
+      const videoElement =
+        videoRef.current;
+
       if (
-        introStage === "hidden"
+        !videoElement ||
+        introStage !== "hidden" ||
+        !videoElement.paused
       ) {
-        void startMutedVideo();
+        return;
       }
+
+      void videoElement
+        .play()
+        .catch((error) => {
+          console.warn(
+            "No se pudo reanudar el video:",
+            error
+          );
+        });
     }
 
     document.addEventListener(
@@ -149,17 +211,6 @@ export default function HeroExperience() {
     );
 
     return () => {
-      cancelled = true;
-
-      if (
-        introTimer !==
-        undefined
-      ) {
-        window.clearTimeout(
-          introTimer
-        );
-      }
-
       document.removeEventListener(
         "visibilitychange",
         handleVisibilityChange
@@ -170,10 +221,7 @@ export default function HeroExperience() {
         handlePageShow
       );
     };
-  }, [
-    introStage,
-    startMutedVideo,
-  ]);
+  }, [introStage]);
 
   async function startExperience() {
     const videoElement =
@@ -183,10 +231,6 @@ export default function HeroExperience() {
       return;
     }
 
-    /*
-     * Este método se ejecuta mediante
-     * un toque real del usuario.
-     */
     videoElement.muted = true;
     videoElement.defaultMuted =
       true;
@@ -196,6 +240,10 @@ export default function HeroExperience() {
     setMuted(true);
 
     try {
+      /*
+       * Este play ocurre directamente
+       * desde el toque del usuario.
+       */
       await videoElement.play();
 
       setVideoPlaying(true);
@@ -284,12 +332,12 @@ export default function HeroExperience() {
         loop
         disablePictureInPicture
         poster="/images/logo-home-run.png"
-        onPlaying={() =>
-          setVideoPlaying(true)
-        }
-        onPause={() =>
-          setVideoPlaying(false)
-        }
+        onPlaying={() => {
+          setVideoPlaying(true);
+        }}
+        onPause={() => {
+          setVideoPlaying(false);
+        }}
       >
         <source
           src="/media/video1.mp4"
