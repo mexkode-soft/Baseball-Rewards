@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import * as THREE from "three";
+
 import {
   GLTFLoader,
 } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -13,14 +14,23 @@ import {
 import styles from "./LoginBaseballScene.module.css";
 
 export default function LoginBaseballScene() {
-  const containerRef =
+  const wrapperRef =
     useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const container =
-      containerRef.current;
+  const canvasRef =
+    useRef<HTMLCanvasElement>(null);
 
-    if (!container) {
+  useEffect(() => {
+    const wrapper =
+      wrapperRef.current;
+
+    const canvas =
+      canvasRef.current;
+
+    if (
+      !wrapper ||
+      !canvas
+    ) {
       return;
     }
 
@@ -44,8 +54,13 @@ export default function LoginBaseballScene() {
         100
       );
 
+    /*
+     * React es propietario del canvas.
+     * Three.js solamente lo utiliza.
+     */
     const renderer =
       new THREE.WebGLRenderer({
+        canvas,
         antialias: true,
         alpha: true,
       });
@@ -65,10 +80,6 @@ export default function LoginBaseballScene() {
 
     renderer.toneMappingExposure =
       1.25;
-
-    container.appendChild(
-      renderer.domElement
-    );
 
     scene.add(
       new THREE.AmbientLight(
@@ -107,8 +118,15 @@ export default function LoginBaseballScene() {
 
     function isCompactView() {
       return (
-        window.innerWidth <= 1200 &&
-        window.innerHeight <= 900
+        window.innerWidth <=
+        1200
+      );
+    }
+
+    function isShortView() {
+      return (
+        window.innerHeight <=
+        720
       );
     }
 
@@ -120,17 +138,15 @@ export default function LoginBaseballScene() {
       const compact =
         isCompactView();
 
-      /*
-       * En escritorio normal conserva
-       * el tamaño grande.
-       *
-       * En celular o ventana reducida
-       * baja realmente la escala del
-       * modelo 3D, evitando que solo se
-       * recorte mediante CSS.
-       */
+      const short =
+        isShortView();
+
       const responsiveFactor =
-        compact ? 0.8 : 1;
+        compact
+          ? short
+            ? 0.92
+            : 1.08
+          : 1;
 
       baseballModel.scale.setScalar(
         modelBaseScale *
@@ -140,30 +156,35 @@ export default function LoginBaseballScene() {
       camera.position.set(
         0,
         0,
-        compact ? 5.6: 4.8
+        compact
+          ? short
+            ? 4.9
+            : 4.55
+          : 4.8
       );
     }
 
     function resizeScene() {
-      const currentContainer =
-        containerRef.current;
+      if (disposed) {
+        return;
+      }
 
-      if (
-        !currentContainer ||
-        disposed
-      ) {
+      const currentWrapper =
+        wrapperRef.current;
+
+      if (!currentWrapper) {
         return;
       }
 
       const width =
         Math.max(
-          currentContainer.clientWidth,
+          currentWrapper.clientWidth,
           1
         );
 
       const height =
         Math.max(
-          currentContainer.clientHeight,
+          currentWrapper.clientHeight,
           1
         );
 
@@ -189,6 +210,31 @@ export default function LoginBaseballScene() {
 
       (gltf) => {
         if (disposed) {
+          gltf.scene.traverse(
+            (object) => {
+              if (
+                object instanceof
+                THREE.Mesh
+              ) {
+                object.geometry?.dispose();
+
+                const materials =
+                  Array.isArray(
+                    object.material
+                  )
+                    ? object.material
+                    : [
+                        object.material,
+                      ];
+
+                materials.forEach(
+                  (material) =>
+                    material.dispose()
+                );
+              }
+            }
+          );
+
           return;
         }
 
@@ -262,10 +308,12 @@ export default function LoginBaseballScene() {
       undefined,
 
       (error) => {
-        console.error(
-          "No fue posible cargar la pelota:",
-          error
-        );
+        if (!disposed) {
+          console.error(
+            "No fue posible cargar la pelota:",
+            error
+          );
+        }
       }
     );
 
@@ -294,7 +342,7 @@ export default function LoginBaseballScene() {
             elapsed * 1.25
           ) *
           (isCompactView()
-            ? 0.015
+            ? 0.02
             : 0.045);
       }
 
@@ -310,7 +358,7 @@ export default function LoginBaseballScene() {
       );
 
     resizeObserver.observe(
-      container
+      wrapper
     );
 
     window.addEventListener(
@@ -360,20 +408,18 @@ export default function LoginBaseballScene() {
         }
       );
 
+      /*
+       * No eliminamos el canvas.
+       * React se encarga de desmontarlo.
+       */
       renderer.renderLists.dispose();
       renderer.dispose();
-
-      if (
-        renderer.domElement
-          .isConnected
-      ) {
-        renderer.domElement.remove();
-      }
     };
   }, []);
 
   return (
     <div
+      ref={wrapperRef}
       className={
         styles.sceneWrapper
       }
@@ -385,8 +431,8 @@ export default function LoginBaseballScene() {
         }
       />
 
-      <div
-        ref={containerRef}
+      <canvas
+        ref={canvasRef}
         className={
           styles.scene
         }
