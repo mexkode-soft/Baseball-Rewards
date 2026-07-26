@@ -18,7 +18,7 @@ export default function AdminPage() {
 
     router.replace(
       role === "admin"
-        ? "/admin/mapas-premios"
+        ? "/admin/crear-campana"
         : "/admin/perfil"
     );
   }, [router]);
