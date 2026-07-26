@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Play,
   RotateCcw,
   Volume2,
   VolumeX,
@@ -23,6 +24,16 @@ export default function HeroExperience() {
     useState(true);
 
   const [
+    showIntro,
+    setShowIntro,
+  ] = useState(true);
+
+  const [
+    introLeaving,
+    setIntroLeaving,
+  ] = useState(false);
+
+  const [
     autoplayBlocked,
     setAutoplayBlocked,
   ] = useState(false);
@@ -36,13 +47,17 @@ export default function HeroExperience() {
         return;
       }
 
+      videoElement.muted = true;
+      videoElement.defaultMuted = true;
+      videoElement.playsInline = true;
+
       try {
         await videoElement.play();
 
         setAutoplayBlocked(false);
       } catch (error) {
         console.warn(
-          "El navegador bloqueó el autoplay:",
+          "El navegador bloqueó el video automático:",
           error
         );
 
@@ -51,23 +66,31 @@ export default function HeroExperience() {
     }, []);
 
   useEffect(() => {
-    const videoElement =
-      videoRef.current;
-
-    if (!videoElement) {
-      return;
-    }
-
     /*
-     * El video debe iniciar silenciado
-     * para que el navegador móvil permita
-     * la reproducción automática.
+     * Intentamos reproducir el video
+     * mientras todavía está visible
+     * la pantalla de introducción.
      */
-    videoElement.muted = true;
-    videoElement.defaultMuted = true;
-    videoElement.playsInline = true;
-
     void startVideo();
+
+    const introTimer =
+      window.setTimeout(() => {
+        setIntroLeaving(true);
+
+        /*
+         * Volvemos a solicitar la
+         * reproducción justo antes
+         * de retirar la portada.
+         */
+        void startVideo();
+      }, 2000);
+
+    const removeIntroTimer =
+      window.setTimeout(() => {
+        setShowIntro(false);
+
+        void startVideo();
+      }, 2550);
 
     function handleVisibilityChange() {
       if (
@@ -93,6 +116,14 @@ export default function HeroExperience() {
     );
 
     return () => {
+      window.clearTimeout(
+        introTimer
+      );
+
+      window.clearTimeout(
+        removeIntroTimer
+      );
+
       document.removeEventListener(
         "visibilitychange",
         handleVisibilityChange
@@ -115,7 +146,18 @@ export default function HeroExperience() {
 
     videoElement.currentTime = 0;
 
-    await startVideo();
+    try {
+      await videoElement.play();
+
+      setAutoplayBlocked(false);
+    } catch (error) {
+      console.error(
+        "No se pudo reproducir el video:",
+        error
+      );
+
+      setAutoplayBlocked(true);
+    }
   }
 
   async function toggleSound() {
@@ -134,17 +176,40 @@ export default function HeroExperience() {
     videoElement.muted =
       nextMutedState;
 
-    /*
-     * Cuando el usuario activa el sonido,
-     * defaultMuted debe permanecer en true
-     * para no afectar la política inicial
-     * de autoplay.
-     */
-    if (nextMutedState) {
-      videoElement.defaultMuted = true;
+    try {
+      await videoElement.play();
+
+      setAutoplayBlocked(false);
+    } catch (error) {
+      console.error(
+        "No se pudo continuar el video:",
+        error
+      );
+    }
+  }
+
+  async function playManually() {
+    const videoElement =
+      videoRef.current;
+
+    if (!videoElement) {
+      return;
     }
 
-    await startVideo();
+    videoElement.muted = true;
+
+    setMuted(true);
+
+    try {
+      await videoElement.play();
+
+      setAutoplayBlocked(false);
+    } catch (error) {
+      console.error(
+        "No se pudo iniciar el video:",
+        error
+      );
+    }
   }
 
   return (
@@ -156,11 +221,12 @@ export default function HeroExperience() {
         ref={videoRef}
         className={styles.heroVideo}
         autoPlay
-        muted
+        muted={muted}
         playsInline
         preload="auto"
         poster="/images/logo-home-run.png"
         disablePictureInPicture
+        loop
       >
         <source
           src="/media/video1.mp4"
@@ -170,6 +236,57 @@ export default function HeroExperience() {
         Tu navegador no soporta
         la reproducción de video.
       </video>
+
+      {showIntro && (
+        <div
+          className={`${styles.introScreen} ${
+            introLeaving
+              ? styles.introScreenLeaving
+              : ""
+          }`}
+        >
+          <div
+            className={
+              styles.introLogoWrap
+            }
+          >
+            <img
+              src="/images/logo-home-run.png"
+              alt="Home Run Rewards"
+              className={
+                styles.introLogo
+              }
+            />
+
+            <span
+              className={
+                styles.introLoader
+              }
+            />
+
+            <p>
+              Preparando la experiencia
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!showIntro &&
+        autoplayBlocked && (
+          <button
+            type="button"
+            className={
+              styles.manualPlayButton
+            }
+            onClick={
+              playManually
+            }
+          >
+            <Play />
+
+            Reproducir video
+          </button>
+        )}
 
       <div
         className={
@@ -181,24 +298,16 @@ export default function HeroExperience() {
           className={
             styles.replayButton
           }
-          onClick={replayVideo}
-          aria-label={
-            autoplayBlocked
-              ? "Reproducir video"
-              : "Reproducir nuevamente"
+          onClick={
+            replayVideo
           }
-          title={
-            autoplayBlocked
-              ? "Reproducir video"
-              : "Reproducir nuevamente"
-          }
+          aria-label="Reproducir nuevamente"
+          title="Reproducir nuevamente"
         >
           <RotateCcw />
 
           <span>
-            {autoplayBlocked
-              ? "Reproducir video"
-              : "Reproducir nuevamente"}
+            Reproducir nuevamente
           </span>
         </button>
 
@@ -207,7 +316,9 @@ export default function HeroExperience() {
           className={
             styles.soundButton
           }
-          onClick={toggleSound}
+          onClick={
+            toggleSound
+          }
           aria-label={
             muted
               ? "Activar sonido"
