@@ -7,9 +7,10 @@ import {
   CircleHelp,
   Gift,
   LogOut,
-  MapPinned,
   Megaphone,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Percent,
   Radio,
   Settings2,
@@ -48,11 +49,6 @@ type MenuItem = readonly [
 
 const adminItems:
   readonly MenuItem[] = [
-    [
-      "/admin/mapas-premios",
-      "Mapas / Premios",
-      MapPinned,
-    ],
     [
       "/admin/crear-campana",
       "Crear campaña",
@@ -105,7 +101,7 @@ const userItems:
     [
       "/admin/cazar-recompensas",
       "Cazar recompensas",
-      MapPinned,
+      Trophy,
     ],
     [
       "/admin/promociones",
@@ -134,6 +130,11 @@ export default function AdminShell({
   ] = useState(false);
 
   const [
+    sidebarCollapsed,
+    setSidebarCollapsed,
+  ] = useState(false);
+
+  const [
     role,
     setRole,
   ] = useState<Role>(
@@ -159,6 +160,12 @@ export default function AdminShell({
       localStorage.getItem(
         "hrr-photo"
       ) ?? ""
+    );
+
+    setSidebarCollapsed(
+      localStorage.getItem(
+        "hrr-sidebar-collapsed"
+      ) === "true"
     );
 
     function updateProfilePhoto() {
@@ -211,6 +218,22 @@ export default function AdminShell({
     setMenuOpen(false);
   }, [pathname]);
 
+  function toggleSidebar() {
+    setSidebarCollapsed(
+      (currentValue) => {
+        const nextValue =
+          !currentValue;
+
+        localStorage.setItem(
+          "hrr-sidebar-collapsed",
+          String(nextValue)
+        );
+
+        return nextValue;
+      }
+    );
+  }
+
   async function logout() {
     if (hasSupabaseConfig) {
       await supabase.auth
@@ -238,9 +261,11 @@ export default function AdminShell({
 
   return (
     <div
-      className={
-        styles.adminShell
-      }
+      className={`${styles.adminShell} ${
+        sidebarCollapsed
+          ? styles.adminShellCollapsed
+          : ""
+      }`}
     >
       <button
         type="button"
@@ -260,8 +285,38 @@ export default function AdminShell({
           menuOpen
             ? styles.sidebarOpen
             : ""
+        } ${
+          sidebarCollapsed
+            ? styles.sidebarCollapsed
+            : ""
         }`}
       >
+        <button
+          type="button"
+          className={
+            styles.desktopCollapseButton
+          }
+          onClick={
+            toggleSidebar
+          }
+          aria-label={
+            sidebarCollapsed
+              ? "Expandir menú lateral"
+              : "Contraer menú lateral"
+          }
+          title={
+            sidebarCollapsed
+              ? "Expandir menú"
+              : "Contraer menú"
+          }
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen />
+          ) : (
+            <PanelLeftClose />
+          )}
+        </button>
+
         <div
           className={
             styles.sidebarBrand
@@ -272,7 +327,11 @@ export default function AdminShell({
             alt="Home Run Rewards"
           />
 
-          <div>
+          <div
+            className={
+              styles.sidebarBrandText
+            }
+          >
             <strong>
               Home Run Rewards
             </strong>
@@ -300,6 +359,11 @@ export default function AdminShell({
           href="/admin/perfil"
           className={
             styles.profileHead
+          }
+          title={
+            sidebarCollapsed
+              ? "Editar perfil"
+              : undefined
           }
         >
           <div
@@ -359,6 +423,11 @@ export default function AdminShell({
                       ? styles.active
                       : ""
                   }
+                  title={
+                    sidebarCollapsed
+                      ? label
+                      : undefined
+                  }
                 >
                   <Icon />
 
@@ -377,6 +446,11 @@ export default function AdminShell({
             styles.logout
           }
           onClick={logout}
+          title={
+            sidebarCollapsed
+              ? "Cerrar sesión"
+              : undefined
+          }
         >
           <LogOut />
 

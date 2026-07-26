@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Gift,
   Star,
@@ -5,69 +7,188 @@ import {
   Trophy,
 } from "lucide-react";
 
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  type Announcement,
+  ANNOUNCEMENTS_STORAGE_KEY,
+  ANNOUNCEMENTS_UPDATED_EVENT,
+  DEFAULT_ANNOUNCEMENTS,
+  readAnnouncements,
+} from "@/lib/announcements";
+
 import styles from "./PromoTicker.module.css";
 
-const promotions = [
-  {
-    icon: TicketPercent,
-    text: "2x1 en el partido Águilas vs. Tomateros",
-  },
-  {
-    icon: Gift,
-    text: "Premios sorpresa durante el encuentro",
-  },
-  {
-    icon: Trophy,
-    text: "Participa y sube en el ranking",
-  },
-  {
-    icon: Star,
-    text: "Encuentra recompensas cerca del estadio",
-  },
-];
+const iconMap = {
+  ticket: TicketPercent,
+  gift: Gift,
+  trophy: Trophy,
+  star: Star,
+};
 
-function PromotionGroup() {
+interface PromotionGroupProps {
+  announcements:
+    Announcement[];
+}
+
+function PromotionGroup({
+  announcements,
+}: PromotionGroupProps) {
   return (
-    <div className={styles.promotionGroup}>
-      {promotions.map((promotion) => {
-        const Icon = promotion.icon;
+    <div
+      className={
+        styles.promotionGroup
+      }
+    >
+      {announcements.map(
+        (announcement) => {
+          const Icon =
+            iconMap[
+              announcement.icon
+            ];
 
-        return (
-          <div
-            key={promotion.text}
-            className={styles.promotionItem}
-          >
-            <Icon />
-
-            <span>
-              {promotion.text}
-            </span>
-
-            <span
-              className={styles.separator}
-              aria-hidden="true"
+          return (
+            <div
+              key={
+                announcement.id
+              }
+              className={
+                styles.promotionItem
+              }
             >
-              ⚾
-            </span>
-          </div>
-        );
-      })}
+              <Icon />
+
+              <span>
+                {
+                  announcement.text
+                }
+              </span>
+
+              <span
+                className={
+                  styles.separator
+                }
+                aria-hidden="true"
+              >
+                ⚾
+              </span>
+            </div>
+          );
+        }
+      )}
     </div>
   );
 }
 
 export default function PromoTicker() {
+  const [
+    announcements,
+    setAnnouncements,
+  ] = useState<Announcement[]>(
+    DEFAULT_ANNOUNCEMENTS
+  );
+
+  useEffect(() => {
+    function refreshAnnouncements() {
+      setAnnouncements(
+        readAnnouncements()
+      );
+    }
+
+    function handleStorage(
+      event: StorageEvent
+    ) {
+      if (
+        event.key ===
+        ANNOUNCEMENTS_STORAGE_KEY
+      ) {
+        refreshAnnouncements();
+      }
+    }
+
+    refreshAnnouncements();
+
+    window.addEventListener(
+      ANNOUNCEMENTS_UPDATED_EVENT,
+      refreshAnnouncements
+    );
+
+    window.addEventListener(
+      "storage",
+      handleStorage
+    );
+
+    return () => {
+      window.removeEventListener(
+        ANNOUNCEMENTS_UPDATED_EVENT,
+        refreshAnnouncements
+      );
+
+      window.removeEventListener(
+        "storage",
+        handleStorage
+      );
+    };
+  }, []);
+
+  const activeAnnouncements =
+    useMemo(
+      () =>
+        announcements
+          .filter(
+            (announcement) =>
+              announcement.active
+          )
+          .sort(
+            (first, second) =>
+              first.order -
+              second.order
+          ),
+      [announcements]
+    );
+
+  if (
+    activeAnnouncements.length ===
+    0
+  ) {
+    return null;
+  }
+
   return (
     <aside
-      className={styles.ticker}
+      className={
+        styles.ticker
+      }
       aria-label="Promociones activas"
     >
-      <div className={styles.tickerViewport}>
-        <div className={styles.tickerTrack}>
-          <PromotionGroup />
+      <div
+        className={
+          styles.tickerViewport
+        }
+      >
+        <div
+          className={
+            styles.tickerTrack
+          }
+        >
+          <PromotionGroup
+            announcements={
+              activeAnnouncements
+            }
+          />
 
-          <div aria-hidden="true">
-            <PromotionGroup />
+          <div
+            aria-hidden="true"
+          >
+            <PromotionGroup
+              announcements={
+                activeAnnouncements
+              }
+            />
           </div>
         </div>
       </div>

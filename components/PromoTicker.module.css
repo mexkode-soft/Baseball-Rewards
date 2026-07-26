@@ -24,8 +24,11 @@
   background:
     rgba(0, 0, 0, 0.1);
 
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter:
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
 
   box-shadow:
     0 8px 24px
@@ -69,8 +72,10 @@
   will-change: transform;
 }
 
-.ticker:hover .tickerTrack {
-  animation-play-state: paused;
+.ticker:hover
+.tickerTrack {
+  animation-play-state:
+    paused;
 }
 
 .promotionGroup {
@@ -81,14 +86,14 @@
 }
 
 .promotionItem {
+  padding-inline: 22px;
+
   display: inline-flex;
   align-items: center;
 
   gap: 9px;
 
   flex-shrink: 0;
-
-  padding-inline: 22px;
 
   color: #fff;
 
@@ -129,17 +134,23 @@
 
 @keyframes tickerMovement {
   from {
-    transform: translateX(0);
+    transform:
+      translateX(0);
   }
 
   to {
-    transform: translateX(-50%);
+    transform:
+      translateX(-50%);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
   .tickerTrack {
-    animation-play-state: paused;
+    animation-play-state:
+      paused;
   }
 }
 

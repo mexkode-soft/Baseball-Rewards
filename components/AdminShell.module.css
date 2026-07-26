@@ -1,8 +1,12 @@
 .adminShell {
+  --sidebar-width: 286px;
+
   min-height: 100svh;
 
   display: grid;
-  grid-template-columns: 286px minmax(0, 1fr);
+  grid-template-columns:
+    var(--sidebar-width)
+    minmax(0, 1fr);
 
   background:
     radial-gradient(
@@ -13,6 +17,14 @@
     #0a0b0e;
 
   color: #fff;
+
+  transition:
+    grid-template-columns
+    0.25s ease;
+}
+
+.adminShellCollapsed {
+  --sidebar-width: 92px;
 }
 
 .sidebar {
@@ -23,13 +35,14 @@
   left: 0;
   bottom: 0;
 
-  width: 286px;
+  width: var(--sidebar-width);
 
   display: flex;
   flex-direction: column;
 
   padding: 22px 18px;
 
+  overflow-x: hidden;
   overflow-y: auto;
 
   border-right:
@@ -46,6 +59,62 @@
   box-shadow:
     20px 0 50px
     rgba(0, 0, 0, 0.18);
+
+  transition:
+    width 0.25s ease,
+    padding 0.25s ease,
+    transform 0.25s ease;
+}
+
+.sidebarCollapsed {
+  padding-inline: 14px;
+}
+
+.desktopCollapseButton {
+  position: absolute;
+  z-index: 4;
+
+  top: 18px;
+  right: 12px;
+
+  width: 38px;
+  height: 38px;
+
+  padding: 0;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.1);
+
+  border-radius: 11px;
+
+  background:
+    rgba(255, 255, 255, 0.035);
+
+  color: #fff;
+
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.desktopCollapseButton:hover {
+  border-color:
+    rgba(242, 189, 69, 0.45);
+
+  background:
+    rgba(242, 189, 69, 0.06);
+
+  color: var(--gold);
+}
+
+.desktopCollapseButton svg {
+  width: 19px;
+  height: 19px;
 }
 
 .sidebarBrand {
@@ -56,7 +125,7 @@
 
   gap: 12px;
 
-  padding: 4px 6px 18px;
+  padding: 4px 48px 18px 6px;
 
   border-bottom:
     1px solid
@@ -70,10 +139,18 @@
   flex-shrink: 0;
 
   object-fit: contain;
+
+  transition:
+    width 0.25s ease,
+    height 0.25s ease;
 }
 
-.sidebarBrand div {
+.sidebarBrandText {
   min-width: 0;
+
+  transition:
+    opacity 0.18s ease,
+    width 0.25s ease;
 }
 
 .sidebarBrand strong,
@@ -98,6 +175,39 @@
 
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.sidebarCollapsed
+.sidebarBrand {
+  justify-content: center;
+
+  padding:
+    48px 0
+    16px;
+}
+
+.sidebarCollapsed
+.sidebarBrand img {
+  width: 56px;
+  height: 46px;
+}
+
+.sidebarCollapsed
+.sidebarBrandText {
+  width: 0;
+
+  overflow: hidden;
+
+  opacity: 0;
+}
+
+.sidebarCollapsed
+.desktopCollapseButton {
+  top: 13px;
+  right: 50%;
+
+  transform:
+    translateX(50%);
 }
 
 .sidebarClose {
@@ -154,7 +264,8 @@
 
   transition:
     border-color 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    padding 0.25s ease;
 }
 
 .profileHead:hover {
@@ -185,6 +296,10 @@
     rgba(242, 189, 69, 0.06);
 
   color: var(--gold);
+
+  transition:
+    width 0.25s ease,
+    height 0.25s ease;
 }
 
 .avatar img {
@@ -202,6 +317,10 @@
 
 .profileInformation {
   min-width: 0;
+
+  transition:
+    opacity 0.18s ease,
+    width 0.25s ease;
 }
 
 .profileInformation strong,
@@ -226,6 +345,28 @@
   color: var(--muted);
 
   font-size: 11px;
+}
+
+.sidebarCollapsed
+.profileHead {
+  padding: 10px;
+
+  justify-content: center;
+}
+
+.sidebarCollapsed
+.avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.sidebarCollapsed
+.profileInformation {
+  width: 0;
+
+  overflow: hidden;
+
+  opacity: 0;
 }
 
 .navigation {
@@ -259,11 +400,13 @@
     color 0.2s ease,
     background 0.2s ease,
     border-color 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    padding 0.25s ease;
 }
 
 .navigation a:hover {
-  transform: translateX(3px);
+  transform:
+    translateX(3px);
 
   color: #fff;
 
@@ -278,6 +421,16 @@
   flex-shrink: 0;
 }
 
+.navigation a span {
+  overflow: hidden;
+
+  white-space: nowrap;
+
+  transition:
+    opacity 0.18s ease,
+    width 0.25s ease;
+}
+
 .navigation a.active {
   color: var(--gold);
 
@@ -290,6 +443,25 @@
       rgba(242, 189, 69, 0.1),
       rgba(242, 189, 69, 0.025)
     );
+}
+
+.sidebarCollapsed
+.navigation a {
+  justify-content: center;
+
+  padding-inline: 0;
+}
+
+.sidebarCollapsed
+.navigation a:hover {
+  transform: none;
+}
+
+.sidebarCollapsed
+.navigation a span {
+  width: 0;
+
+  opacity: 0;
 }
 
 .logout {
@@ -318,7 +490,8 @@
 
   transition:
     border-color 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    padding 0.25s ease;
 }
 
 .logout:hover {
@@ -332,6 +505,32 @@
 .logout svg {
   width: 20px;
   height: 20px;
+
+  flex-shrink: 0;
+}
+
+.logout span {
+  overflow: hidden;
+
+  white-space: nowrap;
+
+  transition:
+    opacity 0.18s ease,
+    width 0.25s ease;
+}
+
+.sidebarCollapsed
+.logout {
+  justify-content: center;
+
+  padding-inline: 0;
+}
+
+.sidebarCollapsed
+.logout span {
+  width: 0;
+
+  opacity: 0;
 }
 
 .adminMain {
@@ -390,27 +589,42 @@
   );
 
   margin-inline: auto;
-  padding: 42px 0 70px;
+
+  padding:
+    42px 0
+    70px;
 }
 
 .sidebarOverlay {
   display: none;
 }
 
-/* Tabletas y celular */
+/*
+ * Tabletas y celulares:
+ * el menú vuelve a ser completo,
+ * sin modo contraído.
+ */
 @media (max-width: 980px) {
-  .adminShell {
+  .adminShell,
+  .adminShellCollapsed {
+    --sidebar-width: 0px;
+
     display: block;
   }
 
-  .sidebar {
-    width: min(310px, 88vw);
+  .sidebar,
+  .sidebarCollapsed {
+    width:
+      min(
+        310px,
+        88vw
+      );
+
+    padding:
+      22px 18px;
 
     transform:
       translateX(-105%);
-
-    transition:
-      transform 0.25s ease;
   }
 
   .sidebarOpen {
@@ -418,13 +632,95 @@
       translateX(0);
   }
 
+  .desktopCollapseButton {
+    display: none;
+  }
+
+  .sidebarBrand,
+  .sidebarCollapsed
+  .sidebarBrand {
+    min-height: 72px;
+
+    justify-content:
+      flex-start;
+
+    padding:
+      4px 50px
+      18px 6px;
+  }
+
+  .sidebarBrand img,
+  .sidebarCollapsed
+  .sidebarBrand img {
+    width: 70px;
+    height: 56px;
+  }
+
+  .sidebarBrandText,
+  .sidebarCollapsed
+  .sidebarBrandText,
+  .profileInformation,
+  .sidebarCollapsed
+  .profileInformation {
+    width: auto;
+
+    overflow: visible;
+
+    opacity: 1;
+  }
+
+  .profileHead,
+  .sidebarCollapsed
+  .profileHead {
+    justify-content:
+      flex-start;
+
+    padding: 14px;
+  }
+
+  .avatar,
+  .sidebarCollapsed
+  .avatar {
+    width: 52px;
+    height: 52px;
+  }
+
+  .navigation a,
+  .sidebarCollapsed
+  .navigation a {
+    justify-content:
+      flex-start;
+
+    padding:
+      10px 13px;
+  }
+
+  .navigation a span,
+  .sidebarCollapsed
+  .navigation a span,
+  .logout span,
+  .sidebarCollapsed
+  .logout span {
+    width: auto;
+
+    overflow: visible;
+
+    opacity: 1;
+  }
+
+  .logout,
+  .sidebarCollapsed
+  .logout {
+    justify-content:
+      flex-start;
+
+    padding:
+      10px 13px;
+  }
+
   .sidebarClose {
     display: grid;
     place-items: center;
-  }
-
-  .sidebarBrand {
-    padding-right: 50px;
   }
 
   .sidebarOverlay {
@@ -458,7 +754,8 @@
   }
 
   .mobileHeader {
-    justify-content: space-between;
+    justify-content:
+      space-between;
 
     padding-inline: 18px;
   }
@@ -518,13 +815,15 @@
   }
 
   .adminContent {
-    width: min(
-      100% - 32px,
-      900px
-    );
+    width:
+      min(
+        calc(100% - 32px),
+        900px
+      );
 
     padding:
-      30px 0 54px;
+      30px 0
+      54px;
   }
 }
 
@@ -545,6 +844,7 @@
       calc(100% - 24px);
 
     padding:
-      24px 0 42px;
+      24px 0
+      42px;
   }
 }
