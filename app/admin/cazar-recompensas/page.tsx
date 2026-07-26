@@ -308,6 +308,19 @@ export default function CazarRecompensasPage() {
   );
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${selected.latitude},${selected.longitude}`;
 
+  function selectReward(rewardId: number) {
+    setSelectedId(rewardId);
+
+    window.setTimeout(() => {
+      document
+        .getElementById("reward-tracker")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 80);
+  }
+
   function changeDistance(delta: number) {
     setDistances((current) => ({
       ...current,
@@ -381,6 +394,11 @@ export default function CazarRecompensasPage() {
           <div className={styles.count}><Gift /><strong>{rewards.length}</strong><span>recompensas</span></div>
         </div>
 
+        <div className={styles.mobileScrollHint}>
+          <span>Desliza para ver más premios</span>
+          <strong>← mueve la tabla →</strong>
+        </div>
+
         <div className={styles.tableScroller}>
           <table className={styles.table}>
             <thead>
@@ -416,7 +434,7 @@ export default function CazarRecompensasPage() {
                         type="button"
                         className={selectedRow ? styles.selectedButton : styles.goButton}
                         disabled={soldOut || blockedByPreviousWin}
-                        onClick={() => setSelectedId(reward.id)}
+                        onClick={() => selectReward(reward.id)}
                       >
                         <Navigation />
                         {soldOut ? "Agotada" : blockedByPreviousWin ? "Ya obtenido" : selectedRow ? "Seleccionada" : "Ir por ella"}
@@ -431,6 +449,13 @@ export default function CazarRecompensasPage() {
       </section>
 
       <section className={`${styles.panel} ${styles.tracker}`} id="reward-tracker">
+        <div className={styles.gameSectionBadge}>
+          <Target />
+          <div>
+            <span>Zona de juego</span>
+            <strong>Acércate y reclama tu premio</strong>
+          </div>
+        </div>
         <div className={styles.trackerTitle}>
           <div className={styles.trackerIdentity}>
             <LocateFixed />
@@ -500,6 +525,13 @@ export default function CazarRecompensasPage() {
       </section>
 
       <section className={`${styles.panel} ${styles.collectedSection}`}>
+        <div className={styles.rewardsSectionBadge}>
+          <Trophy />
+          <div>
+            <span>Historial de premios</span>
+            <strong>Tus recompensas ganadas</strong>
+          </div>
+        </div>
         <div className={styles.heading}>
           <div>
             <span>Premios recolectados</span>
