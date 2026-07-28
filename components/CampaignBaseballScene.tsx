@@ -1,46 +1,79 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import {
+  useEffect,
+  useRef,
+} from "react";
 
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+import {
+  GLTFLoader,
+} from "three/examples/jsm/loaders/GLTFLoader.js";
+
+import {
+  OrbitControls,
+} from "three/examples/jsm/controls/OrbitControls.js";
 
 import styles from "./CampaignBaseballScene.module.css";
 
 export default function CampaignBaseballScene() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef =
+    useRef<HTMLDivElement>(null);
+
+  const canvasRef =
+    useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const container = containerRef.current;
+    const container =
+      containerRef.current;
 
-    if (!container) {
+    const canvas =
+      canvasRef.current;
+
+    if (
+      !container ||
+      !canvas
+    ) {
       return;
     }
 
-    const scene = new THREE.Scene();
+    let disposed = false;
+    let animationFrame = 0;
 
-    const camera = new THREE.PerspectiveCamera(
-      40,
-      container.clientWidth / container.clientHeight,
-      0.1,
-      100
+    const scene =
+      new THREE.Scene();
+
+    const camera =
+      new THREE.PerspectiveCamera(
+        40,
+        1,
+        0.1,
+        100
+      );
+
+    camera.position.set(
+      0,
+      0,
+      4.8
     );
 
-    camera.position.set(0, 0, 4.8);
-
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-    });
+    /*
+     * React crea el canvas.
+     * Three.js solamente lo utiliza.
+     */
+    const renderer =
+      new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+      });
 
     renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
-    );
-
-    renderer.setSize(
-      container.clientWidth,
-      container.clientHeight
+      Math.min(
+        window.devicePixelRatio,
+        2
+      )
     );
 
     renderer.outputColorSpace =
@@ -49,9 +82,8 @@ export default function CampaignBaseballScene() {
     renderer.toneMapping =
       THREE.ACESFilmicToneMapping;
 
-    renderer.toneMappingExposure = 1.25;
-
-    container.appendChild(renderer.domElement);
+    renderer.toneMappingExposure =
+      1.25;
 
     const ambientLight =
       new THREE.AmbientLight(
@@ -59,7 +91,9 @@ export default function CampaignBaseballScene() {
         2.2
       );
 
-    scene.add(ambientLight);
+    scene.add(
+      ambientLight
+    );
 
     const mainLight =
       new THREE.DirectionalLight(
@@ -67,8 +101,15 @@ export default function CampaignBaseballScene() {
         3
       );
 
-    mainLight.position.set(3, 4, 5);
-    scene.add(mainLight);
+    mainLight.position.set(
+      3,
+      4,
+      5
+    );
+
+    scene.add(
+      mainLight
+    );
 
     const warmLight =
       new THREE.DirectionalLight(
@@ -76,8 +117,15 @@ export default function CampaignBaseballScene() {
         2.2
       );
 
-    warmLight.position.set(-4, 1, 2);
-    scene.add(warmLight);
+    warmLight.position.set(
+      -4,
+      1,
+      2
+    );
+
+    scene.add(
+      warmLight
+    );
 
     const rimLight =
       new THREE.DirectionalLight(
@@ -85,42 +133,105 @@ export default function CampaignBaseballScene() {
         1.8
       );
 
-    rimLight.position.set(2, -3, -4);
-    scene.add(rimLight);
-
-    const controls = new OrbitControls(
-      camera,
-      renderer.domElement
+    rimLight.position.set(
+      2,
+      -3,
+      -4
     );
 
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
+    scene.add(
+      rimLight
+    );
 
-    controls.enablePan = false;
+    const controls =
+      new OrbitControls(
+        camera,
+        canvas
+      );
 
-    controls.enableZoom = true;
-    controls.minDistance = 3.3;
-    controls.maxDistance = 6.5;
+    controls.enableDamping =
+      true;
 
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 1.1;
+    controls.dampingFactor =
+      0.08;
+
+    controls.enablePan =
+      false;
+
+    controls.enableZoom =
+      true;
+
+    controls.minDistance =
+      3.3;
+
+    controls.maxDistance =
+      6.5;
+
+    controls.autoRotate =
+      true;
+
+    controls.autoRotateSpeed =
+      1.1;
 
     let baseballModel:
       | THREE.Object3D
       | null = null;
 
-    const loader = new GLTFLoader();
+    function resizeScene() {
+      if (disposed) {
+        return;
+      }
+
+      const currentContainer =
+        containerRef.current;
+
+      if (!currentContainer) {
+        return;
+      }
+
+      const width =
+        Math.max(
+          currentContainer.clientWidth,
+          1
+        );
+
+      const height =
+        Math.max(
+          currentContainer.clientHeight,
+          1
+        );
+
+      camera.aspect =
+        width / height;
+
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(
+        width,
+        height,
+        false
+      );
+    }
+
+    const loader =
+      new GLTFLoader();
 
     loader.load(
       "/models/baseball.glb",
 
       (gltf) => {
-        baseballModel = gltf.scene;
+        if (disposed) {
+          return;
+        }
+
+        baseballModel =
+          gltf.scene;
 
         const box =
-          new THREE.Box3().setFromObject(
-            baseballModel
-          );
+          new THREE.Box3()
+            .setFromObject(
+              baseballModel
+            );
 
         const size =
           box.getSize(
@@ -132,7 +243,9 @@ export default function CampaignBaseballScene() {
             new THREE.Vector3()
           );
 
-        baseballModel.position.sub(center);
+        baseballModel.position.sub(
+          center
+        );
 
         const largestDimension =
           Math.max(
@@ -141,10 +254,18 @@ export default function CampaignBaseballScene() {
             size.z
           );
 
-        const scale =
-          2.3 / largestDimension;
+        if (
+          largestDimension >
+          0
+        ) {
+          const scale =
+            2.3 /
+            largestDimension;
 
-        baseballModel.scale.setScalar(scale);
+          baseballModel.scale.setScalar(
+            scale
+          );
+        }
 
         baseballModel.rotation.set(
           0.18,
@@ -152,21 +273,35 @@ export default function CampaignBaseballScene() {
           0.08
         );
 
-        baseballModel.traverse((child) => {
-          if (
-            child instanceof THREE.Mesh
-          ) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
+        baseballModel.traverse(
+          (child) => {
+            if (
+              child instanceof
+              THREE.Mesh
+            ) {
+              child.castShadow =
+                true;
 
-        scene.add(baseballModel);
+              child.receiveShadow =
+                true;
+            }
+          }
+        );
+
+        scene.add(
+          baseballModel
+        );
+
+        resizeScene();
       },
 
       undefined,
 
       (error) => {
+        if (disposed) {
+          return;
+        }
+
         console.error(
           "No fue posible cargar la pelota:",
           error
@@ -174,9 +309,11 @@ export default function CampaignBaseballScene() {
       }
     );
 
-    let animationFrame = 0;
-
     function animate() {
+      if (disposed) {
+        return;
+      }
+
       animationFrame =
         window.requestAnimationFrame(
           animate
@@ -190,39 +327,31 @@ export default function CampaignBaseballScene() {
       );
     }
 
-    animate();
-
-    function handleResize() {
-      if (!container) {
-        return;
-      }
-
-      const width =
-        container.clientWidth;
-
-      const height =
-        container.clientHeight;
-
-      camera.aspect =
-        width / height;
-
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(
-        width,
-        height
+    const resizeObserver =
+      new ResizeObserver(
+        resizeScene
       );
-    }
+
+    resizeObserver.observe(
+      container
+    );
 
     window.addEventListener(
       "resize",
-      handleResize
+      resizeScene
     );
 
+    resizeScene();
+    animate();
+
     return () => {
+      disposed = true;
+
+      resizeObserver.disconnect();
+
       window.removeEventListener(
         "resize",
-        handleResize
+        resizeScene
       );
 
       window.cancelAnimationFrame(
@@ -231,49 +360,74 @@ export default function CampaignBaseballScene() {
 
       controls.dispose();
 
-      scene.traverse((object) => {
-        if (
-          object instanceof THREE.Mesh
-        ) {
-          object.geometry?.dispose();
-
+      scene.traverse(
+        (object) => {
           if (
-            Array.isArray(
-              object.material
-            )
+            object instanceof
+            THREE.Mesh
           ) {
-            object.material.forEach(
-              (material) =>
-                material.dispose()
+            object.geometry?.dispose();
+
+            const materials =
+              Array.isArray(
+                object.material
+              )
+                ? object.material
+                : [
+                    object.material,
+                  ];
+
+            materials.forEach(
+              (material) => {
+                material.dispose();
+              }
             );
-          } else {
-            object.material?.dispose();
           }
         }
-      });
+      );
 
+      renderer.renderLists.dispose();
       renderer.dispose();
 
-     if (
-        renderer.domElement.isConnected
-        ) {
-        renderer.domElement.remove();
-        }
+      /*
+       * No usamos appendChild,
+       * removeChild ni remove().
+       * React controla el canvas.
+       */
     };
   }, []);
 
   return (
-    <div className={styles.sceneWrapper}>
-      <div className={styles.glow} />
-
+    <div
+      ref={containerRef}
+      className={
+        styles.sceneWrapper
+      }
+    >
       <div
-        ref={containerRef}
-        className={styles.scene}
+        className={
+          styles.glow
+        }
+      />
+
+      <canvas
+        ref={canvasRef}
+        className={
+          styles.scene
+        }
         aria-label="Pelota de béisbol tridimensional interactiva"
       />
 
-      <div className={styles.instructions}>
-        <span className={styles.mouseIcon}>
+      <div
+        className={
+          styles.instructions
+        }
+      >
+        <span
+          className={
+            styles.mouseIcon
+          }
+        >
           ↔
         </span>
 
@@ -283,8 +437,9 @@ export default function CampaignBaseballScene() {
           </strong>
 
           <p>
-            Arrastra para girarla y usa la
-            rueda para acercar o alejar.
+            Arrastra para girarla y
+            usa la rueda para acercar
+            o alejar.
           </p>
         </div>
       </div>

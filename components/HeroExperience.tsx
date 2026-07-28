@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -16,16 +15,31 @@ import {
 
 import styles from "./HeroExperience.module.css";
 
+type DeviceMode =
+  | "desktop"
+  | "mobile"
+  | null;
+
 export default function HeroExperience() {
   const videoRef =
-    useRef<HTMLVideoElement | null>(null);
+    useRef<HTMLVideoElement | null>(
+      null
+    );
+
+  const [
+    deviceMode,
+    setDeviceMode,
+  ] =
+    useState<DeviceMode>(
+      null
+    );
 
   const [muted, setMuted] =
     useState(true);
 
   const [
-    videoReady,
-    setVideoReady,
+    videoPrepared,
+    setVideoPrepared,
   ] = useState(false);
 
   const [
@@ -34,94 +48,152 @@ export default function HeroExperience() {
   ] = useState(false);
 
   const [
+    experienceStarted,
+    setExperienceStarted,
+  ] = useState(false);
+
+  const [
     autoplayBlocked,
     setAutoplayBlocked,
   ] = useState(false);
 
-  const startVideo =
-    useCallback(async () => {
-      const video =
-        videoRef.current;
+  const [
+    videoEnded,
+    setVideoEnded,
+  ] = useState(false);
 
-      if (!video) {
+  /*
+   * Detectamos si es móvil o
+   * dispositivo táctil.
+   */
+  useEffect(() => {
+    const touchDevice =
+      window.matchMedia(
+        "(pointer: coarse)"
+      ).matches;
+
+    const compactScreen =
+      window.innerWidth <=
+      900;
+
+    const mode:
+      DeviceMode =
+      touchDevice ||
+      compactScreen
+        ? "mobile"
+        : "desktop";
+
+    setDeviceMode(mode);
+  }, []);
+
+  /*
+   * En computadora intentamos
+   * reproducir directamente.
+   *
+   * No esperamos a loadedData,
+   * porque algunos navegadores
+   * tardan en disparar ese evento.
+   */
+useEffect(() => {
+  if (
+    deviceMode !==
+    "desktop"
+  ) {
+    return;
+  }
+
+  const currentVideo =
+    videoRef.current;
+
+  if (!currentVideo) {
+    return;
+  }
+
+  let cancelled = false;
+
+  async function startDesktopVideo(
+    video:
+      HTMLVideoElement
+  ) {
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+
+    setMuted(true);
+
+    try {
+      await video.play();
+
+      if (cancelled) {
         return;
       }
 
-      video.muted = true;
-      video.defaultMuted = true;
-      video.playsInline = true;
-
-      try {
-        await video.play();
-
-        setVideoPlaying(true);
-        setVideoReady(true);
-        setAutoplayBlocked(false);
-      } catch (error) {
-        console.warn(
-          "El navegador bloqueó la reproducción automática:",
-          error
-        );
-
-        setVideoPlaying(false);
-        setVideoReady(true);
-        setAutoplayBlocked(true);
+      setVideoPrepared(true);
+      setExperienceStarted(true);
+      setVideoPlaying(true);
+      setVideoEnded(false);
+      setAutoplayBlocked(false);
+    } catch (error) {
+      if (cancelled) {
+        return;
       }
-    }, []);
 
-  useEffect(() => {
-    void startVideo();
+      console.warn(
+        "El navegador bloqueó la reproducción automática:",
+        error
+      );
 
-    /*
-     * Evita que la pantalla de carga
-     * permanezca demasiado tiempo.
-     */
-    const loadingFallback =
-      window.setTimeout(() => {
-        setVideoReady(true);
-      }, 900);
+      setVideoPrepared(true);
+      setExperienceStarted(false);
+      setVideoPlaying(false);
+      setAutoplayBlocked(true);
+    }
+  }
 
-    function handleVisibilityChange() {
+  void startDesktopVideo(
+    currentVideo
+  );
+
+  const retryTimeout =
+    window.setTimeout(() => {
       if (
-        document.visibilityState ===
-        "visible"
+        !cancelled &&
+        currentVideo.paused &&
+        !currentVideo.ended
       ) {
-        void startVideo();
+        void startDesktopVideo(
+          currentVideo
+        );
       }
-    }
+    }, 500);
 
-    function handlePageShow() {
-      void startVideo();
-    }
+  return () => {
+    cancelled = true;
 
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibilityChange
+    window.clearTimeout(
+      retryTimeout
     );
+  };
+}, [deviceMode]);
 
-    window.addEventListener(
-      "pageshow",
-      handlePageShow
-    );
+  /*
+   * Evita que "Preparando experiencia"
+   * permanezca de forma indefinida.
+   */
+  useEffect(() => {
+    const fallback =
+      window.setTimeout(() => {
+        setVideoPrepared(true);
+      }, 1200);
 
     return () => {
       window.clearTimeout(
-        loadingFallback
-      );
-
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange
-      );
-
-      window.removeEventListener(
-        "pageshow",
-        handlePageShow
+        fallback
       );
     };
-  }, [startVideo]);
+  }, []);
 
-  async function playManually() {
+  async function startExperience() {
     const video =
       videoRef.current;
 
@@ -130,23 +202,39 @@ export default function HeroExperience() {
     }
 
     video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
 
     setMuted(true);
+
+    if (video.ended) {
+      video.currentTime = 0;
+    }
 
     try {
       await video.play();
 
-      setVideoReady(true);
+      setVideoPrepared(true);
+      setExperienceStarted(true);
       setVideoPlaying(true);
+      setVideoEnded(false);
       setAutoplayBlocked(false);
     } catch (error) {
       console.error(
-        "No se pudo iniciar el video:",
+        "No se pudo iniciar la experiencia:",
         error
       );
+
+      setVideoPrepared(true);
+      setVideoPlaying(false);
+      setAutoplayBlocked(true);
     }
   }
 
+  /*
+   * Esta es la única acción que
+   * regresa el video al segundo cero.
+   */
   async function replayVideo() {
     const video =
       videoRef.current;
@@ -160,19 +248,23 @@ export default function HeroExperience() {
     try {
       await video.play();
 
+      setExperienceStarted(true);
       setVideoPlaying(true);
+      setVideoEnded(false);
       setAutoplayBlocked(false);
     } catch (error) {
       console.error(
         "No se pudo reproducir nuevamente:",
         error
       );
-
-      setAutoplayBlocked(true);
     }
   }
 
-  async function toggleSound() {
+  /*
+   * Cambiar el sonido no ejecuta play()
+   * y tampoco reinicia el video.
+   */
+  function toggleSound() {
     const video =
       videoRef.current;
 
@@ -180,36 +272,29 @@ export default function HeroExperience() {
       return;
     }
 
-    const nextMutedState =
-      !muted;
+    const nextMuted =
+      !video.muted;
 
     video.muted =
-      nextMutedState;
+      nextMuted;
 
     setMuted(
-      nextMutedState
+      nextMuted
     );
-
-    try {
-      await video.play();
-
-      setVideoPlaying(true);
-      setAutoplayBlocked(false);
-    } catch (error) {
-      console.error(
-        "No se pudo continuar el video:",
-        error
-      );
-    }
   }
 
-  /*
-   * La pantalla de carga desaparece
-   * en cuanto existe un primer frame
-   * disponible o pasan 900 ms.
-   */
-  const showLoading =
-    !videoReady;
+  const showPreparingScreen =
+    deviceMode === null ||
+    !videoPrepared;
+
+  const showStartScreen =
+    videoPrepared &&
+    !experienceStarted &&
+    (
+      deviceMode ===
+        "mobile" ||
+      autoplayBlocked
+    );
 
   return (
     <section
@@ -223,42 +308,44 @@ export default function HeroExperience() {
         className={
           styles.heroVideo
         }
-        autoPlay
         muted={muted}
         playsInline
         preload="auto"
-        loop
         disablePictureInPicture
         onLoadedMetadata={() => {
-          setVideoReady(true);
+          setVideoPrepared(true);
         }}
         onLoadedData={() => {
-          setVideoReady(true);
-
-          void startVideo();
+          setVideoPrepared(true);
         }}
         onCanPlay={() => {
-          setVideoReady(true);
-
-          void startVideo();
+          setVideoPrepared(true);
+        }}
+        onCanPlayThrough={() => {
+          setVideoPrepared(true);
         }}
         onPlaying={() => {
-          setVideoReady(true);
+          setVideoPrepared(true);
+          setExperienceStarted(true);
           setVideoPlaying(true);
+          setVideoEnded(false);
           setAutoplayBlocked(false);
-        }}
-        onWaiting={() => {
-          /*
-           * No volvemos a mostrar
-           * la pantalla de carga.
-           */
-          setVideoPlaying(false);
-        }}
-        onStalled={() => {
-          setVideoPlaying(false);
         }}
         onPause={() => {
           setVideoPlaying(false);
+        }}
+        onEnded={() => {
+          setVideoPlaying(false);
+          setVideoEnded(true);
+        }}
+        onError={(event) => {
+          console.error(
+            "Error al cargar el video:",
+            event
+          );
+
+          setVideoPrepared(true);
+          setAutoplayBlocked(true);
         }}
       >
         <source
@@ -270,65 +357,78 @@ export default function HeroExperience() {
         la reproducción de video.
       </video>
 
-      {showLoading && (
+      {showPreparingScreen && (
         <div
           className={
-            styles.loadingScreen
+            styles.introScreen
           }
           aria-live="polite"
         >
           <div
             className={
-              styles.loadingContent
+              styles.introLogoWrap
             }
           >
             <img
               src="/images/logo-home-run.png"
               alt="Home Run Rewards"
               className={
-                styles.loadingLogo
+                styles.introLogo
               }
             />
 
-            <span
+            <div
               className={
-                styles.loadingSpinner
+                styles.introLoader
               }
               aria-hidden="true"
             />
 
             <p>
-              Cargando experiencia
+              Preparando experiencia
             </p>
           </div>
         </div>
       )}
 
-      {autoplayBlocked &&
-        !videoPlaying &&
-        !showLoading && (
+      {showStartScreen && (
+        <button
+          type="button"
+          className={
+            styles.introScreen
+          }
+          onClick={
+            startExperience
+          }
+          aria-label="Iniciar experiencia"
+        >
           <div
             className={
-              styles.manualPlayOverlay
+              styles.introLogoWrap
             }
           >
-            <button
-              type="button"
+            <img
+              src="/images/logo-home-run.png"
+              alt="Home Run Rewards"
               className={
-                styles.manualPlayButton
+                styles.introLogo
               }
-              onClick={
-                playManually
+            />
+
+            <span
+              className={
+                styles.startPrompt
               }
             >
               <Play />
 
-              Toca para comenzar
-            </button>
+              Iniciar experiencia
+            </span>
           </div>
-        )}
+        </button>
+      )}
 
-      {videoPlaying && (
+      {experienceStarted && (
         <div
           className={
             styles.heroVideoControls
@@ -383,6 +483,18 @@ export default function HeroExperience() {
                 : "Silenciar"}
             </span>
           </button>
+        </div>
+      )}
+
+      {videoEnded && (
+        <div
+          className={
+            styles.endedIndicator
+          }
+        >
+          <span>
+            Experiencia finalizada
+          </span>
         </div>
       )}
     </section>
