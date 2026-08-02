@@ -71,8 +71,8 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
         const center = box.getCenter(new THREE.Vector3());
 
         model.position.sub(center);
-        model.position.y = 0.42;
-        baseScale = 1.15 / Math.max(size.x, size.y, size.z, 0.001);
+        model.position.y = 0.82;
+        baseScale = 1.05 / Math.max(size.x, size.y, size.z, 0.001);
         model.scale.setScalar(baseScale);
 
         scene.add(model);

@@ -1,0 +1,24 @@
+HOME RUN REWARDS - VERSIÓN FINAL QR, CAPTURAS Y VERCEL
+
+Ajustes incluidos:
+- El modal del escáner QR se renderiza con portal directamente en document.body.
+- El escáner y sus resultados ocupan toda la ventana, incluso dentro del layout lateral.
+- La pantalla de resultados tiene desplazamiento vertical en móvil y escritorio.
+- La lista de recompensas/capturas tiene scroll cuando existen muchos registros.
+- Se corrigió el error de TypeScript de BrandCampaign posiblemente undefined.
+- Se conserva el archivo corregido de la dinámica de mapa.
+- TypeScript fue validado con: npx tsc --noEmit
+
+Instalación:
+1. Sustituye tu proyecto por el contenido del ZIP.
+2. No copies node_modules ni .next de una versión anterior.
+3. Ejecuta:
+   npm install
+   npm run build
+4. Sube los cambios a Git y vuelve a desplegar en Vercel.
+
+Validación:
+- npx tsc --noEmit: correcto.
+- El build completo no pudo finalizar en el entorno de generación porque el
+  registro interno no tenía disponible el binario SWC de Next.js. No se detectaron
+  errores de TypeScript en el proyecto.

@@ -7,12 +7,12 @@ import {
   Gift,
   QrCode,
   RotateCcw,
-  Sparkles,
   Trophy,
   XCircle,
 } from "lucide-react";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 
 import {
   useRouter,
@@ -35,6 +35,13 @@ import {
   type QrCampaign,
   type QrScanResult,
 } from "@/lib/qrCampaigns";
+
+import {
+  DEFAULT_DEMO_CONFIG,
+  DEMO_CONFIG_EVENT,
+  readDemoConfig,
+  type DemoConfig,
+} from "@/lib/demoConfig";
 
 type ScannerState =
   | "idle"
@@ -84,6 +91,13 @@ export default function QrPlayPage() {
     setPoints,
   ] = useState(0);
 
+  const [
+    demoConfig,
+    setDemoConfig,
+  ] = useState<DemoConfig>(
+    DEFAULT_DEMO_CONFIG
+  );
+
   const scannerRef =
     useRef<
       import("html5-qrcode").Html5Qrcode | null
@@ -124,6 +138,38 @@ export default function QrPlayPage() {
       window.removeEventListener(
         "hrr-points-updated",
         update
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateDemoConfig = () => {
+      setDemoConfig(
+        readDemoConfig()
+      );
+    };
+
+    updateDemoConfig();
+
+    window.addEventListener(
+      DEMO_CONFIG_EVENT,
+      updateDemoConfig
+    );
+
+    window.addEventListener(
+      "storage",
+      updateDemoConfig
+    );
+
+    return () => {
+      window.removeEventListener(
+        DEMO_CONFIG_EVENT,
+        updateDemoConfig
+      );
+
+      window.removeEventListener(
+        "storage",
+        updateDemoConfig
       );
     };
   }, []);
@@ -309,23 +355,54 @@ export default function QrPlayPage() {
     );
   }
 
-  function simulateScan() {
+  function simulateScanOutcome(
+    winner: boolean
+  ) {
     if (
       !campaign?.codes.length
     ) {
       return;
     }
 
-    const code =
-      campaign.codes[
-        Math.floor(
-          Math.random() *
-            campaign.codes.length
-        )
-      ];
+    const preferredCode =
+      campaign.codes.find(
+        (code) =>
+          code.isWinner === winner
+      ) ??
+      campaign.codes[0];
 
-    void processPayload(
-      code.payload
+    const simulatedResult:
+      QrScanResult = {
+      ok: true,
+      status: winner
+        ? "winner"
+        : "not_winner",
+      message: winner
+        ? `¡Felicidades! Ganaste ${preferredCode.reward || campaign.reward}.`
+        : "Este código no contiene premio. Sigue participando.",
+      campaign,
+      code: {
+        ...preferredCode,
+        isWinner: winner,
+        reward: winner
+          ? preferredCode.reward ||
+            campaign.reward
+          : "",
+        points: winner
+          ? campaign.winnerPoints
+          : campaign.participationPoints,
+      },
+      pointsAwarded: winner
+        ? campaign.winnerPoints
+        : campaign.participationPoints,
+    };
+
+    setResult(
+      simulatedResult
+    );
+
+    setScannerState(
+      "result"
     );
   }
 
@@ -460,29 +537,63 @@ export default function QrPlayPage() {
           Abrir cámara
         </button>
 
-        <button
-          type="button"
-          className={
-            styles.simulateButton
-          }
-          onClick={
-            simulateScan
-          }
-          disabled={
-            !campaign
-          }
-        >
-          Simular escaneo
-        </button>
+        {demoConfig.simulatedLocationEnabled && (
+          <div
+            className={
+              styles.qrDemoActions
+            }
+          >
+            <span>
+              Modo demo
+            </span>
+
+            <div>
+              <button
+                type="button"
+                onClick={() =>
+                  simulateScanOutcome(
+                    true
+                  )
+                }
+                disabled={
+                  !campaign
+                }
+              >
+                <Gift />
+
+                Simular escaneo
+                exitoso
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  simulateScanOutcome(
+                    false
+                  )
+                }
+                disabled={
+                  !campaign
+                }
+              >
+                <XCircle />
+
+                Simular escaneo
+                fallido
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
-      {scannerState !==
-        "idle" && (
-        <div
-          className={
-            styles.scannerModal
-          }
-        >
+      {scannerState !== "idle" &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className={
+              styles.scannerModal
+            }
+          >
           <div
             className={
               styles.scannerShell
@@ -700,8 +811,9 @@ export default function QrPlayPage() {
                 </section>
               )}
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
     </main>
   );
 }

@@ -96,7 +96,7 @@ export default function CapturasPage() {
         : "Buscar otro QR";
 
   return (
-    <main className={styles.mobileStage}>
+    <main className={`${styles.mobileStage} ${styles.capturesStage}`}>
       <div className={styles.topBar}>
         <Link
           href="/usuario/cazar-recompensas"

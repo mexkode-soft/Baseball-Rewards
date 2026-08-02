@@ -1,0 +1,9 @@
+AJUSTES DE CIERRE QR Y AR
+
+- Resultado QR ocupa toda la pantalla y permite scroll.
+- Modo demo muestra botones de escaneo exitoso y fallido solo con ubicación simulada activa.
+- Los escaneos simulados no consumen intentos.
+- En lógica real, el máximo de escaneos nunca supera la cantidad total de QR de la campaña.
+- Pelota AR colocada más arriba y sombra reforzada.
+- Se corrige la capa AR en escritorio para que la pelota vuelva a ser visible.
+- Se integra el archivo MapPlay corregido para evitar errores de TypeScript.

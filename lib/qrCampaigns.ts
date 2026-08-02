@@ -568,9 +568,18 @@ export function validateQrPayload(
     };
   }
 
+  const maximumRealScans =
+    Math.min(
+      Math.max(
+        1,
+        campaign.attemptsPerUser
+      ),
+      campaign.codes.length
+    );
+
   if (
     userCampaignScans.length >=
-    campaign.attemptsPerUser
+    maximumRealScans
   ) {
     return {
       ok: false,

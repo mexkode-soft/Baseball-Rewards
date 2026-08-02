@@ -234,3 +234,36 @@
     background: rgba(0, 0, 0, 0.72);
   }
 }
+
+
+/* Cierre de experiencia AR: pelota arriba y sombra visible */
+.aura {
+  top: 40%;
+}
+
+.shadow {
+  top: 61%;
+  width: 170px;
+  height: 34px;
+  opacity: 0.9;
+}
+
+.giftFallback {
+  top: 40%;
+}
+
+@media (max-width: 700px) {
+  .aura {
+    top: 39%;
+  }
+
+  .shadow {
+    top: 60%;
+    width: 145px;
+    height: 30px;
+  }
+
+  .giftFallback {
+    top: 39%;
+  }
+}

@@ -86,6 +86,8 @@ export default function BrandTicketPage() {
     );
   }
 
+  const activeCampaign: BrandCampaign = campaign;
+
   function validateLocation() {
     const demo = readDemoConfig();
 
@@ -122,7 +124,7 @@ export default function BrandTicketPage() {
 
     const form = new FormData();
     files.forEach((file) => form.append("images", file));
-    form.append("campaign", JSON.stringify(campaign));
+    form.append("campaign", JSON.stringify(activeCampaign));
     form.append("location", JSON.stringify(coords));
 
     try {
@@ -135,7 +137,7 @@ export default function BrandTicketPage() {
       setResult(data);
 
       if (data.status === "approved") {
-        awardDynamicReward(campaign);
+        awardDynamicReward(activeCampaign);
       }
     } catch {
       setResult({
@@ -149,7 +151,7 @@ export default function BrandTicketPage() {
   }
 
   function simulatePrizeWon() {
-    const location = campaign.locations[0];
+    const location = activeCampaign.locations[0];
 
     if (location) {
       setCoords({
@@ -164,15 +166,15 @@ export default function BrandTicketPage() {
       message:
         "La compra, la marca y la ubicación fueron validadas correctamente.",
       extraction: {
-        merchantName: campaign.brandName,
+        merchantName: activeCampaign.brandName,
         ticketNumber: `DEMO-${Date.now().toString().slice(-6)}`,
         purchaseDate: new Date().toISOString().slice(0, 10),
-        total: Math.max(campaign.minimumTotal, 199),
+        total: Math.max(activeCampaign.minimumTotal, 199),
         confidence: 0.98,
       },
     });
 
-    awardDynamicReward(campaign);
+    awardDynamicReward(activeCampaign);
   }
 
   function simulateInvalidTicket() {
@@ -193,7 +195,7 @@ export default function BrandTicketPage() {
   const distance = coords
     ? Math.round(
         Math.min(
-          ...campaign.locations.map((location) =>
+          ...activeCampaign.locations.map((location) =>
             distanceMeters(
               coords.lat,
               coords.lng,
@@ -216,7 +218,7 @@ export default function BrandTicketPage() {
           <ArrowLeft />
         </Link>
 
-        <span>{campaign.brandName}</span>
+        <span>{activeCampaign.brandName}</span>
       </div>
 
       <section className={styles.ticketPanel}>
@@ -225,7 +227,7 @@ export default function BrandTicketPage() {
           Validación con IA
         </div>
 
-        <h1>{campaign.name}</h1>
+        <h1>{activeCampaign.name}</h1>
 
         <p>
           Sube hasta 3 fotos claras del ticket. Extraeremos folio, marca,
