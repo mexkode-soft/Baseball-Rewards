@@ -31,7 +31,7 @@ import {
 } from "next/navigation";
 
 import {
-  hasSupabaseConfig,
+  getCurrentProfile,
   supabase,
 } from "@/lib/supabase";
 
@@ -49,6 +49,7 @@ type MenuItem = readonly [
 
 const adminItems:
   readonly MenuItem[] = [
+    ["/admin", "Inicio", UserRound],
     [
       "/admin/crear-campana",
       "Crear campaña",
@@ -93,6 +94,7 @@ const adminItems:
 
 const userItems:
   readonly MenuItem[] = [
+    ["/usuario", "Inicio", UserRound],
     [
       "/usuario/ranking",
       "Ranking",
@@ -147,70 +149,22 @@ export default function AdminShell({
   ] = useState("");
 
   useEffect(() => {
-    const demoRole =
-      localStorage.getItem(
-        "hrr-demo-role"
-      ) === "admin"
-        ? "admin"
-        : "usuario";
+    let active = true;
 
-    setRole(demoRole);
-
-    setPhoto(
-      localStorage.getItem(
-        "hrr-photo"
-      ) ?? ""
-    );
-
-    setSidebarCollapsed(
-      localStorage.getItem(
-        "hrr-sidebar-collapsed"
-      ) === "true"
-    );
-
-    function updateProfilePhoto() {
-      setPhoto(
-        localStorage.getItem(
-          "hrr-photo"
-        ) ?? ""
-      );
+    async function loadProfile() {
+      const profile = await getCurrentProfile();
+      if (!active || !profile) return;
+      setRole(profile.role);
+      setPhoto(profile.avatar_url ?? "");
     }
 
-    window.addEventListener(
-      "hrr-profile-updated",
-      updateProfilePhoto
-    );
-
-    if (hasSupabaseConfig) {
-      supabase.auth
-        .getUser()
-        .then(({ data }) => {
-          const metadataRole =
-            data.user
-              ?.user_metadata
-              ?.role;
-
-          setRole(
-            metadataRole ===
-              "admin"
-              ? "admin"
-              : "usuario"
-          );
-
-          setPhoto(
-            data.user
-              ?.user_metadata
-              ?.avatar_url ??
-              ""
-          );
-        });
-    }
+    void loadProfile();
+    const refresh = () => { void loadProfile(); };
+    window.addEventListener("hrr-profile-updated", refresh);
 
     return () => {
-      window.removeEventListener(
-        "hrr-profile-updated",
-        updateProfilePhoto
-      );
+      active = false;
+      window.removeEventListener("hrr-profile-updated", refresh);
     };
   }, []);
 
@@ -219,34 +173,12 @@ export default function AdminShell({
   }, [pathname]);
 
   function toggleSidebar() {
-    setSidebarCollapsed(
-      (currentValue) => {
-        const nextValue =
-          !currentValue;
-
-        localStorage.setItem(
-          "hrr-sidebar-collapsed",
-          String(nextValue)
-        );
-
-        return nextValue;
-      }
-    );
+    setSidebarCollapsed((currentValue) => !currentValue);
   }
 
   async function logout() {
-    if (hasSupabaseConfig) {
-      await supabase.auth
-        .signOut();
-    }
-
-    localStorage.removeItem(
-      "hrr-demo-role"
-    );
-
-    router.replace(
-      "/login"
-    );
+    await supabase.auth.signOut();
+    router.replace("/login");
   }
 
   const menuItems =
@@ -375,6 +307,7 @@ export default function AdminShell({
               <img
                 src={photo}
                 alt="Foto de perfil"
+                referrerPolicy="no-referrer"
               />
             ) : (
               <UserRoundCog />

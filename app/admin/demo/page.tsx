@@ -21,14 +21,8 @@ import {
   saveDemoConfig,
   type DemoConfig,
 } from "@/lib/demoConfig";
-import { DYNAMIC_COOLDOWN_STORAGE_KEY } from "@/lib/campaignDynamics";
+import { supabase } from "@/lib/supabase";
 import styles from "./Demo.module.css";
-
-const COLLECTED_STORAGE_KEY =
-  "hrr-collected-rewards";
-
-const COOLDOWN_STORAGE_KEY =
-  "hrr-reward-cooldowns";
 
 export default function DemoPage() {
   const [
@@ -44,12 +38,10 @@ export default function DemoPage() {
   ] = useState("");
 
   useEffect(() => {
-    setConfig(
-      readDemoConfig()
-    );
+    void readDemoConfig().then(setConfig).catch(() => setConfig(DEFAULT_DEMO_CONFIG));
   }, []);
 
-  function updateFlag(
+  async function updateFlag(
     flag: keyof DemoConfig,
     value: boolean
   ) {
@@ -59,7 +51,7 @@ export default function DemoPage() {
     };
 
     setConfig(nextConfig);
-    saveDemoConfig(nextConfig);
+    await saveDemoConfig(nextConfig);
 
     setSavedMessage(
       "Configuración actualizada."
@@ -70,15 +62,15 @@ export default function DemoPage() {
     }, 2200);
   }
 
-  function updateSimulatedLocation(patch: Partial<DemoConfig>) {
+  async function updateSimulatedLocation(patch: Partial<DemoConfig>) {
     const nextConfig = { ...config, ...patch };
     setConfig(nextConfig);
-    saveDemoConfig(nextConfig);
+    await saveDemoConfig(nextConfig);
     setSavedMessage("Ubicación simulada actualizada.");
     window.setTimeout(() => setSavedMessage(""), 2200);
   }
 
-  function enableAllRules() {
+  async function enableAllRules() {
     const nextConfig: DemoConfig = {
       ...config,
       enable24HourCooldown: true,
@@ -86,14 +78,14 @@ export default function DemoPage() {
     };
 
     setConfig(nextConfig);
-    saveDemoConfig(nextConfig);
+    await saveDemoConfig(nextConfig);
 
     setSavedMessage(
       "Todas las reglas fueron activadas."
     );
   }
 
-  function disableAllRules() {
+  async function disableAllRules() {
     const nextConfig: DemoConfig = {
       ...config,
       enable24HourCooldown: false,
@@ -101,29 +93,16 @@ export default function DemoPage() {
     };
 
     setConfig(nextConfig);
-    saveDemoConfig(nextConfig);
+    await saveDemoConfig(nextConfig);
 
     setSavedMessage(
       "Modo demo libre activado."
     );
   }
 
-  function clearDemoProgress() {
-    window.localStorage.removeItem(
-      COLLECTED_STORAGE_KEY
-    );
-
-    window.localStorage.removeItem(
-      COOLDOWN_STORAGE_KEY
-    );
-
-    window.localStorage.removeItem(
-      DYNAMIC_COOLDOWN_STORAGE_KEY
-    );
-
-    setSavedMessage(
-      "Premios y bloqueos de la demo fueron reiniciados."
-    );
+  async function clearDemoProgress() {
+    const { error } = await supabase.rpc("reset_demo_progress");
+    setSavedMessage(error ? error.message : "Premios, puntos, tickets e intentos de la demo fueron reiniciados.");
   }
 
   return (

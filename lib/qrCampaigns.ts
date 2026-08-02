@@ -1,5 +1,6 @@
-export type QrCampaignStatus = "draft" | "scheduled" | "active";
+import { supabase } from "@/lib/supabase";
 
+export type QrCampaignStatus = "draft" | "scheduled" | "active";
 export interface QrCodeRecord {
   id: string;
   token: string;
@@ -7,11 +8,11 @@ export interface QrCodeRecord {
   label: string;
   isWinner: boolean;
   reward: string;
+  rewardCode?: string;
   points: number;
   scannedBy: string[];
   totalScans: number;
 }
-
 export interface QrCampaign {
   id: string;
   type: "qr";
@@ -28,23 +29,14 @@ export interface QrCampaign {
   createdAt: string;
   codes: QrCodeRecord[];
 }
-
 export interface QrScanResult {
   ok: boolean;
-  status:
-    | "winner"
-    | "not_winner"
-    | "invalid"
-    | "duplicate"
-    | "limit_reached"
-    | "inactive"
-    | "wrong_campaign";
+  status: "winner" | "not_winner" | "invalid" | "duplicate" | "limit_reached" | "inactive" | "wrong_campaign" | "unauthorized";
   message: string;
   campaign?: QrCampaign;
   code?: QrCodeRecord;
   pointsAwarded?: number;
 }
-
 export interface QrCapture {
   id: string;
   campaignId: string;
@@ -58,636 +50,141 @@ export interface QrCapture {
   capturedAt: string;
 }
 
-const CAMPAIGNS_KEY = "hrr-qr-campaigns-v1";
-const USER_ID_KEY = "hrr-demo-user-id";
-const SCANS_KEY = "hrr-qr-user-scans-v1";
-const POINTS_KEY = "hrr-demo-points-v1";
-const POINT_EVENTS_KEY = "hrr-point-events-v1";
-const CAPTURES_KEY = "hrr-qr-captures-v1";
+export const QR_CAMPAIGNS_EVENT = "hrr-qr-campaigns-updated";
 
 function randomPart(length = 16) {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
-
-  return Array.from(
-    bytes,
-    (value) =>
-      value
-        .toString(36)
-        .padStart(2, "0")
-  )
-    .join("")
-    .slice(0, length)
-    .toUpperCase();
+  return Array.from(bytes, (value) => value.toString(36).padStart(2, "0")).join("").slice(0, length).toUpperCase();
 }
+export function createId(prefix: string) { return `${prefix}-${Date.now().toString(36)}-${randomPart(8)}`; }
+export function createQrPayload(campaignId: string, token: string) { return `HRR|QR|${campaignId}|${token}`; }
 
-export function createId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}-${randomPart(8)}`;
-}
-
-export function createQrPayload(
-  campaignId: string,
-  token: string
-) {
-  return `HRR|QR|${campaignId}|${token}`;
-}
-
-export function generateQrCodes(options: {
-  campaignId: string;
-  total: number;
-  winners: number;
-  reward: string;
-  participationPoints: number;
-  winnerPoints: number;
-}): QrCodeRecord[] {
-  const total = Math.max(
-    1,
-    Math.floor(options.total)
-  );
-
-  const winners = Math.max(
-    0,
-    Math.min(
-      total,
-      Math.floor(options.winners)
-    )
-  );
-
-  const winnerIndexes =
-    new Set<number>();
-
-  while (
-    winnerIndexes.size < winners
-  ) {
-    winnerIndexes.add(
-      Math.floor(
-        Math.random() * total
-      )
-    );
-  }
-
-  return Array.from(
-    { length: total },
-    (_, index) => {
-      const token =
-        randomPart(24);
-
-      const isWinner =
-        winnerIndexes.has(index);
-
-      return {
-        id: createId("code"),
-        token,
-        payload:
-          createQrPayload(
-            options.campaignId,
-            token
-          ),
-        label: `QR-${String(
-          index + 1
-        ).padStart(3, "0")}`,
-        isWinner,
-        reward: isWinner
-          ? options.reward
-          : "",
-        points: isWinner
-          ? options.winnerPoints
-          : options.participationPoints,
-        scannedBy: [],
-        totalScans: 0,
-      };
-    }
-  );
-}
-
-export function readQrCampaigns(): QrCampaign[] {
-  if (
-    typeof window === "undefined"
-  ) {
-    return [];
-  }
-
-  try {
-    const raw =
-      window.localStorage.getItem(
-        CAMPAIGNS_KEY
-      );
-
-    return raw
-      ? (JSON.parse(raw) as QrCampaign[])
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-export function readActiveQrCampaigns() {
-  const now = new Date();
-
-  return readQrCampaigns().filter(
-    (campaign) => {
-      if (
-        campaign.status !== "active"
-      ) {
-        return false;
-      }
-
-      if (
-        campaign.startDate &&
-        now <
-          new Date(
-            `${campaign.startDate}T00:00:00`
-          )
-      ) {
-        return false;
-      }
-
-      if (
-        campaign.endDate &&
-        now >
-          new Date(
-            `${campaign.endDate}T23:59:59`
-          )
-      ) {
-        return false;
-      }
-
-      return true;
-    }
-  );
-}
-
-export function saveQrCampaign(
-  campaign: QrCampaign
-) {
-  const campaigns =
-    readQrCampaigns();
-
-  const index =
-    campaigns.findIndex(
-      (item) =>
-        item.id === campaign.id
-    );
-
-  if (index >= 0) {
-    campaigns[index] = campaign;
-  } else {
-    campaigns.unshift(campaign);
-  }
-
-  window.localStorage.setItem(
-    CAMPAIGNS_KEY,
-    JSON.stringify(campaigns)
-  );
-
-  window.dispatchEvent(
-    new CustomEvent(
-      "hrr-qr-campaigns-updated"
-    )
-  );
-}
-
-export function getDemoUserId() {
-  if (
-    typeof window === "undefined"
-  ) {
-    return "demo-user";
-  }
-
-  const current =
-    window.localStorage.getItem(
-      USER_ID_KEY
-    );
-
-  if (current) {
-    return current;
-  }
-
-  const generated =
-    createId("user");
-
-  window.localStorage.setItem(
-    USER_ID_KEY,
-    generated
-  );
-
-  return generated;
-}
-
-function readUserScans(): Record<
-  string,
-  string[]
-> {
-  try {
-    const raw =
-      window.localStorage.getItem(
-        SCANS_KEY
-      );
-
-    return raw
-      ? (JSON.parse(raw) as Record<
-          string,
-          string[]
-        >)
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-function addPoints(
-  points: number,
-  campaign: QrCampaign,
-  code: QrCodeRecord
-) {
-  const current = Number(
-    window.localStorage.getItem(
-      POINTS_KEY
-    ) ?? "0"
-  );
-
-  const next =
-    current + points;
-
-  window.localStorage.setItem(
-    POINTS_KEY,
-    String(next)
-  );
-
-  let events: unknown[] = [];
-
-  try {
-    events = JSON.parse(
-      window.localStorage.getItem(
-        POINT_EVENTS_KEY
-      ) ?? "[]"
-    ) as unknown[];
-  } catch {
-    events = [];
-  }
-
-  events.unshift({
-    id: createId("points"),
-    campaignId: campaign.id,
-    campaignName:
-      campaign.name,
-    codeId: code.id,
-    points,
-    createdAt:
-      new Date().toISOString(),
+export function generateQrCodes(options: { campaignId: string; total: number; winners: number; reward: string; participationPoints: number; winnerPoints: number; }): QrCodeRecord[] {
+  const total = Math.max(1, Math.floor(options.total));
+  const winners = Math.max(0, Math.min(total, Math.floor(options.winners)));
+  const winnerIndexes = new Set<number>();
+  while (winnerIndexes.size < winners) winnerIndexes.add(Math.floor(Math.random() * total));
+  return Array.from({ length: total }, (_, index) => {
+    const token = randomPart(24);
+    const isWinner = winnerIndexes.has(index);
+    return {
+      id: createId("code"), token, payload: createQrPayload(options.campaignId, token),
+      label: `QR-${String(index + 1).padStart(3, "0")}`, isWinner,
+      reward: isWinner ? options.reward : "", rewardCode: isWinner ? `${options.campaignId.slice(-6).toUpperCase()}-${index + 1}` : "",
+      points: isWinner ? options.winnerPoints : options.participationPoints, scannedBy: [], totalScans: 0,
+    };
   });
-
-  window.localStorage.setItem(
-    POINT_EVENTS_KEY,
-    JSON.stringify(events)
-  );
-
-  window.dispatchEvent(
-    new CustomEvent(
-      "hrr-points-updated",
-      {
-        detail: {
-          total: next,
-        },
-      }
-    )
-  );
 }
 
-function saveCapture(
-  campaign: QrCampaign,
-  code: QrCodeRecord
-) {
-  let captures: QrCapture[] = [];
-
-  try {
-    captures = JSON.parse(
-      window.localStorage.getItem(
-        CAPTURES_KEY
-      ) ?? "[]"
-    ) as QrCapture[];
-  } catch {
-    captures = [];
-  }
-
-  const capture: QrCapture = {
-    id: createId("capture"),
-    campaignId: campaign.id,
-    campaignName:
-      campaign.name,
-    sponsor:
-      campaign.sponsor,
-    codeId: code.id,
-    codeLabel:
-      code.label,
-    isWinner:
-      code.isWinner,
-    reward:
-      code.reward,
-    points:
-      code.points,
-    capturedAt:
-      new Date().toISOString(),
-  };
-
-  captures.unshift(capture);
-
-  window.localStorage.setItem(
-    CAPTURES_KEY,
-    JSON.stringify(captures)
-  );
-
-  window.dispatchEvent(
-    new CustomEvent(
-      "hrr-qr-captures-updated"
-    )
-  );
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export function readQrCaptures(): QrCapture[] {
-  if (
-    typeof window === "undefined"
-  ) {
-    return [];
-  }
+function dateOnly(value: unknown) { return value ? new Date(String(value)).toISOString().slice(0, 10) : ""; }
 
-  try {
-    return JSON.parse(
-      window.localStorage.getItem(
-        CAPTURES_KEY
-      ) ?? "[]"
-    ) as QrCapture[];
-  } catch {
-    return [];
-  }
+export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
+  const { data: userData } = await supabase.auth.getUser();
+  const isUuid = /^[0-9a-f-]{36}$/i.test(campaign.id);
+  const payload = {
+    type: "qr", name: campaign.name, sponsor: campaign.sponsor, description: campaign.description,
+    status: campaign.status, starts_at: campaign.startDate ? `${campaign.startDate}T00:00:00` : null,
+    ends_at: campaign.endDate ? `${campaign.endDate}T23:59:59` : null,
+    participation_limit: Math.min(Math.max(1, campaign.attemptsPerUser), campaign.codes.length),
+    points_on_success: campaign.winnerPoints, points_on_failure: campaign.participationPoints,
+    passing_percentage: 100, cooldown_hours: 0, created_by: userData.user?.id ?? null,
+    metadata: { reward: campaign.reward },
+  };
+  const { data: saved, error } = isUuid
+    ? await supabase.from("campaigns").update(payload).eq("id", campaign.id).select("id").single()
+    : await supabase.from("campaigns").insert(payload).select("id").single();
+  if (error) throw error;
+  const id = String(saved.id);
+  const { error: deleteError } = await supabase.from("qr_codes").delete().eq("campaign_id", id);
+  if (deleteError) throw deleteError;
+  const codeRows = await Promise.all(campaign.codes.map(async (code) => ({
+    campaign_id: id,
+    token_hash: await sha256(code.token),
+    display_code: code.label,
+    is_winner: code.isWinner,
+    reward_name: code.reward || null,
+    reward_code: code.rewardCode || null,
+    points: code.points,
+    max_uses: 1,
+    total_uses: 0,
+    is_active: true,
+  })));
+  const { error: codeError } = await supabase.from("qr_codes").insert(codeRows);
+  if (codeError) throw codeError;
+  window.dispatchEvent(new CustomEvent(QR_CAMPAIGNS_EVENT));
+  return id;
 }
 
-export function validateQrPayload(
-  payload: string,
-  expectedCampaignId?: string
-): QrScanResult {
-  const [
-    brand,
-    type,
-    campaignId,
-    token,
-  ] = payload
-    .trim()
-    .split("|");
-
-  if (
-    brand !== "HRR" ||
-    type !== "QR" ||
-    !campaignId ||
-    !token
-  ) {
-    return {
-      ok: false,
-      status: "invalid",
-      message:
-        "Este código no pertenece a Home Run Rewards.",
-    };
-  }
-
-  if (
-    expectedCampaignId &&
-    campaignId !==
-      expectedCampaignId
-  ) {
-    return {
-      ok: false,
-      status: "wrong_campaign",
-      message:
-        "Este QR pertenece a otra campaña. Busca uno de la campaña seleccionada.",
-    };
-  }
-
-  const campaigns =
-    readQrCampaigns();
-
-  const campaignIndex =
-    campaigns.findIndex(
-      (item) =>
-        item.id === campaignId
-    );
-
-  const campaign =
-    campaigns[campaignIndex];
-
-  if (!campaign) {
-    return {
-      ok: false,
-      status: "invalid",
-      message:
-        "No encontramos una campaña asociada a este código.",
-    };
-  }
-
-  if (
-    campaign.status !== "active"
-  ) {
-    return {
-      ok: false,
-      status: "inactive",
-      message:
-        "Esta campaña todavía no está activa o ya finalizó.",
-    };
-  }
-
-  const now = new Date();
-
-  if (
-    campaign.startDate &&
-    now <
-      new Date(
-        `${campaign.startDate}T00:00:00`
-      )
-  ) {
-    return {
-      ok: false,
-      status: "inactive",
-      message:
-        "La campaña aún no comienza.",
-    };
-  }
-
-  if (
-    campaign.endDate &&
-    now >
-      new Date(
-        `${campaign.endDate}T23:59:59`
-      )
-  ) {
-    return {
-      ok: false,
-      status: "inactive",
-      message:
-        "La campaña ya finalizó.",
-    };
-  }
-
-  const codeIndex =
-    campaign.codes.findIndex(
-      (item) =>
-        item.token === token
-    );
-
-  const code =
-    campaign.codes[codeIndex];
-
-  if (!code) {
-    return {
-      ok: false,
-      status: "invalid",
-      message:
-        "El QR no es válido para esta campaña.",
-    };
-  }
-
-  const userId =
-    getDemoUserId();
-
-  const scans =
-    readUserScans();
-
-  const userCampaignScans =
-    scans[campaign.id] ?? [];
-
-  if (
-    userCampaignScans.includes(
-      code.id
-    )
-  ) {
-    return {
-      ok: false,
-      status: "duplicate",
-      message:
-        "Ya escaneaste este código. Busca otro para seguir participando.",
-      campaign,
-      code,
-    };
-  }
-
-  const maximumRealScans =
-    Math.min(
-      Math.max(
-        1,
-        campaign.attemptsPerUser
-      ),
-      campaign.codes.length
-    );
-
-  if (
-    userCampaignScans.length >=
-    maximumRealScans
-  ) {
-    return {
-      ok: false,
-      status: "limit_reached",
-      message:
-        "Ya alcanzaste el límite de intentos de esta campaña.",
-      campaign,
-      code,
-    };
-  }
-
-  scans[campaign.id] = [
-    ...userCampaignScans,
-    code.id,
-  ];
-
-  window.localStorage.setItem(
-    SCANS_KEY,
-    JSON.stringify(scans)
-  );
-
-  const updatedCode:
-    QrCodeRecord = {
-    ...code,
-    scannedBy:
-      code.scannedBy.includes(
-        userId
-      )
-        ? code.scannedBy
-        : [
-            ...code.scannedBy,
-            userId,
-          ],
-    totalScans:
-      code.totalScans + 1,
-  };
-
-  const updatedCampaign:
-    QrCampaign = {
-    ...campaign,
-    codes:
-      campaign.codes.map(
-        (item, index) =>
-          index === codeIndex
-            ? updatedCode
-            : item
-      ),
-  };
-
-  campaigns[campaignIndex] =
-    updatedCampaign;
-
-  window.localStorage.setItem(
-    CAMPAIGNS_KEY,
-    JSON.stringify(campaigns)
-  );
-
-  addPoints(
-    updatedCode.points,
-    updatedCampaign,
-    updatedCode
-  );
-
-  saveCapture(
-    updatedCampaign,
-    updatedCode
-  );
-
-  if (
-    updatedCode.isWinner
-  ) {
-    return {
-      ok: true,
-      status: "winner",
-      message: `¡Felicidades! Ganaste ${updatedCode.reward}.`,
-      campaign:
-        updatedCampaign,
-      code:
-        updatedCode,
-      pointsAwarded:
-        updatedCode.points,
-    };
-  }
-
-  return {
-    ok: true,
-    status: "not_winner",
-    message:
-      "Este código no contiene premio. Sigue participando.",
-    campaign:
-      updatedCampaign,
-    code:
-      updatedCode,
-    pointsAwarded:
-      updatedCode.points,
-  };
+export async function readQrCampaigns(): Promise<QrCampaign[]> {
+  const { data: campaigns, error } = await supabase.from("campaigns").select("*").eq("type", "qr").order("created_at", { ascending: false });
+  if (error) throw error;
+  const ids = (campaigns ?? []).map((item) => String(item.id));
+  const { data: codes, error: codeError } = ids.length
+    ? await supabase.from("qr_codes").select("id,campaign_id,display_code,is_winner,reward_name,reward_code,points,total_uses").in("campaign_id", ids).order("created_at")
+    : { data: [], error: null };
+  if (codeError) throw codeError;
+  return (campaigns ?? []).map((campaign) => ({
+    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""),
+    startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: campaign.status as QrCampaignStatus,
+    attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
+    reward: String((campaign.metadata as { reward?: string } | null)?.reward ?? "Premio"), createdAt: String(campaign.created_at),
+    codes: (codes ?? []).filter((code) => code.campaign_id === campaign.id).map((code) => ({
+      id: String(code.id), token: "", payload: "", label: String(code.display_code), isWinner: Boolean(code.is_winner),
+      reward: String(code.reward_name ?? ""), rewardCode: String(code.reward_code ?? ""), points: Number(code.points), scannedBy: [], totalScans: Number(code.total_uses),
+    })),
+  }));
 }
 
-export function readDemoPoints() {
-  if (
-    typeof window === "undefined"
-  ) {
-    return 0;
-  }
+export async function readActiveQrCampaigns(): Promise<QrCampaign[]> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase.from("active_qr_campaign_summary").select("*").eq("status", "active")
+    .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((campaign) => ({
+    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""),
+    startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: "active",
+    attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
+    reward: "Premio sorpresa", createdAt: String(campaign.created_at), codes: Array.from({ length: Number(campaign.code_count ?? 0) }, (_, index) => ({
+      id: `summary-${index}`, token: "", payload: "", label: `QR-${index + 1}`, isWinner: false, reward: "", points: 0, scannedBy: [], totalScans: 0,
+    })),
+  }));
+}
 
-  return Number(
-    window.localStorage.getItem(
-      POINTS_KEY
-    ) ?? "0"
-  );
+export async function validateQrPayload(payload: string, expectedCampaignId?: string): Promise<QrScanResult> {
+  const [brand, type, campaignId, token] = payload.trim().split("|");
+  if (brand !== "HRR" || type !== "QR" || !campaignId || !token) return { ok: false, status: "invalid", message: "Este código no pertenece a Home Run Rewards." };
+  if (expectedCampaignId && campaignId !== expectedCampaignId) return { ok: false, status: "wrong_campaign", message: "Este QR pertenece a otra campaña." };
+  const { data, error } = await supabase.rpc("scan_qr", { p_campaign_id: campaignId, p_token: token });
+  if (error) throw error;
+  return data as QrScanResult;
+}
+
+export async function readQrCaptures(): Promise<QrCapture[]> {
+  const { data, error } = await supabase.from("participations")
+    .select("id,campaign_id,qr_code_id,points_awarded,completed_at,metadata,campaigns(name,sponsor,type),qr_codes(display_code,is_winner,reward_name)")
+    .not("qr_code_id", "is", null).order("completed_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    const campaign = row.campaigns as unknown as { name: string; sponsor?: string };
+    const code = row.qr_codes as unknown as { display_code: string; is_winner: boolean; reward_name?: string };
+    return {
+      id: String(row.id), campaignId: String(row.campaign_id), campaignName: campaign.name, sponsor: campaign.sponsor ?? "",
+      codeId: String(row.qr_code_id), codeLabel: code.display_code, isWinner: code.is_winner, reward: code.reward_name ?? "",
+      points: Number(row.points_awarded), capturedAt: String(row.completed_at),
+    };
+  });
+}
+
+export async function readDemoPoints(): Promise<number> {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return 0;
+  const { data, error } = await supabase.from("profiles").select("total_points").eq("id", userData.user.id).single();
+  if (error) throw error;
+  return Number(data.total_points ?? 0);
 }

@@ -107,17 +107,16 @@ export default function QrPlayPage() {
     "hrr-public-qr-reader";
 
   useEffect(() => {
-    const update = () => {
-      setCampaigns(
-        readActiveQrCampaigns()
-      );
-
-      setPoints(
-        readDemoPoints()
-      );
+    const update = async () => {
+      const [activeCampaigns, currentPoints] = await Promise.all([
+        readActiveQrCampaigns(),
+        readDemoPoints(),
+      ]);
+      setCampaigns(activeCampaigns);
+      setPoints(currentPoints);
     };
 
-    update();
+    void update();
 
     window.addEventListener(
       "hrr-qr-campaigns-updated",
@@ -143,35 +142,12 @@ export default function QrPlayPage() {
   }, []);
 
   useEffect(() => {
-    const updateDemoConfig = () => {
-      setDemoConfig(
-        readDemoConfig()
-      );
-    };
-
-    updateDemoConfig();
-
-    window.addEventListener(
-      DEMO_CONFIG_EVENT,
-      updateDemoConfig
-    );
-
-    window.addEventListener(
-      "storage",
-      updateDemoConfig
-    );
-
-    return () => {
-      window.removeEventListener(
-        DEMO_CONFIG_EVENT,
-        updateDemoConfig
-      );
-
-      window.removeEventListener(
-        "storage",
-        updateDemoConfig
-      );
-    };
+    let active = true;
+    async function updateDemoConfig() { try { const value = await readDemoConfig(); if (active) setDemoConfig(value); } catch {} }
+    void updateDemoConfig();
+    const refresh = () => { void updateDemoConfig(); };
+    window.addEventListener(DEMO_CONFIG_EVENT, refresh);
+    return () => { active = false; window.removeEventListener(DEMO_CONFIG_EVENT, refresh); };
   }, []);
 
   useEffect(() => {
@@ -258,7 +234,7 @@ export default function QrPlayPage() {
     await stopScanner();
 
     const scanResult =
-      validateQrPayload(
+      await validateQrPayload(
         payload,
         campaignId
       );
@@ -268,7 +244,7 @@ export default function QrPlayPage() {
     );
 
     setPoints(
-      readDemoPoints()
+      await readDemoPoints()
     );
 
     setScannerState(

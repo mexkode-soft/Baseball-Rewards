@@ -25,3 +25,4 @@ Thumbs.db
 # Editores
 .vscode/
 .idea/
+.env.local

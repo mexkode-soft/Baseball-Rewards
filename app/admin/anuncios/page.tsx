@@ -115,9 +115,7 @@ export default function Page() {
   ] = useState("");
 
   useEffect(() => {
-    setAnnouncements(
-      readAnnouncements()
-    );
+    void readAnnouncements(true).then(setAnnouncements).catch((error) => setMessage(error instanceof Error ? error.message : "No se pudieron cargar los anuncios."));
   }, []);
 
   const activeAnnouncements =
@@ -130,7 +128,7 @@ export default function Page() {
       [announcements]
     );
 
-  function persist(
+  async function persist(
     nextAnnouncements:
       Announcement[]
   ) {
@@ -138,9 +136,7 @@ export default function Page() {
       nextAnnouncements
     );
 
-    saveAnnouncements(
-      nextAnnouncements
-    );
+    await saveAnnouncements(nextAnnouncements);
   }
 
   function resetForm() {
@@ -180,7 +176,7 @@ export default function Page() {
               : announcement
         );
 
-      persist(
+      void persist(
         nextAnnouncements
       );
 
@@ -199,7 +195,7 @@ export default function Page() {
           1,
       };
 
-      persist([
+      void persist([
         ...announcements,
         newAnnouncement,
       ]);
@@ -238,7 +234,7 @@ export default function Page() {
   function toggleAnnouncement(
     id: string
   ) {
-    persist(
+    void persist(
       announcements.map(
         (announcement) =>
           announcement.id === id
@@ -271,7 +267,7 @@ export default function Page() {
           })
         );
 
-    persist(
+    void persist(
       nextAnnouncements
     );
 
@@ -313,7 +309,7 @@ export default function Page() {
       reordered[index],
     ];
 
-    persist(
+    void persist(
       reordered.map(
         (
           announcement,
@@ -328,7 +324,7 @@ export default function Page() {
   }
 
   function restoreDefaults() {
-    persist(
+    void persist(
       DEFAULT_ANNOUNCEMENTS
     );
 

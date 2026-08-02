@@ -53,13 +53,11 @@ export default function QrCampaignSelectorPage() {
     );
 
   useEffect(() => {
-    const update = () => {
-      setCampaigns(
-        readActiveQrCampaigns()
-      );
+    const update = async () => {
+      setCampaigns(await readActiveQrCampaigns());
     };
 
-    update();
+    void update();
 
     window.addEventListener(
       "hrr-qr-campaigns-updated",

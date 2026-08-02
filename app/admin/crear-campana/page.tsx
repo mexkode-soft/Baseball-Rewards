@@ -110,7 +110,7 @@ export default function CrearCampanaPage() {
     setNotice(`Se generaron ${total} códigos únicos: ${winners} ganadores y ${total - winners} sin premio.`);
   }
 
-  function saveCampaign() {
+  async function saveCampaign() {
     if (!campaignName.trim()) {
       setNotice("Escribe un nombre para la campaña.");
       return;
@@ -120,7 +120,7 @@ export default function CrearCampanaPage() {
       return;
     }
 
-    saveQrCampaign(buildCampaign());
+    await saveQrCampaign(buildCampaign());
     setNotice("Campaña guardada. Ya puedes probarla en el escáner QR.");
   }
 
@@ -277,7 +277,7 @@ export default function CrearCampanaPage() {
                 <label><span>Estado</span><select value={status} onChange={(event) => setStatus(event.target.value as QrCampaignStatus)}><option value="draft">Borrador</option><option value="scheduled">Programada</option><option value="active">Activa</option></select></label>
                 <div className={styles.summaryCard}><Gift /><div><strong>{reward}</strong><span>{winnerCodes} ganadores · {totalCodes - winnerCodes} sin premio</span></div></div>
               </div>
-              <div className={styles.footerActions}><a href="/usuario/cazar-recompensas/qr"><QrCode /> Abrir escáner</a><button type="button" className={styles.primaryButton} onClick={saveCampaign}><Save /> Guardar campaña</button></div>
+              <div className={styles.footerActions}><a href="/usuario/cazar-recompensas/qr"><QrCode /> Abrir escáner</a><button type="button" className={styles.primaryButton} onClick={() => void saveCampaign()}><Save /> Guardar campaña</button></div>
             </section>
           </main>
 

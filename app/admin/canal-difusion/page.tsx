@@ -22,11 +22,13 @@ import {
 } from "lucide-react";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
 
 import styles from "./CanalDifusion.module.css";
+import { readBroadcasts, sendBroadcast, type BroadcastRecord } from "@/lib/broadcasts";
 
 type AudienceType =
   | "all"
@@ -102,49 +104,6 @@ const messageTypes = [
   },
 ];
 
-const historyItems = [
-  {
-    title:
-      "Partido cancelado en Veracruz",
-    audience:
-      "Usuarios de Veracruz",
-    type: "Urgente",
-    date: "Hoy, 8:30 a. m.",
-    recipients: "1,284",
-    status: "Enviado",
-  },
-  {
-    title:
-      "Recompensa exclusiva All Star",
-    audience:
-      "Nivel All Star",
-    type: "Promoción",
-    date: "25 jul, 6:00 p. m.",
-    recipients: "846",
-    status: "Programado",
-  },
-  {
-    title:
-      "Nuevos retos disponibles",
-    audience:
-      "Toda la comunidad",
-    type: "Información",
-    date: "24 jul, 11:15 a. m.",
-    recipients: "5,930",
-    status: "Enviado",
-  },
-  {
-    title:
-      "Beneficio sorpresa",
-    audience:
-      "250 usuarios aleatorios",
-    type: "Promoción",
-    date: "23 jul, 4:40 p. m.",
-    recipients: "250",
-    status: "Borrador",
-  },
-];
-
 export default function Page() {
   const [
     audienceType,
@@ -193,6 +152,25 @@ export default function Page() {
     randomAmount,
     setRandomAmount,
   ] = useState("250");
+
+  const [historyItems, setHistoryItems] = useState<BroadcastRecord[]>([]);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    void readBroadcasts().then(setHistoryItems).catch(() => setHistoryItems([]));
+  }, []);
+
+  async function prepareSend() {
+    if (!title.trim() || !message.trim()) { setNotice("Escribe el título y el mensaje."); return; }
+    try {
+      const recipients = await sendBroadcast({
+        title: title.trim(), body: message.trim(), messageType, priority, audienceType,
+        level, state, randomAmount: Number(randomAmount) || 1,
+      });
+      setNotice(`Comunicado enviado a ${recipients} usuarios.`);
+      setHistoryItems(await readBroadcasts());
+    } catch (error) { setNotice(error instanceof Error ? error.message : "No se pudo enviar el comunicado."); }
+  }
 
   const selectedType =
     useMemo(
@@ -243,7 +221,7 @@ export default function Page() {
 
           <div>
             <strong>
-              4
+              {historyItems.length}
             </strong>
 
             <span>
@@ -788,15 +766,15 @@ export default function Page() {
 
               <button
                 type="button"
-                className={
-                  styles.primaryButton
-                }
+                className={styles.primaryButton}
+                onClick={() => { void prepareSend(); }}
               >
                 <Send />
 
                 Preparar envío
               </button>
             </div>
+            {notice && <p>{notice}</p>}
           </section>
         </main>
 
@@ -1000,7 +978,7 @@ export default function Page() {
           {historyItems.map(
             (item) => (
               <article
-                key={item.title}
+                key={item.id}
                 className={
                   styles.historyItem
                 }
@@ -1011,10 +989,10 @@ export default function Page() {
                   }
                 >
                   {item.status ===
-                  "Enviado" ? (
+                  "sent" ? (
                     <CheckCircle2 />
                   ) : item.status ===
-                    "Programado" ? (
+                    "scheduled" ? (
                     <CalendarClock />
                   ) : (
                     <Megaphone />
@@ -1075,7 +1053,7 @@ export default function Page() {
                   </span>
 
                   <strong>
-                    {item.date}
+                    {new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.date))}
                   </strong>
                 </div>
 
@@ -1095,7 +1073,7 @@ export default function Page() {
                           : styles.statusDraft
                     }
                   >
-                    {item.status}
+                    {item.status === "sent" ? "Enviado" : item.status === "scheduled" ? "Programado" : "Borrador"}
                   </span>
                 </div>
 

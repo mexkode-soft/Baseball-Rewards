@@ -1145,3 +1145,34 @@
     min-height: 148px;
   }
 }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #8f929b;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,.09);
+}
+.googleButton {
+  width: 100%;
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px;
+  background: #fff;
+  color: #171717;
+  font-weight: 900;
+  cursor: pointer;
+}
+.googleButton svg { width: 20px; height: 20px; flex: 0 0 auto; }

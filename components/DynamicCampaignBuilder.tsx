@@ -42,7 +42,7 @@ export default function DynamicCampaignBuilder({
   type: "map" | "brand";
 }) {
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
   const [name, setName] = useState(
     type === "map" ? "Pelotas doradas" : "Compra y gana"
@@ -78,7 +78,7 @@ export default function DynamicCampaignBuilder({
   const [products, setProducts] = useState("Combo participante");
   const [confidence, setConfidence] = useState(0.75);
 
-  useEffect(() => setQuestions(readQuestions()), []);
+  useEffect(() => { void readQuestions().then(setQuestions).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudieron cargar las preguntas.")); }, []);
 
   const visible = useMemo(
     () =>
@@ -96,7 +96,7 @@ export default function DynamicCampaignBuilder({
   const activeLocation =
     locations.find((item) => item.id === activeLocationId) ?? locations[0];
 
-  function toggle(id: number) {
+  function toggle(id: string) {
     setSelected((current) =>
       current.includes(id)
         ? current.filter((item) => item !== id)
@@ -149,7 +149,7 @@ export default function DynamicCampaignBuilder({
     }
   }
 
-  function save() {
+  async function save() {
     if (!name.trim() || selected.length === 0) {
       setNotice("Completa el nombre y selecciona al menos una pregunta.");
       return;
@@ -175,13 +175,13 @@ export default function DynamicCampaignBuilder({
     };
 
     if (type === "map") {
-      saveDynamicCampaign({
+      await saveDynamicCampaign({
         ...base,
         type: "map",
         locations,
       } as MapCampaign);
     } else {
-      saveDynamicCampaign({
+      await saveDynamicCampaign({
         ...base,
         type: "brand",
         brandName: sponsor,
@@ -604,7 +604,7 @@ export default function DynamicCampaignBuilder({
       )}
 
       <section className={`${styles.panel} ${styles.finalActions}`}>
-        <button className={styles.save} type="button" onClick={save}>
+        <button className={styles.save} type="button" onClick={() => void save()}>
           <Save />
           Guardar campaña
         </button>

@@ -15,7 +15,6 @@ import {
 
 import {
   type Announcement,
-  ANNOUNCEMENTS_STORAGE_KEY,
   ANNOUNCEMENTS_UPDATED_EVENT,
   DEFAULT_ANNOUNCEMENTS,
   readAnnouncements,
@@ -93,46 +92,13 @@ export default function PromoTicker() {
   );
 
   useEffect(() => {
-    function refreshAnnouncements() {
-      setAnnouncements(
-        readAnnouncements()
-      );
+    async function refreshAnnouncements() {
+      try { setAnnouncements(await readAnnouncements()); } catch { setAnnouncements([]); }
     }
-
-    function handleStorage(
-      event: StorageEvent
-    ) {
-      if (
-        event.key ===
-        ANNOUNCEMENTS_STORAGE_KEY
-      ) {
-        refreshAnnouncements();
-      }
-    }
-
-    refreshAnnouncements();
-
-    window.addEventListener(
-      ANNOUNCEMENTS_UPDATED_EVENT,
-      refreshAnnouncements
-    );
-
-    window.addEventListener(
-      "storage",
-      handleStorage
-    );
-
-    return () => {
-      window.removeEventListener(
-        ANNOUNCEMENTS_UPDATED_EVENT,
-        refreshAnnouncements
-      );
-
-      window.removeEventListener(
-        "storage",
-        handleStorage
-      );
-    };
+    void refreshAnnouncements();
+    const refresh = () => { void refreshAnnouncements(); };
+    window.addEventListener(ANNOUNCEMENTS_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(ANNOUNCEMENTS_UPDATED_EVENT, refresh);
   }, []);
 
   const activeAnnouncements =

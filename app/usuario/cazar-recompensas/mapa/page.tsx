@@ -14,8 +14,8 @@ export default function MapCampaignPage() {
   const [items, setItems] = useState<MapCampaign[]>([]);
 
   useEffect(() => {
-    const update = () => setItems(readActiveDynamicCampaigns("map") as MapCampaign[]);
-    update();
+    const update = async () => setItems(await readActiveDynamicCampaigns("map") as MapCampaign[]);
+    void update();
     window.addEventListener(DYNAMIC_CAMPAIGNS_EVENT, update);
     return () => window.removeEventListener(DYNAMIC_CAMPAIGNS_EVENT, update);
   }, []);

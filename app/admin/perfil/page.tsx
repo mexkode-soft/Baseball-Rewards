@@ -19,10 +19,7 @@ import {
   useState,
 } from "react";
 
-import {
-  hasSupabaseConfig,
-  supabase,
-} from "@/lib/supabase";
+import { getCurrentProfile, supabase } from "@/lib/supabase";
 
 import styles from "./Perfil.module.css";
 
@@ -61,160 +58,79 @@ export default function Perfil() {
     useState(false);
 
   useEffect(() => {
-    const demoRole =
-      localStorage.getItem(
-        "hrr-demo-role"
-      ) === "admin"
-        ? "admin"
-        : "usuario";
+    let active = true;
 
-    setRole(demoRole);
-
-    setPhoto(
-      localStorage.getItem(
-        "hrr-photo"
-      ) ?? ""
-    );
-
-    setName(
-      localStorage.getItem(
-        "hrr-name"
-      ) ?? ""
-    );
-
-    setEmail(
-      localStorage.getItem(
-        "hrr-email"
-      ) ?? ""
-    );
-
-    setPhone(
-      localStorage.getItem(
-        "hrr-phone"
-      ) ?? ""
-    );
-
-    setState(
-      localStorage.getItem(
-        "hrr-state"
-      ) ?? ""
-    );
-
-    setMunicipality(
-      localStorage.getItem(
-        "hrr-municipality"
-      ) ?? ""
-    );
-
-    setFavoriteTeam(
-      localStorage.getItem(
-        "hrr-favorite-team"
-      ) ?? ""
-    );
-
-    if (!hasSupabaseConfig) {
-      return;
+    async function loadProfile() {
+      const profile = await getCurrentProfile();
+      if (!active || !profile) return;
+      setRole(profile.role);
+      setPhoto(profile.avatar_url ?? "");
+      setName(profile.full_name ?? "");
+      setEmail(profile.email ?? "");
+      setPhone(profile.phone ?? "");
+      setState(profile.state ?? "");
+      setMunicipality(profile.municipality ?? "");
+      setFavoriteTeam(profile.favorite_team ?? "");
     }
 
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
-        const metadataRole =
-          data.user?.user_metadata
-            ?.role;
-
-        setRole(
-          metadataRole === "admin"
-            ? "admin"
-            : "usuario"
-        );
-
-        const avatarUrl =
-          data.user?.user_metadata
-            ?.avatar_url;
-
-        if (avatarUrl) {
-          setPhoto(avatarUrl);
-        }
-      });
+    void loadProfile();
+    return () => { active = false; };
   }, []);
 
-  function uploadPhoto(
-    event:
-      ChangeEvent<HTMLInputElement>
-  ) {
-    const file =
-      event.target.files?.[0];
+  async function uploadPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    if (!file) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) return;
+
+    const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    const path = `${userData.user.id}/avatar.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+      cacheControl: "3600",
+    });
+    if (uploadError) {
+      console.error(uploadError);
       return;
     }
 
-    const reader =
-      new FileReader();
+    const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const value = `${publicData.publicUrl}?v=${Date.now()}`;
+    const { error: profileError } = await supabase.from("profiles").update({ avatar_url: value }).eq("id", userData.user.id);
+    if (profileError) {
+      console.error(profileError);
+      return;
+    }
 
-    reader.onload = () => {
-      const value =
-        String(reader.result);
-
-      setPhoto(value);
-
-      localStorage.setItem(
-        "hrr-photo",
-        value
-      );
-
-      window.dispatchEvent(
-        new Event(
-          "hrr-profile-updated"
-        )
-      );
-    };
-
-    reader.readAsDataURL(file);
+    setPhoto(value);
+    window.dispatchEvent(new Event("hrr-profile-updated"));
   }
 
-  function saveProfile(
-    event:
-      FormEvent<HTMLFormElement>
-  ) {
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) return;
 
-    localStorage.setItem(
-      "hrr-name",
-      name
-    );
+    const { error } = await supabase.from("profiles").update({
+      full_name: name.trim(),
+      phone: phone.trim() || null,
+      state: state.trim() || null,
+      municipality: municipality.trim() || null,
+      favorite_team: favoriteTeam.trim() || null,
+      avatar_url: photo || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", userData.user.id);
 
-    localStorage.setItem(
-      "hrr-email",
-      email
-    );
-
-    localStorage.setItem(
-      "hrr-phone",
-      phone
-    );
-
-    localStorage.setItem(
-      "hrr-state",
-      state
-    );
-
-    localStorage.setItem(
-      "hrr-municipality",
-      municipality
-    );
-
-    localStorage.setItem(
-      "hrr-favorite-team",
-      favoriteTeam
-    );
+    if (error) {
+      console.error(error);
+      return;
+    }
 
     setSaved(true);
-
-    window.setTimeout(() => {
-      setSaved(false);
-    }, 2500);
+    window.dispatchEvent(new Event("hrr-profile-updated"));
+    window.setTimeout(() => setSaved(false), 2500);
   }
 
   const isAdmin =
@@ -250,6 +166,7 @@ export default function Perfil() {
               <img
                 src={photo}
                 alt="Foto de perfil"
+                referrerPolicy="no-referrer"
               />
             ) : (
               <UserRound />

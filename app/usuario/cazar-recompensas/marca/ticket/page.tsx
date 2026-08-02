@@ -14,6 +14,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import styles from "../../CazarRecompensas.module.css";
+import { persistTicketSubmission } from "@/lib/tickets";
+import { supabase } from "@/lib/supabase";
 import {
   awardDynamicReward,
   distanceMeters,
@@ -42,13 +44,15 @@ interface Analysis {
 export default function BrandTicketPage() {
   const campaignId = useSearchParams().get("campaign") ?? "";
 
-  const campaign = useMemo(
-    () =>
-      (readActiveDynamicCampaigns("brand") as BrandCampaign[]).find(
-        (item) => item.id === campaignId
-      ),
-    [campaignId]
-  );
+  const [campaign, setCampaign] = useState<BrandCampaign | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void readActiveDynamicCampaigns("brand").then((items) => {
+      if (active) setCampaign((items as BrandCampaign[]).find((item) => item.id === campaignId) ?? null);
+    });
+    return () => { active = false; };
+  }, [campaignId]);
 
   const [files, setFiles] = useState<File[]>([]);
   const [coords, setCoords] = useState<{
@@ -63,16 +67,12 @@ export default function BrandTicketPage() {
   );
 
   useEffect(() => {
-    const update = () => setDemoConfig(readDemoConfig());
-    update();
-
-    window.addEventListener(DEMO_CONFIG_EVENT, update);
-    window.addEventListener("storage", update);
-
-    return () => {
-      window.removeEventListener(DEMO_CONFIG_EVENT, update);
-      window.removeEventListener("storage", update);
-    };
+    let active = true;
+    async function update() { try { const value = await readDemoConfig(); if (active) setDemoConfig(value); } catch {} }
+    void update();
+    const refresh = () => { void update(); };
+    window.addEventListener(DEMO_CONFIG_EVENT, refresh);
+    return () => { active = false; window.removeEventListener(DEMO_CONFIG_EVENT, refresh); };
   }, []);
 
   if (!campaign) {
@@ -88,8 +88,8 @@ export default function BrandTicketPage() {
 
   const activeCampaign: BrandCampaign = campaign;
 
-  function validateLocation() {
-    const demo = readDemoConfig();
+  async function validateLocation() {
+    const demo = await readDemoConfig();
 
     if (demo.simulatedLocationEnabled) {
       setCoords({
@@ -124,20 +124,23 @@ export default function BrandTicketPage() {
 
     const form = new FormData();
     files.forEach((file) => form.append("images", file));
-    form.append("campaign", JSON.stringify(activeCampaign));
+    form.append("campaignId", activeCampaign.id);
     form.append("location", JSON.stringify(coords));
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch("/api/tickets/analyze", {
         method: "POST",
+        headers: sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : undefined,
         body: form,
       });
 
       const data = (await response.json()) as Analysis;
+      await persistTicketSubmission({ campaign: activeCampaign, files, coords, analysis: data });
       setResult(data);
 
       if (data.status === "approved") {
-        awardDynamicReward(activeCampaign);
+        await awardDynamicReward(activeCampaign);
       }
     } catch {
       setResult({
@@ -174,7 +177,7 @@ export default function BrandTicketPage() {
       },
     });
 
-    awardDynamicReward(activeCampaign);
+    void awardDynamicReward(activeCampaign);
   }
 
   function simulateInvalidTicket() {
@@ -252,7 +255,7 @@ export default function BrandTicketPage() {
         <button
           type="button"
           className={styles.locationButton}
-          onClick={validateLocation}
+          onClick={() => { void validateLocation(); }}
         >
           <MapPin />
           {coords ? `Ubicación lista · ${distance} m` : "Validar ubicación"}

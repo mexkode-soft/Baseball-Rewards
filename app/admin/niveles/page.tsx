@@ -110,9 +110,7 @@ export default function Page() {
   ] = useState("250");
 
   useEffect(() => {
-    setLevels(
-      readLevels()
-    );
+    void readLevels(true).then(setLevels).catch((error) => setErrorMessage(error instanceof Error ? error.message : "No se pudieron cargar los niveles."));
   }, []);
 
   const activeLevels =
@@ -138,7 +136,7 @@ export default function Page() {
       ]
     );
 
-  function persist(
+  async function persist(
     nextLevels: Level[]
   ) {
     const ordered =
@@ -162,7 +160,7 @@ export default function Page() {
         );
 
     setLevels(ordered);
-    saveLevels(ordered);
+    await saveLevels(ordered);
   }
 
   function resetForm() {
@@ -303,7 +301,7 @@ export default function Page() {
     }
 
     if (editingId) {
-      persist(
+      void persist(
         levels.map(
           (level) =>
             level.id ===
@@ -387,7 +385,7 @@ export default function Page() {
   function toggleLevel(
     id: string
   ) {
-    persist(
+    void persist(
       levels.map(
         (level) =>
           level.id === id
@@ -404,7 +402,7 @@ export default function Page() {
   function deleteLevel(
     id: string
   ) {
-    persist(
+    void persist(
       levels.filter(
         (level) =>
           level.id !== id
@@ -466,7 +464,7 @@ export default function Page() {
   }
 
   function restoreDefaults() {
-    persist(
+    void persist(
       DEFAULT_LEVELS
     );
 

@@ -19,65 +19,18 @@ import {
   useMemo,
   useState,
 } from "react";
+import { getCurrentProfile } from "@/lib/supabase";
 import {
-  hasSupabaseConfig,
-  supabase,
-} from "@/lib/supabase";
+  createPromotion as createPromotionRecord,
+  deletePromotion as deletePromotionRecord,
+  readPromotions,
+  uploadPromotionImage,
+  type Promotion,
+  type PromotionStatus,
+} from "@/lib/promotions";
 import styles from "./Promociones.module.css";
 
 type Role = "admin" | "usuario";
-type PromotionStatus = "Activa" | "Borrador";
-
-interface Promotion {
-  id: number;
-  brandName: string;
-  brandImage: string;
-  title: string;
-  description: string;
-  code: string;
-  expiration: string;
-  productImages: string[];
-  status: PromotionStatus;
-}
-
-const initialPromotions: Promotion[] = [
-  {
-    id: 1,
-    brandName: "Home Run Rewards",
-    brandImage: "/images/logo-home-run.png",
-    title: "2x1 en el partido Águilas vs. Tomateros",
-    description:
-      "Presenta esta promoción y recibe dos accesos al precio de uno.",
-    code: "HOMERUN2X1",
-    expiration: "2026-08-30",
-    productImages: ["/images/logo-home-run.png"],
-    status: "Activa",
-  },
-  {
-    id: 2,
-    brandName: "Premio sorpresa",
-    brandImage: "/images/logo-home-run.png",
-    title: "Participa y gana una recompensa",
-    description:
-      "Completa el reto durante el partido y desbloquea un premio especial.",
-    code: "PREMIO2026",
-    expiration: "2026-09-15",
-    productImages: ["/images/logo-home-run.png"],
-    status: "Borrador",
-  },
-];
-
-function readImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () =>
-      reject(new Error("No se pudo leer la imagen."));
-
-    reader.readAsDataURL(file);
-  });
-}
 
 function formatDate(value: string) {
   if (!value) {
@@ -94,7 +47,7 @@ function formatDate(value: string) {
 
 export default function PromocionesPage() {
   const [promotions, setPromotions] =
-    useState<Promotion[]>(initialPromotions);
+    useState<Promotion[]>([]);
   const [role, setRole] = useState<Role>("usuario");
   const [roleLoaded, setRoleLoaded] = useState(false);
 
@@ -111,35 +64,20 @@ export default function PromocionesPage() {
 
   useEffect(() => {
     let mounted = true;
-
-    const demoRole: Role =
-      localStorage.getItem("hrr-demo-role") === "admin"
-        ? "admin"
-        : "usuario";
-
-    setRole(demoRole);
-
-    if (!hasSupabaseConfig) {
-      setRoleLoaded(true);
-      return () => {
-        mounted = false;
-      };
-    }
-
-    void supabase.auth.getUser().then(({ data }) => {
-      if (!mounted) {
-        return;
+    async function load() {
+      try {
+        const profile = await getCurrentProfile();
+        if (!mounted || !profile) return;
+        setRole(profile.role);
+        setPromotions(await readPromotions(profile.role === "admin"));
+      } catch (error) {
+        setSavedMessage(error instanceof Error ? error.message : "No se pudieron cargar las promociones.");
+      } finally {
+        if (mounted) setRoleLoaded(true);
       }
-
-      const metadataRole = data.user?.user_metadata?.role;
-
-      setRole(metadataRole === "admin" ? "admin" : "usuario");
-      setRoleLoaded(true);
-    });
-
-    return () => {
-      mounted = false;
-    };
+    }
+    void load();
+    return () => { mounted = false; };
   }, []);
 
   const isAdmin = role === "admin";
@@ -152,49 +90,21 @@ export default function PromocionesPage() {
     [promotions]
   );
 
-  async function uploadBrandImage(
-    event: ChangeEvent<HTMLInputElement>
-  ) {
+  async function uploadBrandImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    try {
-      setBrandImage(await readImage(file));
-    } catch (error) {
-      console.error(error);
-    }
-
+    if (!file) return;
+    try { setBrandImage(await uploadPromotionImage(file, "brands")); }
+    catch (error) { setSavedMessage(error instanceof Error ? error.message : "No se pudo subir la imagen."); }
     event.target.value = "";
   }
 
-  async function uploadProductImages(
-    event: ChangeEvent<HTMLInputElement>
-  ) {
-    const files = Array.from(event.target.files ?? []);
-
-    if (files.length === 0) {
-      return;
-    }
-
-    const availableSpaces = 3 - productImages.length;
-    const selectedFiles = files.slice(0, availableSpaces);
-
+  async function uploadProductImages(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []).slice(0, 3 - productImages.length);
+    if (!files.length) return;
     try {
-      const images = await Promise.all(
-        selectedFiles.map(readImage)
-      );
-
-      setProductImages((currentImages) => [
-        ...currentImages,
-        ...images,
-      ]);
-    } catch (error) {
-      console.error(error);
-    }
-
+      const images = await Promise.all(files.map((file) => uploadPromotionImage(file, "products")));
+      setProductImages((current) => [...current, ...images]);
+    } catch (error) { setSavedMessage(error instanceof Error ? error.message : "No se pudieron subir las imágenes."); }
     event.target.value = "";
   }
 
@@ -215,54 +125,38 @@ export default function PromocionesPage() {
     setStatus("Borrador");
   }
 
-  function createPromotion(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function createPromotion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (!brandName.trim() || !title.trim()) {
-      setSavedMessage(
-        "Agrega el nombre de la marca y el título de la promoción."
-      );
+      setSavedMessage("Agrega el nombre de la marca y el título de la promoción.");
       return;
     }
-
-    const newPromotion: Promotion = {
-      id: Date.now(),
-      brandName: brandName.trim(),
-      brandImage:
-        brandImage || "/images/logo-home-run.png",
-      title: title.trim(),
-      description: description.trim(),
-      code: code.trim() || "SIN-CODIGO",
-      expiration,
-      productImages,
-      status,
-    };
-
-    setPromotions((currentPromotions) => [
-      newPromotion,
-      ...currentPromotions,
-    ]);
-
-    resetForm();
-    setSavedMessage("Promoción creada correctamente.");
-
-    window.setTimeout(() => {
-      setSavedMessage("");
-    }, 3000);
+    try {
+      const saved = await createPromotionRecord({
+        brandName: brandName.trim(),
+        brandImage: brandImage || "/images/logo-home-run.png",
+        title: title.trim(),
+        description: description.trim(),
+        code: code.trim() || "SIN-CODIGO",
+        expiration,
+        productImages,
+        status,
+      });
+      setPromotions((current) => [saved, ...current]);
+      resetForm();
+      setSavedMessage("Promoción creada correctamente en Supabase.");
+    } catch (error) { setSavedMessage(error instanceof Error ? error.message : "No se pudo guardar la promoción."); }
   }
 
-  function deletePromotion(promotionId: number) {
-    setPromotions((currentPromotions) =>
-      currentPromotions.filter(
-        (promotion) => promotion.id !== promotionId
-      )
-    );
+  async function deletePromotion(promotionId: string) {
+    try {
+      await deletePromotionRecord(promotionId);
+      setPromotions((current) => current.filter((promotion) => promotion.id !== promotionId));
+    } catch (error) { setSavedMessage(error instanceof Error ? error.message : "No se pudo eliminar."); }
   }
 
   const previewPromotion: Promotion = {
-    id: 0,
+    id: "preview",
     brandName: brandName || "Nombre de la marca",
     brandImage:
       brandImage || "/images/logo-home-run.png",
@@ -599,9 +493,7 @@ export default function PromocionesPage() {
                     <button
                       type="button"
                       className={styles.deletePromotion}
-                      onClick={() =>
-                        deletePromotion(promotion.id)
-                      }
+                      onClick={() => { void deletePromotion(promotion.id); }}
                     >
                       <Trash2 />
                       Eliminar

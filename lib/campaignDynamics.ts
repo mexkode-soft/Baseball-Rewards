@@ -1,4 +1,5 @@
 import type { TriviaQuestion } from "@/lib/questions";
+import { supabase } from "@/lib/supabase";
 
 export type DynamicCampaignStatus = "draft" | "scheduled" | "active";
 export type DynamicCampaignType = "map" | "brand";
@@ -28,7 +29,7 @@ interface BaseCampaign {
   startDate: string;
   endDate: string;
   status: DynamicCampaignStatus;
-  selectedQuestionIds: number[];
+  selectedQuestionIds: string[];
   questionCount: number;
   passingPercentage: number;
   questionSeconds: 5;
@@ -36,11 +37,7 @@ interface BaseCampaign {
   createdAt: string;
 }
 
-export interface MapCampaign extends BaseCampaign {
-  type: "map";
-  locations: CampaignLocation[];
-}
-
+export interface MapCampaign extends BaseCampaign { type: "map"; locations: CampaignLocation[]; }
 export interface BrandCampaign extends BaseCampaign {
   type: "brand";
   brandName: string;
@@ -50,13 +47,8 @@ export interface BrandCampaign extends BaseCampaign {
   minimumConfidence: number;
   maxTicketImages: 3;
 }
-
 export type DynamicCampaign = MapCampaign | BrandCampaign;
-
-const KEY = "hrr-dynamic-campaigns-v1";
 export const DYNAMIC_CAMPAIGNS_EVENT = "hrr-dynamic-campaigns-updated";
-export const DYNAMIC_COOLDOWN_STORAGE_KEY = "hrr-map-cooldowns-v1";
-const CAPTURES_KEY = "hrr-dynamic-captures-v1";
 
 export interface DynamicCapture {
   id: string;
@@ -75,43 +67,164 @@ export function makeId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export function readDynamicCampaigns(): DynamicCampaign[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const parsed = JSON.parse(localStorage.getItem(KEY) ?? "[]") as DynamicCampaign[];
-    return parsed.map((campaign) => ({
-      ...campaign,
-      locations: campaign.locations.map((location) => ({
-        ...location,
-        reward: location.reward ?? campaign.reward,
-        rewardCode: location.rewardCode ?? campaign.rewardCode,
-        points: location.points ?? campaign.points,
-        availableUnits: location.availableUnits ?? 1,
-      })),
-    }));
-  } catch {
-    return [];
-  }
+function dateOnly(value: unknown): string {
+  if (!value) return "";
+  return new Date(String(value)).toISOString().slice(0, 10);
 }
 
-export function saveDynamicCampaign(campaign: DynamicCampaign) {
-  const all = readDynamicCampaigns();
-  const index = all.findIndex((item) => item.id === campaign.id);
-  if (index >= 0) all[index] = campaign;
-  else all.unshift(campaign);
-  localStorage.setItem(KEY, JSON.stringify(all));
-  window.dispatchEvent(new CustomEvent(DYNAMIC_CAMPAIGNS_EVENT));
-}
+async function mapCampaignRows(rows: Array<Record<string, unknown>>): Promise<DynamicCampaign[]> {
+  if (!rows.length) return [];
+  const ids = rows.map((row) => String(row.id));
+  const [{ data: locations, error: locationsError }, { data: links, error: linksError }, { data: rules, error: rulesError }] = await Promise.all([
+    supabase.from("campaign_locations").select("*").in("campaign_id", ids).order("created_at"),
+    supabase.from("campaign_questions").select("campaign_id,question_id,sort_order").in("campaign_id", ids).order("sort_order"),
+    supabase.from("brand_rules").select("*").in("campaign_id", ids),
+  ]);
+  if (locationsError) throw locationsError;
+  if (linksError) throw linksError;
+  if (rulesError) throw rulesError;
 
-export function readActiveDynamicCampaigns(type?: DynamicCampaignType) {
-  const now = new Date();
-  return readDynamicCampaigns().filter((campaign) => {
-    if (campaign.status !== "active") return false;
-    if (type && campaign.type !== type) return false;
-    if (campaign.startDate && now < new Date(`${campaign.startDate}T00:00:00`)) return false;
-    if (campaign.endDate && now > new Date(`${campaign.endDate}T23:59:59`)) return false;
-    return true;
+  return rows.map((row) => {
+    const campaignId = String(row.id);
+    const campaignLocations: CampaignLocation[] = (locations ?? [])
+      .filter((item) => String(item.campaign_id) === campaignId)
+      .map((item) => ({
+        id: String(item.id),
+        name: String(item.name),
+        address: String(item.address ?? ""),
+        latitude: Number(item.latitude),
+        longitude: Number(item.longitude),
+        radius: Number(item.radius_meters),
+        reward: String(item.reward_name ?? row.name),
+        rewardCode: String(item.reward_code ?? ""),
+        points: Number(item.points ?? row.points_on_success ?? 0),
+        availableUnits: Number(item.reward_units ?? 0),
+      }));
+    const selectedQuestionIds = (links ?? [])
+      .filter((item) => String(item.campaign_id) === campaignId)
+      .map((item) => String(item.question_id));
+    const rule = (rules ?? []).find((item) => String(item.campaign_id) === campaignId);
+    const metadata = (row.metadata && typeof row.metadata === "object" ? row.metadata : {}) as Record<string, unknown>;
+    const base = {
+      id: campaignId,
+      type: row.type as DynamicCampaignType,
+      name: String(row.name ?? ""),
+      sponsor: String(row.sponsor ?? ""),
+      description: String(row.description ?? ""),
+      reward: campaignLocations[0]?.reward ?? String(row.name ?? "Premio"),
+      rewardCode: campaignLocations[0]?.rewardCode ?? "",
+      points: Number(row.points_on_success ?? 0),
+      startDate: dateOnly(row.starts_at),
+      endDate: dateOnly(row.ends_at),
+      status: row.status as DynamicCampaignStatus,
+      selectedQuestionIds,
+      questionCount: Number(metadata.questionCount ?? selectedQuestionIds.length ?? 1),
+      passingPercentage: Number(row.passing_percentage ?? 100),
+      questionSeconds: 5 as const,
+      cooldownHours: 24 as const,
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+    };
+    if (row.type === "brand") {
+      return {
+        ...base,
+        type: "brand" as const,
+        brandName: String(rule?.expected_brand ?? row.sponsor ?? ""),
+        locations: campaignLocations,
+        minimumTotal: Number(rule?.minimum_total ?? 0),
+        requiredProducts: Array.isArray(rule?.required_products) ? rule.required_products.map(String) : [],
+        minimumConfidence: Number(rule?.confidence_threshold ?? 0.8),
+        maxTicketImages: 3 as const,
+      };
+    }
+    return { ...base, type: "map" as const, locations: campaignLocations };
   });
+}
+
+export async function readDynamicCampaigns(type?: DynamicCampaignType): Promise<DynamicCampaign[]> {
+  let query = supabase.from("campaigns").select("*").in("type", type ? [type] : ["map", "brand"]).order("created_at", { ascending: false });
+  const { data, error } = await query;
+  if (error) throw error;
+  return mapCampaignRows((data ?? []) as Array<Record<string, unknown>>);
+}
+
+export async function readActiveDynamicCampaigns(type?: DynamicCampaignType): Promise<DynamicCampaign[]> {
+  const now = new Date().toISOString();
+  let query = supabase.from("campaigns").select("*").eq("status", "active").in("type", type ? [type] : ["map", "brand"])
+    .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order("created_at", { ascending: false });
+  const { data, error } = await query;
+  if (error) throw error;
+  return mapCampaignRows((data ?? []) as Array<Record<string, unknown>>);
+}
+
+export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<string> {
+  const { data: userData } = await supabase.auth.getUser();
+  const metadata = { questionCount: campaign.questionCount, questionSeconds: 5, reward: campaign.reward, rewardCode: campaign.rewardCode };
+  const campaignPayload = {
+    type: campaign.type,
+    name: campaign.name,
+    sponsor: campaign.sponsor,
+    description: campaign.description,
+    status: campaign.status,
+    starts_at: campaign.startDate ? `${campaign.startDate}T00:00:00` : null,
+    ends_at: campaign.endDate ? `${campaign.endDate}T23:59:59` : null,
+    participation_limit: 1,
+    points_on_success: campaign.points,
+    points_on_failure: 0,
+    passing_percentage: campaign.passingPercentage,
+    cooldown_hours: campaign.cooldownHours,
+    created_by: userData.user?.id ?? null,
+    metadata,
+  };
+  const isUuid = /^[0-9a-f-]{36}$/i.test(campaign.id);
+  const { data: saved, error } = isUuid
+    ? await supabase.from("campaigns").update(campaignPayload).eq("id", campaign.id).select("id").single()
+    : await supabase.from("campaigns").insert(campaignPayload).select("id").single();
+  if (error) throw error;
+  const id = String(saved.id);
+
+  await Promise.all([
+    supabase.from("campaign_questions").delete().eq("campaign_id", id),
+    supabase.from("campaign_locations").delete().eq("campaign_id", id),
+    supabase.from("brand_rules").delete().eq("campaign_id", id),
+  ]);
+
+  if (campaign.selectedQuestionIds.length) {
+    const { error: linkError } = await supabase.from("campaign_questions").insert(
+      campaign.selectedQuestionIds.map((questionId, index) => ({ campaign_id: id, question_id: questionId, sort_order: index + 1 }))
+    );
+    if (linkError) throw linkError;
+  }
+  if (campaign.locations.length) {
+    const { error: locationError } = await supabase.from("campaign_locations").insert(campaign.locations.map((location) => ({
+      campaign_id: id,
+      name: location.name,
+      address: location.address,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      radius_meters: location.radius,
+      reward_name: location.reward,
+      reward_code: location.rewardCode,
+      reward_units: location.availableUnits,
+      points: location.points,
+      is_active: true,
+    })));
+    if (locationError) throw locationError;
+  }
+  if (campaign.type === "brand") {
+    const { error: ruleError } = await supabase.from("brand_rules").insert({
+      campaign_id: id,
+      expected_brand: campaign.brandName,
+      minimum_total: campaign.minimumTotal,
+      required_products: campaign.requiredProducts,
+      confidence_threshold: campaign.minimumConfidence,
+      max_images: campaign.maxTicketImages,
+      require_location: true,
+      automatic_approval: true,
+    });
+    if (ruleError) throw ruleError;
+  }
+  window.dispatchEvent(new CustomEvent(DYNAMIC_CAMPAIGNS_EVENT));
+  return id;
 }
 
 export function selectCampaignQuestions(campaign: DynamicCampaign, bank: TriviaQuestion[]) {
@@ -128,51 +241,47 @@ export function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: n
   return 2 * radius * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-export function setMapCooldown(campaignId: string, locationId?: string) {
-  const current = readCooldowns();
-  current[`${campaignId}:${locationId ?? "campaign"}`] = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  localStorage.setItem(DYNAMIC_COOLDOWN_STORAGE_KEY, JSON.stringify(current));
+export async function cooldownRemaining(campaignId: string, locationId?: string): Promise<number> {
+  let query = supabase.from("participations").select("cooldown_until").eq("campaign_id", campaignId).not("cooldown_until", "is", null).order("cooldown_until", { ascending: false }).limit(1);
+  if (locationId) query = query.eq("location_id", locationId);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  return data?.cooldown_until ? Math.max(0, new Date(data.cooldown_until).getTime() - Date.now()) : 0;
 }
 
-export function readCooldowns(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  try { return JSON.parse(localStorage.getItem(DYNAMIC_COOLDOWN_STORAGE_KEY) ?? "{}") as Record<string, string>; }
-  catch { return {}; }
+export async function setMapCooldown(campaignId: string, locationId?: string): Promise<void> {
+  await completeDynamicReward({ campaignId, locationId, score: 0, success: false });
 }
 
-export function cooldownRemaining(campaignId: string, locationId?: string) {
-  const until = readCooldowns()[`${campaignId}:${locationId ?? "campaign"}`];
-  return until ? Math.max(0, new Date(until).getTime() - Date.now()) : 0;
+export async function completeDynamicReward(options: { campaignId: string; locationId?: string; score?: number; success: boolean; metadata?: Record<string, unknown> }) {
+  const { data, error } = await supabase.rpc("complete_dynamic_reward", {
+    p_campaign_id: options.campaignId,
+    p_location_id: options.locationId ?? null,
+    p_score: options.score ?? (options.success ? 100 : 0),
+    p_success: options.success,
+    p_metadata: options.metadata ?? {},
+  });
+  if (error) throw error;
+  return data as { ok: boolean; status: string; pointsAwarded?: number; reward?: string; rewardCode?: string; message?: string };
 }
 
-export function awardDynamicReward(campaign: DynamicCampaign, location?: CampaignLocation) {
-  const reward = location?.reward || campaign.reward;
-  const rewardCode = location?.rewardCode || campaign.rewardCode;
-  const pointsToAward = location?.points ?? campaign.points;
-  const capture: DynamicCapture = {
-    id: makeId("capture"),
-    campaignId: campaign.id,
-    campaignName: campaign.name,
-    type: campaign.type,
-    locationId: location?.id,
-    locationName: location?.name,
-    reward,
-    rewardCode,
-    points: pointsToAward,
-    capturedAt: new Date().toISOString(),
-  };
-  const current = readDynamicCaptures();
-  current.unshift(capture);
-  localStorage.setItem(CAPTURES_KEY, JSON.stringify(current));
-  const points = Number(localStorage.getItem("hrr-demo-points-v1") ?? "0") + pointsToAward;
-  localStorage.setItem("hrr-demo-points-v1", String(points));
-  window.dispatchEvent(new CustomEvent("hrr-points-updated", { detail: { total: points } }));
-  window.dispatchEvent(new CustomEvent("hrr-dynamic-captures-updated"));
-  return capture;
+export async function awardDynamicReward(campaign: DynamicCampaign, location?: CampaignLocation) {
+  return completeDynamicReward({ campaignId: campaign.id, locationId: location?.id, success: true, score: 100 });
 }
 
-export function readDynamicCaptures(): DynamicCapture[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(CAPTURES_KEY) ?? "[]") as DynamicCapture[]; }
-  catch { return []; }
+export async function readDynamicCaptures(): Promise<DynamicCapture[]> {
+  const { data, error } = await supabase
+    .from("reward_claims")
+    .select("id,campaign_id,reward_name,reward_code,claimed_at,campaigns(name,type),participations(location_id,points_awarded,campaign_locations(name))")
+    .order("claimed_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).filter((row) => row.campaigns && ["map", "brand"].includes(String((row.campaigns as unknown as { type: string }).type))).map((row) => {
+    const campaign = row.campaigns as unknown as { name: string; type: DynamicCampaignType };
+    const participation = row.participations as unknown as { location_id?: string; points_awarded?: number; campaign_locations?: { name?: string } } | null;
+    return {
+      id: String(row.id), campaignId: String(row.campaign_id), campaignName: campaign.name, type: campaign.type,
+      locationId: participation?.location_id, locationName: participation?.campaign_locations?.name,
+      reward: String(row.reward_name), rewardCode: String(row.reward_code ?? ""), points: Number(participation?.points_awarded ?? 0), capturedAt: String(row.claimed_at),
+    };
+  });
 }

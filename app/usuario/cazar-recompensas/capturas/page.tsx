@@ -40,13 +40,14 @@ export default function CapturasPage() {
   const [dynamicCaptures, setDynamicCaptures] = useState<DynamicCapture[]>([]);
 
   useEffect(() => {
-    const update = () => {
-      setCaptures(readQrCaptures());
-      setPoints(readDemoPoints());
-      setDynamicCaptures(readDynamicCaptures());
+    const update = async () => {
+      const [qr, currentPoints, dynamic] = await Promise.all([readQrCaptures(), readDemoPoints(), readDynamicCaptures()]);
+      setCaptures(qr);
+      setPoints(currentPoints);
+      setDynamicCaptures(dynamic);
     };
 
-    update();
+    void update();
     window.addEventListener("hrr-qr-captures-updated", update);
     window.addEventListener("hrr-points-updated", update);
     window.addEventListener("hrr-dynamic-captures-updated", update);

@@ -15,7 +15,6 @@ import { useSearchParams } from "next/navigation";
 
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -66,18 +65,15 @@ export default function MapPlayPage() {
   const locationId =
     params.get("location") ?? "";
 
-  const campaign = useMemo(
-    () =>
-      (
-        readActiveDynamicCampaigns(
-          "map"
-        ) as MapCampaign[]
-      ).find(
-        (item) =>
-          item.id === campaignId
-      ),
-    [campaignId]
-  );
+  const [campaign, setCampaign] = useState<MapCampaign | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void readActiveDynamicCampaigns("map").then((items) => {
+      if (active) setCampaign((items as MapCampaign[]).find((item) => item.id === campaignId) ?? null);
+    });
+    return () => { active = false; };
+  }, [campaignId]);
 
   const location =
     campaign?.locations.find(
@@ -121,6 +117,8 @@ export default function MapPlayPage() {
       DEFAULT_DEMO_CONFIG
     );
 
+  const [remaining, setRemaining] = useState(0);
+
   const videoRef =
     useRef<HTMLVideoElement>(null);
 
@@ -131,49 +129,18 @@ export default function MapPlayPage() {
     useRef<number | null>(null);
 
   useEffect(() => {
-    const updateDemoConfig = () => {
-      setDemoConfig(
-        readDemoConfig()
-      );
-    };
-
-    updateDemoConfig();
-
-    window.addEventListener(
-      DEMO_CONFIG_EVENT,
-      updateDemoConfig
-    );
-
-    window.addEventListener(
-      "storage",
-      updateDemoConfig
-    );
-
+    let active = true;
+    async function updateDemoConfig() {
+      try { const value = await readDemoConfig(); if (active) setDemoConfig(value); } catch { /* configuración predeterminada */ }
+    }
+    void updateDemoConfig();
+    const refresh = () => { void updateDemoConfig(); };
+    window.addEventListener(DEMO_CONFIG_EVENT, refresh);
     return () => {
-      window.removeEventListener(
-        DEMO_CONFIG_EVENT,
-        updateDemoConfig
-      );
-
-      window.removeEventListener(
-        "storage",
-        updateDemoConfig
-      );
-
-      streamRef.current
-        ?.getTracks()
-        .forEach(
-          (track) =>
-            track.stop()
-        );
-
-      if (
-        watchRef.current !== null
-      ) {
-        navigator.geolocation.clearWatch(
-          watchRef.current
-        );
-      }
+      active = false;
+      window.removeEventListener(DEMO_CONFIG_EVENT, refresh);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
     };
   }, []);
 
@@ -200,8 +167,7 @@ export default function MapPlayPage() {
                 setSelected(-1);
 
                 window.setTimeout(
-                  () =>
-                    next(false),
+                  () => { void next(false); },
                   850
                 );
 
@@ -225,6 +191,11 @@ export default function MapPlayPage() {
     index,
     selected,
   ]);
+
+  useEffect(() => {
+    if (!campaign || !location) return;
+    void cooldownRemaining(campaign.id, location.id).then(setRemaining).catch(() => setRemaining(0));
+  }, [campaign, location]);
 
   if (
     !campaign ||
@@ -262,14 +233,6 @@ export default function MapPlayPage() {
 
   const activeLocation:
     CampaignLocation = location;
-
-  const remaining =
-    demoConfig.enable24HourCooldown
-      ? cooldownRemaining(
-          activeCampaign.id,
-          activeLocation.id
-        )
-      : 0;
 
   const q =
     questions[index];
@@ -342,9 +305,8 @@ export default function MapPlayPage() {
     }
   }
 
-  function locate() {
-    const demo =
-      readDemoConfig();
+  async function locate() {
+    const demo = await readDemoConfig();
 
     if (
       demo.simulatedLocationEnabled
@@ -421,7 +383,9 @@ export default function MapPlayPage() {
     setPhase("ready");
   }
 
-  function begin() {
+  async function begin() {
+    const bank = await readQuestions();
+    setQuestions(selectCampaignQuestions(activeCampaign, bank));
     setPhase("countdown");
 
     const values = [
@@ -450,12 +414,7 @@ export default function MapPlayPage() {
               timer
             );
 
-            setQuestions(
-              selectCampaignQuestions(
-                activeCampaign,
-                readQuestions()
-              )
-            );
+            // Las preguntas se cargan antes de iniciar la cuenta regresiva.
 
             setPhase("quiz");
             setIndex(0);
@@ -504,7 +463,7 @@ export default function MapPlayPage() {
     );
   }
 
-  function next(
+  async function next(
     wasCorrect: boolean
   ) {
     const last =
@@ -544,10 +503,8 @@ export default function MapPlayPage() {
         demoConfig
           .enable24HourCooldown
       ) {
-        setMapCooldown(
-          activeCampaign.id,
-          activeLocation.id
-        );
+        await setMapCooldown(activeCampaign.id, activeLocation.id);
+        setRemaining(activeCampaign.cooldownHours * 60 * 60 * 1000);
       }
 
       setPhase("failed");
@@ -749,9 +706,7 @@ export default function MapPlayPage() {
               className={
                 styles.cameraButton
               }
-              onClick={
-                locate
-              }
+              onClick={() => { void locate(); }}
               disabled={
                 watching
               }
@@ -855,9 +810,7 @@ export default function MapPlayPage() {
             className={
               styles.cameraButton
             }
-            onClick={
-              begin
-            }
+            onClick={() => { void begin(); }}
           >
             Comenzar
           </button>
@@ -1011,12 +964,7 @@ export default function MapPlayPage() {
                 .rewardCode
             }
             onComplete={() => {
-              awardDynamicReward(
-                activeCampaign,
-                activeLocation
-              );
-
-              setPhase("done");
+              void awardDynamicReward(activeCampaign, activeLocation).then(() => setPhase("done"));
             }}
           />
         </section>

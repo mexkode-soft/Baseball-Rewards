@@ -26,13 +26,18 @@ export default function CazarRecompensasPage() {
   const [activeBrandCount,setActiveBrandCount]=useState(0);
 
   useEffect(() => {
-    const update = () => {
-      setActiveQrCount(readActiveQrCampaigns().length);
-      setActiveMapCount(readActiveDynamicCampaigns("map").length);
-      setActiveBrandCount(readActiveDynamicCampaigns("brand").length);
+    const update = async () => {
+      const [qr, map, brand] = await Promise.all([
+        readActiveQrCampaigns(),
+        readActiveDynamicCampaigns("map"),
+        readActiveDynamicCampaigns("brand"),
+      ]);
+      setActiveQrCount(qr.length);
+      setActiveMapCount(map.length);
+      setActiveBrandCount(brand.length);
     };
 
-    update();
+    void update();
 
     window.addEventListener("hrr-qr-campaigns-updated",update);
     window.addEventListener(DYNAMIC_CAMPAIGNS_EVENT,update);
