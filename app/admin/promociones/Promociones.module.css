@@ -1198,3 +1198,155 @@
     padding: 15px;
   }
 }
+
+
+/* =========================================================
+   Ajuste final de promociones para usuario
+   ========================================================= */
+
+.userPromotionsSection {
+  min-height: 0;
+  max-height: calc(100svh - 230px);
+  overflow: hidden;
+  padding: 22px;
+}
+
+.userPromotionsSection .listHeading {
+  margin-bottom: 16px;
+}
+
+.userPromotionsGrid {
+  min-height: 0;
+  height: calc(100svh - 370px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.userPromotionsGrid .savedCardWrap,
+.userPromotionsGrid .promotionCard {
+  min-height: 0;
+  height: 100%;
+}
+
+.userPromotionsGrid .promotionCard {
+  max-height: calc(100svh - 370px);
+}
+
+.userPromotionsGrid .brandArea {
+  min-height: 105px;
+  padding: 15px 16px 11px;
+}
+
+.userPromotionsGrid .brandArea img {
+  height: 62px;
+}
+
+.userPromotionsGrid .promotionContent {
+  padding: 15px 17px;
+}
+
+.userPromotionsGrid .promotionContent h3 {
+  margin: 7px 0;
+  font-size: clamp(18px, 1.7vw, 23px);
+}
+
+.userPromotionsGrid .promotionContent > p {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 10px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.userPromotionsGrid .promotionCode {
+  margin-top: 12px;
+  padding: 8px 11px;
+}
+
+.userPromotionsGrid .expiration {
+  margin-top: 10px;
+}
+
+.userPromotionsGrid .productsArea {
+  padding: 12px 15px 15px;
+}
+
+.userPromotionsGrid .productGallery {
+  margin-top: 9px;
+  gap: 7px;
+}
+
+.userPromotionsGrid .productGallery img {
+  max-height: 72px;
+}
+
+.userPromotionsGrid .productGallery img:only-child {
+  width: 72px;
+}
+
+@media (max-width: 1100px) and (min-width: 621px) {
+  .userPromotionsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .userPromotionsSection {
+    max-height: none;
+    min-height: calc(100svh - 205px);
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .userPromotionsSection .listHeading {
+    padding: 0 2px;
+    margin-bottom: 14px;
+  }
+
+  .userPromotionsGrid {
+    width: 100%;
+    height: auto;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 12px;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .userPromotionsGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .userPromotionsGrid .savedCardWrap {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    scroll-snap-align: start;
+  }
+
+  .userPromotionsGrid .promotionCard {
+    width: 100%;
+    height: calc(100svh - 225px);
+    max-height: none;
+    min-height: 520px;
+    border-radius: 20px;
+  }
+
+  .userPromotionsGrid .brandArea {
+    min-height: 112px;
+  }
+
+  .userPromotionsGrid .promotionContent {
+    padding: 16px;
+  }
+
+  .userPromotionsGrid .productsArea {
+    padding: 13px 16px 16px;
+  }
+}

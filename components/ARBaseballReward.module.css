@@ -5,9 +5,7 @@
   min-height: 420px;
   overflow: hidden;
   touch-action: none;
-  background:
-    radial-gradient(circle at 50% 48%, rgba(242, 189, 69, 0.12), transparent 42%),
-    rgba(4, 5, 7, 0.2);
+  background: transparent;
 }
 
 .wrap canvas {
@@ -195,5 +193,44 @@
   from {
     opacity: 0;
     transform: scale(0.9);
+  }
+}
+
+
+/* Ajuste final: experiencia AR limpia y centrada */
+.wrap {
+  min-height: 100%;
+  background: transparent;
+}
+
+.wrap canvas {
+  background: transparent;
+}
+
+@media (max-width: 700px) {
+  .wrap {
+    min-height: 100svh;
+    background: transparent;
+  }
+
+  .aura {
+    top: 50%;
+    width: 210px;
+    height: 210px;
+  }
+
+  .shadow {
+    top: 65%;
+    width: 125px;
+  }
+
+  .giftFallback {
+    top: 50%;
+  }
+
+  .prompt {
+    bottom: max(18px, env(safe-area-inset-bottom));
+    width: min(360px, calc(100% - 28px));
+    background: rgba(0, 0, 0, 0.72);
   }
 }

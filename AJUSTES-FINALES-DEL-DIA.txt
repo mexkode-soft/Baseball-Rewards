@@ -1,0 +1,12 @@
+AJUSTES FINALES DEL DÍA
+
+1. Pelota AR centrada verticalmente y sin recuadro gris en móvil.
+2. El modelo 3D ya no se recarga cada vez que cambia el progreso.
+3. Promociones compactas en computadora para caber dentro del alto disponible.
+4. En móvil se muestra una promoción por pantalla en carrusel horizontal.
+5. Resultados del buscador de mapas con fondo negro y letras blancas.
+
+Después de copiar el proyecto:
+- elimina .next
+- ejecuta npm install
+- ejecuta npm run dev

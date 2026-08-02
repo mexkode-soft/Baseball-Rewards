@@ -191,3 +191,26 @@
 
   transform: rotate(8deg);
 }
+
+
+/* Resultados del buscador en tema oscuro */
+.results {
+  background: #090a0d !important;
+  color: #ffffff !important;
+  border-color: rgba(242, 189, 69, 0.22) !important;
+}
+
+.results button {
+  background: #090a0d !important;
+  color: #ffffff !important;
+}
+
+.results button span {
+  color: #ffffff !important;
+}
+
+.results button:hover,
+.results button:focus-visible {
+  background: #17140c !important;
+  color: #ffffff !important;
+}

@@ -16,6 +16,7 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
+  const progressRef = useRef(0);
 
   const [progress, setProgress] = useState(0);
   const [won, setWon] = useState(false);
@@ -70,6 +71,7 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
         const center = box.getCenter(new THREE.Vector3());
 
         model.position.sub(center);
+        model.position.y = 0.42;
         baseScale = 1.15 / Math.max(size.x, size.y, size.z, 0.001);
         model.scale.setScalar(baseScale);
 
@@ -104,7 +106,7 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
       if (model) {
         model.rotation.y += 0.009;
         model.rotation.x += 0.003;
-        model.scale.setScalar(baseScale * (1 + progress * 5.4));
+        model.scale.setScalar(baseScale * (1 + progressRef.current * 5.4));
       }
 
       renderer.render(scene, camera);
@@ -130,7 +132,7 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
       renderer.renderLists.dispose();
       renderer.dispose();
     };
-  }, [progress]);
+  }, []);
 
   function move(pointerY: number) {
     if (startY.current === null) return;
@@ -138,6 +140,7 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
     const delta = Math.max(0, startY.current - pointerY);
     const nextProgress = Math.min(1, delta / 240);
 
+    progressRef.current = nextProgress;
     setProgress(nextProgress);
 
     if (nextProgress >= 1 && !won) {
