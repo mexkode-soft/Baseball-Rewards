@@ -1899,3 +1899,8 @@
     height: calc(100dvh - 70px);
   }
 }
+
+/* Selectores consistentes para QR, mapa y marca */
+.selectorIntro{width:min(760px,100%);max-width:760px;margin:26px auto 0;text-align:center;display:flex;flex-direction:column;align-items:center}
+.campaignCarousel{width:min(980px,100%);margin-left:auto;margin-right:auto}
+@media(max-width:760px){.selectorIntro{text-align:center}.campaignCarousel{align-content:center}.mapCampaignCard{grid-template-columns:44px minmax(0,1fr);text-align:left}}

@@ -870,3 +870,7 @@
   object-fit: cover;
   object-position: center;
 }
+
+
+/* Capas móviles: la navegación siempre queda encima del mapa y del contenido */
+.sidebar{z-index:10000!important}.sidebarOverlay{z-index:9998!important}.mobileHeader{z-index:9997!important;background:#090a0d!important;isolation:isolate}.mainHeader{z-index:9997!important;background:#090a0d!important}.mainContent{position:relative;z-index:1}@media(max-width:900px){.adminShell{background:#090a0d!important}.sidebar{background:#090a0d!important;box-shadow:24px 0 60px rgba(0,0,0,.75)!important}.sidebarOverlayOpen{background:rgba(0,0,0,.72)!important;backdrop-filter:blur(3px)}}

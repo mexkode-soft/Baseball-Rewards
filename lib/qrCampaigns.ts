@@ -19,6 +19,7 @@ export interface QrCampaign {
   name: string;
   sponsor: string;
   description: string;
+  coverUrl?: string;
   startDate: string;
   endDate: string;
   status: QrCampaignStatus;
@@ -88,7 +89,7 @@ export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
   const { data: userData } = await supabase.auth.getUser();
   const isUuid = /^[0-9a-f-]{36}$/i.test(campaign.id);
   const payload = {
-    type: "qr", name: campaign.name, sponsor: campaign.sponsor, description: campaign.description,
+    type: "qr", name: campaign.name, sponsor: campaign.sponsor, description: campaign.description, cover_url: campaign.coverUrl || null,
     status: campaign.status, starts_at: campaign.startDate ? `${campaign.startDate}T00:00:00` : null,
     ends_at: campaign.endDate ? `${campaign.endDate}T23:59:59` : null,
     participation_limit: Math.min(Math.max(1, campaign.attemptsPerUser), campaign.codes.length),
@@ -130,7 +131,7 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
     : { data: [], error: null };
   if (codeError) throw codeError;
   return (campaigns ?? []).map((campaign) => ({
-    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""),
+    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""), coverUrl: String(campaign.cover_url ?? ""),
     startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: campaign.status as QrCampaignStatus,
     attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
     reward: String((campaign.metadata as { reward?: string } | null)?.reward ?? "Premio"), createdAt: String(campaign.created_at),
@@ -147,7 +148,7 @@ export async function readActiveQrCampaigns(): Promise<QrCampaign[]> {
     .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((campaign) => ({
-    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""),
+    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""), coverUrl: String(campaign.cover_url ?? ""),
     startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: "active",
     attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
     reward: "Premio sorpresa", createdAt: String(campaign.created_at), codes: Array.from({ length: Number(campaign.code_count ?? 0) }, (_, index) => ({

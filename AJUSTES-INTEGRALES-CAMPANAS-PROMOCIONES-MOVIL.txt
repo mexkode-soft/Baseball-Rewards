@@ -1,0 +1,15 @@
+HOME RUN REWARDS - AJUSTES INTEGRALES
+
+Incluye:
+- Portada de campaña con previsualización y botón rojo translúcido para eliminar/cambiar.
+- Formularios de campañas nuevos sin datos precargados; ahora usan placeholders.
+- PDF QR con separación corregida para evitar textos encimados.
+- Buscador del mapa se cierra al tocar fuera o seleccionar el mapa.
+- Galerías de promociones centradas con 1, 2 o 3 imágenes.
+- Ranking del perfil calculado con datos reales de Supabase.
+- Promociones de usuario adaptadas al alto disponible y scroll solo cuando hace falta.
+- Navbar y menú móvil por encima de Leaflet/mapas.
+- Fondo sólido del menú móvil para evitar que se mezcle con la página principal.
+
+Conserva tu .env.local actual.
+Ejecuta npm install, npm run build y npm run dev.

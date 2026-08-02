@@ -20,6 +20,7 @@ import {
 } from "react";
 
 import { getCurrentProfile, supabase } from "@/lib/supabase";
+import { readRanking } from "@/lib/ranking";
 
 import styles from "./Perfil.module.css";
 
@@ -57,6 +58,8 @@ export default function Perfil() {
   const [saved, setSaved] =
     useState(false);
 
+  const [rankingPosition, setRankingPosition] = useState<number | null>(null);
+
   useEffect(() => {
     let active = true;
 
@@ -71,6 +74,11 @@ export default function Perfil() {
       setState(profile.state ?? "");
       setMunicipality(profile.municipality ?? "");
       setFavoriteTeam(profile.favorite_team ?? "");
+      if (profile.role !== "admin") {
+        const ranking = await readRanking(1000);
+        const position = ranking.findIndex((player) => player.id === profile.id);
+        setRankingPosition(position >= 0 ? position + 1 : null);
+      }
     }
 
     void loadProfile();
@@ -236,7 +244,7 @@ export default function Perfil() {
                 </span>
 
                 <strong>
-                  #2
+                  {rankingPosition ? `#${rankingPosition}` : "Sin posición"}
                 </strong>
               </div>
             </div>

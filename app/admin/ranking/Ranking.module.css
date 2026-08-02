@@ -949,3 +949,104 @@
     margin-top: 20px;
   }
 }
+/* Ajustes para datos reales */
+.statusMessage,
+.loadingState,
+.emptyState {
+  min-height: 120px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  text-align: center;
+}
+
+.emptyState {
+  flex-direction: column;
+}
+
+.emptyState svg {
+  width: 34px;
+  height: 34px;
+  color: var(--gold);
+}
+
+.podiumPhoto > svg,
+.tableAvatar > svg {
+  width: 46%;
+  height: 46%;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.podiumPhoto {
+  display: grid;
+  place-items: center;
+}
+
+.tableAvatar {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(242, 189, 69, 0.24);
+  border-radius: 50%;
+  background: #17181d;
+}
+
+.tableAvatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.singlePodium {
+  width: min(420px, 100%);
+  min-height: 430px;
+  margin-inline: auto;
+  grid-template-columns: 1fr;
+}
+
+.singlePodium .firstPlace {
+  order: 1;
+}
+
+.doublePodium {
+  width: min(760px, 100%);
+  margin-inline: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.doublePodium .firstPlace {
+  order: 1;
+}
+
+.doublePodium .secondPlace {
+  order: 2;
+}
+
+@media (max-width: 650px) {
+  .singlePodium {
+    min-height: 320px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .singlePodium .firstPlace .podiumPhoto {
+    width: 118px;
+    height: 118px;
+  }
+
+  .doublePodium {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.seasonControls{margin-top:20px;display:flex;align-items:end;gap:16px;flex-wrap:wrap}.seasonControls label{display:grid;gap:7px;color:#fff;font-size:11px;font-weight:800}.seasonControls select{min-width:230px;min-height:44px;padding:0 13px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#101116;color:#fff}.seasonDates{display:flex;gap:10px;flex-wrap:wrap}.seasonDates span{padding:10px 13px;display:grid;gap:3px;border:1px solid rgba(242,189,69,.2);border-radius:12px;background:rgba(242,189,69,.05);color:var(--muted);font-size:9px}.seasonDates strong{color:#fff;font-size:11px}@media(max-width:650px){.seasonControls,.seasonDates{width:100%;flex-direction:column;align-items:stretch}.seasonControls select{width:100%}}

@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { readQuestions, type TriviaQuestion } from "@/lib/questions";
 import {
   makeId,
+  readDynamicCampaigns,
   saveDynamicCampaign,
   type BrandCampaign,
   type CampaignLocation,
@@ -25,47 +26,36 @@ function newLocation(index: number): CampaignLocation {
   return {
     id: makeId("location"),
     name: `Premio ${index + 1}`,
-    address: "Ubicación pendiente",
+    address: "",
     latitude: 19.432608,
     longitude: -99.133209,
     radius: 80,
-    reward: "20% de descuento",
-    rewardCode: `HOME${20 + index}`,
+    reward: "",
+    rewardCode: "",
     points: 150,
     availableUnits: 1,
   };
 }
 
 export default function DynamicCampaignBuilder({
-  type,
+  type, campaignId = "",
 }: {
-  type: "map" | "brand";
+  type: "map" | "brand"; campaignId?: string;
 }) {
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
+  const [editingId, setEditingId] = useState(campaignId);
   const [selected, setSelected] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
-  const [name, setName] = useState(
-    type === "map" ? "Pelotas doradas" : "Compra y gana"
-  );
-  const [sponsor, setSponsor] = useState(
-    type === "map" ? "Home Run Rewards" : "Burger King"
-  );
-  const [description, setDescription] = useState(
-    type === "map"
-      ? "Elige un premio, acércate a su ubicación y supera el reto."
-      : "Sube tu ticket, valida tu ubicación y acumula puntos."
-  );
-  const [reward, setReward] = useState(
-    type === "map" ? "20% de descuento" : "150 puntos y cupón especial"
-  );
-  const [rewardCode, setRewardCode] = useState(
-    type === "map" ? "HOME20" : "MARCA150"
-  );
+  const [name, setName] = useState("");
+  const [sponsor, setSponsor] = useState("");
+  const [description, setDescription] = useState("");
+  const [reward, setReward] = useState("");
+  const [rewardCode, setRewardCode] = useState("");
   const [points, setPoints] = useState(150);
-  const [startDate, setStartDate] = useState("2026-08-02");
-  const [endDate, setEndDate] = useState("2026-08-31");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [status, setStatus] =
-    useState<DynamicCampaignStatus>("active");
+    useState<DynamicCampaignStatus>("draft");
   const [locations, setLocations] = useState<CampaignLocation[]>([
     newLocation(0),
   ]);
@@ -75,8 +65,24 @@ export default function DynamicCampaignBuilder({
   const [questionCount, setQuestionCount] = useState(3);
   const [passing, setPassing] = useState(100);
   const [minimumTotal, setMinimumTotal] = useState(150);
-  const [products, setProducts] = useState("Combo participante");
+  const [products, setProducts] = useState("");
   const [confidence, setConfidence] = useState(0.75);
+
+
+  useEffect(() => {
+    if (!campaignId) return;
+    let active = true;
+    void readDynamicCampaigns(type).then((items) => {
+      const campaign = items.find((item) => item.id === campaignId);
+      if (!active || !campaign) return;
+      setEditingId(campaign.id); setName(campaign.name); setSponsor(campaign.sponsor); setDescription(campaign.description);
+      setReward(campaign.reward); setRewardCode(campaign.rewardCode); setPoints(campaign.points); setStartDate(campaign.startDate);
+      setEndDate(campaign.endDate); setStatus(campaign.status); setSelected(campaign.selectedQuestionIds); setQuestionCount(campaign.questionCount);
+      setPassing(campaign.passingPercentage); setLocations(campaign.locations); setActiveLocationId(campaign.locations[0]?.id ?? "");
+      if (campaign.type === "brand") { setMinimumTotal(campaign.minimumTotal); setProducts(campaign.requiredProducts.join(", ")); setConfidence(campaign.minimumConfidence); }
+    }).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudo cargar la campaña."));
+    return () => { active = false; };
+  }, [campaignId, type]);
 
   useEffect(() => { void readQuestions().then(setQuestions).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudieron cargar las preguntas.")); }, []);
 
@@ -156,7 +162,7 @@ export default function DynamicCampaignBuilder({
     }
 
     const base = {
-      id: makeId(type),
+      id: editingId || makeId(type),
       name: name.trim(),
       sponsor: sponsor.trim(),
       description: description.trim(),
@@ -221,13 +227,14 @@ export default function DynamicCampaignBuilder({
         <div className={styles.grid}>
           <label>
             Nombre
-            <input value={name} onChange={(event) => setName(event.target.value)} />
+            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nombre de la campaña" />
           </label>
 
           <label>
             Patrocinador / marca
             <input
               value={sponsor}
+              placeholder="Marca o patrocinador"
               onChange={(event) => setSponsor(event.target.value)}
             />
           </label>
@@ -236,6 +243,7 @@ export default function DynamicCampaignBuilder({
             Descripción
             <textarea
               value={description}
+              placeholder="Describe la dinámica"
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
             />

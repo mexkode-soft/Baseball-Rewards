@@ -1350,3 +1350,7 @@
     padding: 13px 16px 16px;
   }
 }
+
+
+/* Galerías centradas y experiencia de usuario sin desbordes */
+.productUploads,.productGallery{display:flex!important;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px}.productUpload,.productGallery img{flex:0 1 220px}.userPromotionsSection{min-height:calc(100svh - 190px);display:flex;flex-direction:column;overflow:hidden}.userPromotionsGrid{display:flex!important;gap:18px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;padding:4px 4px 14px;align-items:stretch}.userPromotionsGrid .savedCardWrap{flex:0 0 min(390px,calc(100vw - 64px));scroll-snap-align:center}.userPromotionsGrid .promotionCard{height:100%;max-height:calc(100svh - 285px);overflow-y:auto}.promotionCard{max-width:100%}@media(max-width:700px){.userPromotionsSection{min-height:calc(100svh - 155px)}.userPromotionsGrid .savedCardWrap{flex-basis:calc(100vw - 42px)}.userPromotionsGrid .promotionCard{max-height:calc(100svh - 245px)}.productGallery img{flex-basis:min(42%,180px)}}

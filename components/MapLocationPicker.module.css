@@ -214,3 +214,7 @@
   background: #17140c !important;
   color: #ffffff !important;
 }
+
+
+/* El mapa nunca debe cubrir la navegación */
+.wrapper{z-index:1}.map{position:relative;z-index:1}.results{z-index:15}.map :global(.leaflet-pane),.map :global(.leaflet-control){z-index:auto!important}

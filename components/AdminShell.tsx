@@ -3,8 +3,10 @@
 import Link from "next/link";
 
 import {
+  CalendarRange,
   ChartNoAxesColumnIncreasing,
   CircleHelp,
+  ListChecks,
   Gift,
   LogOut,
   Megaphone,
@@ -54,6 +56,16 @@ const adminItems:
       "/admin/crear-campana",
       "Crear campaña",
       Trophy,
+    ],
+    [
+      "/admin/campanas",
+      "Mis campañas",
+      ListChecks,
+    ],
+    [
+      "/admin/temporadas",
+      "Temporadas",
+      CalendarRange,
     ],
     [
       "/admin/preguntas",

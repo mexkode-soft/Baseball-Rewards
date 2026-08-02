@@ -1,0 +1,26 @@
+HOME RUN REWARDS - AJUSTE VISUAL DEL RANKING
+
+Cambios incluidos:
+- Recupera el diseño visual del ranking de la demo.
+- Mantiene los datos reales leídos desde Supabase.
+- Podio responsivo para 1, 2 o 3 participantes.
+- Tabla general estilizada con posición, participante, ubicación, nivel y puntos.
+- Fotografías circulares con object-fit: cover.
+- Estados de carga, error y ranking vacío.
+- La ruta de usuario reutiliza el mismo diseño.
+
+Archivos modificados:
+app/admin/ranking/page.tsx
+app/admin/ranking/Ranking.module.css
+
+Instalación:
+1. Sustituye tu proyecto por el contenido del ZIP.
+2. Conserva tu archivo .env.local del proyecto actual.
+3. Ejecuta:
+   npm install
+   npm run build
+   npm run dev
+
+Nota:
+No fue posible ejecutar npm install en el entorno de generación porque el
+registro interno no tenía disponible jspdf. El ajuste no agrega dependencias.

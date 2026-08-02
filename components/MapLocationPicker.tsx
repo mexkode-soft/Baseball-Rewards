@@ -29,6 +29,7 @@ export default function MapLocationPicker({
   longitude,
   onChange,
 }: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const mapElementRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -71,6 +72,14 @@ export default function MapLocationPicker({
       }
     );
   }
+
+  useEffect(() => {
+    function handleOutside(event: PointerEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) setResults([]);
+    }
+    document.addEventListener("pointerdown", handleOutside);
+    return () => document.removeEventListener("pointerdown", handleOutside);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +131,7 @@ export default function MapLocationPicker({
       });
 
       map.on("click", (event: any) => {
+        setResults([]);
         marker.setLatLng(event.latlng);
         onChange(event.latlng.lat, event.latlng.lng);
       });
@@ -242,7 +252,7 @@ export default function MapLocationPicker({
   }
 
   return (
-    <div className={styles.wrapper}>
+    <div ref={wrapperRef} className={styles.wrapper}>
       <div className={styles.searchRow}>
         <div className={styles.searchInputWrap}>
           <Search />

@@ -14,18 +14,22 @@ import {
   ScanLine,
   Store,
   Trophy,
+  Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import styles from "./CrearCampana.module.css";
 import DynamicCampaignBuilder from "@/components/DynamicCampaignBuilder";
 import {
   createId,
   generateQrCodes,
+  readQrCampaigns,
   saveQrCampaign,
   type QrCampaign,
   type QrCampaignStatus,
   type QrCodeRecord,
 } from "@/lib/qrCampaigns";
+import { supabase } from "@/lib/supabase";
 
 type CampaignType = "qr" | "brand" | "map";
 
@@ -49,28 +53,72 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export default function CrearCampanaPage() {
+  const params = useSearchParams();
+  const editId = params.get("id") ?? "";
+  const requestedType = params.get("type") as CampaignType | null;
   const [campaignType, setCampaignType] = useState<CampaignType>("qr");
   const [campaignId, setCampaignId] = useState(() => createId("campaign"));
-  const [campaignName, setCampaignName] = useState("Tesoro del estadio");
-  const [sponsor, setSponsor] = useState("Home Run Rewards");
-  const [description, setDescription] = useState("Encuentra los códigos QR escondidos dentro del estadio y descubre si ganaste.");
-  const [startDate, setStartDate] = useState("2026-08-02");
-  const [endDate, setEndDate] = useState("2026-08-09");
+  const [campaignName, setCampaignName] = useState("");
+  const [sponsor, setSponsor] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState<QrCampaignStatus>("active");
   const [totalCodes, setTotalCodes] = useState(15);
   const [winnerCodes, setWinnerCodes] = useState(3);
   const [attemptsPerUser, setAttemptsPerUser] = useState(15);
-  const [reward, setReward] = useState("20% de descuento");
+  const [reward, setReward] = useState("");
   const [participationPoints, setParticipationPoints] = useState(10);
   const [winnerPoints, setWinnerPoints] = useState(100);
   const [codes, setCodes] = useState<QrCodeRecord[]>([]);
   const [notice, setNotice] = useState("");
   const [working, setWorking] = useState(false);
+  const [coverPreview, setCoverPreview] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [existingCoverUrl, setExistingCoverUrl] = useState("");
+
+
+  useEffect(() => {
+    if (requestedType && campaignTypes.some((item) => item.id === requestedType)) setCampaignType(requestedType);
+  }, [requestedType]);
+
+  useEffect(() => {
+    if (!editId || requestedType !== "qr") return;
+    let active = true;
+    void readQrCampaigns().then((items) => {
+      const item = items.find((campaign) => campaign.id === editId);
+      if (!active || !item) return;
+      setCampaignId(item.id); setCampaignName(item.name); setSponsor(item.sponsor); setDescription(item.description);
+      setStartDate(item.startDate); setEndDate(item.endDate); setStatus(item.status); setAttemptsPerUser(item.attemptsPerUser);
+      setParticipationPoints(item.participationPoints); setWinnerPoints(item.winnerPoints); setReward(item.reward);
+      setTotalCodes(item.codes.length || 15); setWinnerCodes(item.codes.filter((code) => code.isWinner).length || 0);
+      setExistingCoverUrl(item.coverUrl ?? ""); setCoverPreview(item.coverUrl ?? ""); setCodes([]);
+      setNotice("Estás editando una campaña. Regenera los códigos QR antes de guardar para mantener tokens seguros.");
+    }).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudo cargar la campaña."));
+    return () => { active = false; };
+  }, [editId, requestedType]);
 
   const selectedType = useMemo(
     () => campaignTypes.find((item) => item.id === campaignType) ?? campaignTypes[0],
     [campaignType]
   );
+
+
+  function handleCoverChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (coverPreview.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+    event.target.value = "";
+  }
+
+  function removeCover() {
+    if (coverPreview.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
+    setCoverPreview("");
+    setCoverFile(null);
+    setExistingCoverUrl("");
+  }
 
   function buildCampaign(): QrCampaign {
     return {
@@ -79,6 +127,7 @@ export default function CrearCampanaPage() {
       name: campaignName.trim(),
       sponsor: sponsor.trim(),
       description: description.trim(),
+      coverUrl: existingCoverUrl,
       startDate,
       endDate,
       status,
@@ -120,8 +169,22 @@ export default function CrearCampanaPage() {
       return;
     }
 
-    await saveQrCampaign(buildCampaign());
-    setNotice("Campaña guardada. Ya puedes probarla en el escáner QR.");
+    setWorking(true);
+    try {
+      let coverUrl = existingCoverUrl;
+      if (coverFile) {
+        const extension = coverFile.name.split(".").pop()?.toLowerCase() || "webp";
+        const path = `${campaignId}/${Date.now()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("campaign-images").upload(path, coverFile, { upsert: true });
+        if (uploadError) throw uploadError;
+        coverUrl = supabase.storage.from("campaign-images").getPublicUrl(path).data.publicUrl;
+        setExistingCoverUrl(coverUrl);
+      }
+      await saveQrCampaign({ ...buildCampaign(), coverUrl });
+      setNotice("Campaña guardada. Ya puedes probarla en el escáner QR.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo guardar la campaña.");
+    } finally { setWorking(false); }
   }
 
   async function downloadZip() {
@@ -150,26 +213,25 @@ export default function CrearCampanaPage() {
     try {
       const [{ default: QRCode }, { jsPDF }] = await Promise.all([import("qrcode"), import("jspdf")]);
       const pdf = new jsPDF({ unit: "mm", format: "a4" });
-      const positions = [
-        [18, 25], [110, 25],
-        [18, 115], [110, 115],
-      ];
+      const positions = [[66, 22], [66, 148]];
 
       for (let index = 0; index < codes.length; index += 1) {
-        if (index > 0 && index % 4 === 0) pdf.addPage();
-        const [x, y] = positions[index % 4];
+        if (index > 0 && index % 2 === 0) pdf.addPage();
+        const [x, y] = positions[index % 2];
         const code = codes[index];
         const dataUrl = await QRCode.toDataURL(code.payload, { width: 700, margin: 3, errorCorrectionLevel: "H" });
 
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(12);
-        pdf.text(campaignName, x, y - 7, { maxWidth: 78 });
-        pdf.addImage(dataUrl, "PNG", x, y, 72, 72);
-        pdf.setFont("helvetica", "normal");
         pdf.setFontSize(10);
-        pdf.text(code.label, x + 36, y + 78, { align: "center" });
-        pdf.setFontSize(8);
-        pdf.text("Escanea con Home Run Rewards", x + 36, y + 83, { align: "center" });
+        const safeTitle = campaignName.trim() || "Home Run Rewards";
+        pdf.text(safeTitle, x + 39, y, { align: "center", maxWidth: 92 });
+        pdf.addImage(dataUrl, "PNG", x, y + 7, 78, 78);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.text(code.label, x + 39, y + 91, { align: "center" });
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("Escanea con Home Run Rewards", x + 39, y + 97, { align: "center" });
       }
 
       pdf.save(`${campaignName || "campana"}-impresion.pdf`);
@@ -221,19 +283,22 @@ export default function CrearCampanaPage() {
       </section>
 
       {campaignType !== "qr" ? (
-        <DynamicCampaignBuilder type={campaignType} />
+        <DynamicCampaignBuilder type={campaignType} campaignId={editId} />
       ) : (
         <div className={styles.workspace}>
           <main className={styles.mainColumn}>
             <section className={styles.panel}>
               <div className={styles.sectionHeading}><div><span>Paso 2</span><h2>Información general</h2><p>Datos visibles para el usuario.</p></div><div className={styles.modeBadge}><QrCode /> Búsqueda QR</div></div>
               <div className={styles.formGrid}>
-                <label><span>Nombre</span><input value={campaignName} onChange={(event) => setCampaignName(event.target.value)} /></label>
-                <label><span>Patrocinador</span><input value={sponsor} onChange={(event) => setSponsor(event.target.value)} /></label>
+                <label><span>Nombre</span><input value={campaignName} onChange={(event) => setCampaignName(event.target.value)} placeholder="Ej. Tesoro del estadio" /></label>
+                <label><span>Patrocinador</span><input value={sponsor} onChange={(event) => setSponsor(event.target.value)} placeholder="Ej. Home Run Rewards" /></label>
                 <label><span>Fecha de inicio</span><input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
                 <label><span>Fecha de cierre</span><input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
-                <label className={styles.fullField}><span>Descripción</span><textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
-                <label className={styles.uploadField}><ImagePlus /><div><strong>Imagen de portada</strong><span>PNG, JPG o WEBP</span></div><input type="file" accept="image/*" /></label>
+                <label className={styles.fullField}><span>Descripción</span><textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe la dinámica que verá el usuario." /></label>
+                <div className={`${styles.coverUploadWrap} ${styles.fullField}`}>
+                  <label className={styles.uploadField}><ImagePlus /><div><strong>Imagen de portada</strong><span>PNG, JPG o WEBP</span></div><input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCoverChange} /></label>
+                  {coverPreview && <button type="button" className={styles.removeCoverButton} onClick={removeCover}><Trash2 /> Eliminar y cargar otra</button>}
+                </div>
               </div>
             </section>
 
@@ -277,14 +342,14 @@ export default function CrearCampanaPage() {
                 <label><span>Estado</span><select value={status} onChange={(event) => setStatus(event.target.value as QrCampaignStatus)}><option value="draft">Borrador</option><option value="scheduled">Programada</option><option value="active">Activa</option></select></label>
                 <div className={styles.summaryCard}><Gift /><div><strong>{reward}</strong><span>{winnerCodes} ganadores · {totalCodes - winnerCodes} sin premio</span></div></div>
               </div>
-              <div className={styles.footerActions}><a href="/usuario/cazar-recompensas/qr"><QrCode /> Abrir escáner</a><button type="button" className={styles.primaryButton} onClick={() => void saveCampaign()}><Save /> Guardar campaña</button></div>
+              <div className={styles.footerActions}><a href="/usuario/cazar-recompensas/qr"><QrCode /> Abrir escáner</a><button type="button" className={styles.primaryButton} disabled={working || codes.length === 0} onClick={() => void saveCampaign()}><Save /> Guardar campaña</button></div>
             </section>
           </main>
 
           <aside className={styles.previewColumn}>
             <section className={styles.previewPanel}>
-              <div className={styles.previewImage}><QrCode /></div>
-              <div className={styles.previewContent}><span>Búsqueda QR</span><h2>{campaignName || "Nombre de campaña"}</h2><p>{description}</p><div className={styles.previewMeta}><div><CalendarDays /><span>{startDate}</span></div><div><Gift /><span>{reward}</span></div></div></div>
+              <div className={styles.previewImage}>{coverPreview ? <img src={coverPreview} alt="Vista previa de la portada" /> : <QrCode />}</div>
+              <div className={styles.previewContent}><span>Búsqueda QR</span><h2>{campaignName || "Nombre de campaña"}</h2><p>{description || "Aquí aparecerá la descripción de la campaña."}</p><div className={styles.previewMeta}><div><CalendarDays /><span>{startDate}</span></div><div><Gift /><span>{reward || "Premio por definir"}</span></div></div></div>
             </section>
           </aside>
         </div>
