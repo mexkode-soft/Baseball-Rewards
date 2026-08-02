@@ -1,15 +1,15 @@
 import AdminGuard from "@/components/AdminGuard";
 import AdminShell from "@/components/AdminShell";
 
-interface AdminLayoutProps {
+interface UserLayoutProps {
   children: React.ReactNode;
 }
 
-export default function AdminLayout({
+export default function UserLayout({
   children,
-}: AdminLayoutProps) {
+}: UserLayoutProps) {
   return (
-    <AdminGuard requiredRole="admin">
+    <AdminGuard requiredRole="usuario">
       <AdminShell>
         {children}
       </AdminShell>

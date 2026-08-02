@@ -94,17 +94,17 @@ const adminItems:
 const userItems:
   readonly MenuItem[] = [
     [
-      "/admin/ranking",
+      "/usuario/ranking",
       "Ranking",
       Trophy,
     ],
     [
-      "/admin/cazar-recompensas",
+      "/usuario/cazar-recompensas",
       "Cazar recompensas",
       Trophy,
     ],
     [
-      "/admin/promociones",
+      "/usuario/promociones",
       "Promociones",
       Gift,
     ],
@@ -356,7 +356,7 @@ export default function AdminShell({
         </button>
 
         <Link
-          href="/admin/perfil"
+          href={role === "admin" ? "/admin/perfil" : "/usuario/perfil"}
           className={
             styles.profileHead
           }

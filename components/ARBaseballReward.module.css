@@ -1,0 +1,199 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  overflow: hidden;
+  touch-action: none;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(242, 189, 69, 0.12), transparent 42%),
+    rgba(4, 5, 7, 0.2);
+}
+
+.wrap canvas {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.aura {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 48%;
+  width: 240px;
+  height: 240px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(242, 189, 69, 0.38), transparent 70%);
+  filter: blur(18px);
+}
+
+.shadow {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 67%;
+  width: 145px;
+  height: 32px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.72);
+  filter: blur(12px);
+}
+
+.giftFallback {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 48%;
+  width: 104px;
+  height: 104px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(255, 238, 178, 0.72);
+  border-radius: 32px;
+
+  background: linear-gradient(135deg, #f3d77a, #c99022);
+  color: #181108;
+
+  box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.34),
+    0 0 54px rgba(242, 189, 69, 0.25);
+
+  transform-origin: center;
+  transition: transform 0.04s linear;
+}
+
+.giftFallback svg {
+  width: 52px;
+  height: 52px;
+}
+
+.prompt {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 24px;
+  width: min(360px, calc(100% - 32px));
+  transform: translateX(-50%);
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  text-align: center;
+}
+
+.prompt strong,
+.prompt span {
+  display: block;
+}
+
+.prompt span {
+  margin-top: 4px;
+  color: #bbb;
+  font-size: 10px;
+}
+
+.prompt div {
+  height: 8px;
+  margin-top: 11px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.prompt i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #b7841e, #f3d77a);
+}
+
+.prize {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 6, 8, 0.72);
+  text-align: center;
+  animation: appear 0.35s ease;
+}
+
+.prizeGift {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 14px;
+  color: #f2bd45;
+}
+
+.prize span {
+  color: #f2bd45;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.prize h2 {
+  margin: 12px 0 24px;
+  font-size: clamp(30px, 8vw, 58px);
+}
+
+.prize small {
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.prize strong {
+  margin-top: 7px;
+  padding: 12px 18px;
+  border: 1px dashed #f2bd45;
+  border-radius: 13px;
+  color: #f2bd45;
+  font-size: 24px;
+  letter-spacing: 0.12em;
+}
+
+.confetti {
+  position: absolute;
+  z-index: 9;
+  inset: 0;
+  pointer-events: none;
+}
+
+.confetti i {
+  position: absolute;
+  top: -20px;
+  width: 10px;
+  height: 17px;
+  background: #f2bd45;
+  animation: fall 2.1s linear forwards;
+}
+
+.confetti i:nth-child(3n) {
+  background: #e64b3c;
+}
+
+.confetti i:nth-child(3n + 1) {
+  background: #fff;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(110vh) rotate(800deg);
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}

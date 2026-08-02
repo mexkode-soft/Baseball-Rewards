@@ -1,0 +1,11 @@
+AJUSTES INCLUIDOS
+
+- El buscador del mapa muestra resultados automáticamente al escribir (debounce de 450 ms).
+- El mapa se centra en la ubicación actual cuando la ubicación conserva las coordenadas predeterminadas.
+- Botón Mi ubicación para volver a centrar el mapa.
+- El mapa del configurador aparece después del banco de preguntas.
+- Guardar campaña aparece al final de todo el módulo.
+- La pantalla móvil de ticket permite scroll y muestra completa la tarjeta de resultado.
+- Demo libre desactiva realmente el bloqueo de 24 horas en la dinámica de mapa.
+- Reiniciar progreso elimina también los bloqueos de las campañas de mapa.
+- La dinámica de ticket usa la ubicación simulada cuando está activa.

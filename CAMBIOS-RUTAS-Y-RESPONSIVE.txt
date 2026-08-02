@@ -1,0 +1,29 @@
+HOME RUN REWARDS - AJUSTE DE ESTRUCTURA
+
+Rutas de administrador:
+/admin/crear-campana
+/admin/preguntas
+/admin/niveles
+/admin/ranking
+/admin/promociones
+/admin/anuncios
+/admin/canal-difusion
+/admin/demo
+
+Rutas de usuario:
+/usuario/perfil
+/usuario/ranking
+/usuario/promociones
+/usuario/cazar-recompensas
+/usuario/cazar-recompensas/qr
+/usuario/cazar-recompensas/qr/jugar?campaign=ID
+/usuario/cazar-recompensas/capturas
+
+Correcciones:
+- El usuario ya no navega bajo /admin.
+- Login redirige según rol.
+- Guard valida rol y evita cruces entre paneles.
+- Enlaces de regreso y resultados apuntan a /usuario.
+- Las rutas antiguas de Cazar recompensas redirigen al nuevo panel.
+- La pantalla de dinámicas cabe en el alto disponible en escritorio y móvil cuando es posible.
+- Se agregó la pantalla de capturas.

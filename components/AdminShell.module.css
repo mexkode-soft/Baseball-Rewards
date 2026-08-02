@@ -848,3 +848,17 @@
       42px;
   }
 }
+
+
+/* Las experiencias del panel de usuario aprovechan el alto completo disponible. */
+.adminContent:has([class*="mobileStage"]) {
+  width: min(1280px, calc(100% - 32px));
+  padding: 0;
+}
+
+@media (max-width: 980px) {
+  .adminContent:has([class*="mobileStage"]) {
+    width: 100%;
+    padding: 0;
+  }
+}

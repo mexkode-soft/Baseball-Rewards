@@ -1,0 +1,38 @@
+HOME RUN REWARDS - AJUSTES MAPA, MARCA Y QR
+
+Cambios incluidos:
+
+1. Mapa administrativo
+- El marcador ya no usa la imagen predeterminada de Leaflet.
+- Ahora muestra un icono de regalo integrado, evitando imágenes rotas.
+
+2. Recompensa en mapa
+- La cámara permanece visible durante ¿Listo?, cuenta regresiva, encuesta y premio.
+- La pelota 3D se muestra sobre el video para simular realidad aumentada.
+- Si el modelo 3D no carga, aparece un icono de regalo como respaldo.
+- El premio final también muestra icono de regalo.
+
+3. Recompensas capturadas
+- Después de ganar en mapa ya no ofrece escanear otro QR.
+- El botón cambia según la dinámica más reciente: mapa, marca o QR.
+
+4. Demo para marcas
+- Cuando la ubicación simulada está activa aparecen:
+  * Simular premio ganado
+  * Simular ticket no válido
+- Al desactivar ubicación simulada, ambos botones desaparecen.
+
+5. Ticket de marca
+- El botón Enviar a validación ocupa todo el ancho de la tarjeta.
+- El resultado aprobado usa icono de regalo.
+- La tarjeta puede desplazarse completa en móvil y no corta el resultado rojo.
+
+6. QR móvil
+- Se corrigió el alto de la experiencia para evitar desbordamiento vertical.
+- El botón principal permanece dentro del espacio disponible.
+
+Instalación:
+1. Sustituye tu proyecto por esta versión o copia los archivos modificados.
+2. Ejecuta npm install.
+3. Ejecuta npm run dev.
+4. Si Next conserva estilos anteriores, elimina .next y reinicia.

@@ -1,0 +1,32 @@
+NUEVAS DINÁMICAS IMPLEMENTADAS
+
+1) Recompensa en mapa
+- Configuración desde /admin/crear-campana > Recompensa en mapa.
+- Preguntas seleccionadas del banco /admin/preguntas.
+- Validación de geolocalización.
+- Permiso de cámara.
+- Pantalla ¿Listo?, cuenta 3, 2, 1, GO.
+- 5 segundos por pregunta.
+- Correcta verde, incorrecta roja y correcta visible en verde.
+- Bloqueo de 24 horas si no alcanza el porcentaje mínimo.
+- Pelota 3D pequeña con sombra y aura dorada.
+- El usuario la hace crecer deslizando hacia arriba hasta desbordar.
+- Confeti, código de premio y puntos.
+
+2) Visita a marca
+- Configuración desde /admin/crear-campana > Visita a marca.
+- Hasta 3 imágenes por ticket.
+- Validación de ubicación.
+- API server-side /api/tickets/analyze.
+- OpenAI Responses API con entrada de imagen y JSON Schema.
+- Modo demo automático cuando OPENAI_API_KEY está vacía.
+- Estados aprobado, revisión y rechazado.
+
+INSTALACIÓN
+npm install
+
+Crea .env.local con:
+OPENAI_API_KEY=tu_clave
+OPENAI_VISION_MODEL=gpt-4.1-mini
+
+Sin clave, la dinámica usa extracción demo para pruebas.

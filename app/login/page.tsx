@@ -61,18 +61,21 @@ export default function Login() {
         role
       );
 
-      router.push("/admin");
+      router.push(
+        role === "admin"
+          ? "/admin/crear-campana"
+          : "/usuario/perfil"
+      );
       return;
     }
 
     const {
+      data: loginData,
       error: loginError,
-    } =
-      await supabase.auth
-        .signInWithPassword({
-          email: email.trim(),
-          password,
-        });
+    } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
 
     if (loginError) {
       setError(
@@ -83,7 +86,16 @@ export default function Login() {
       return;
     }
 
-    router.push("/admin");
+    const role =
+      loginData.user?.user_metadata?.role === "admin"
+        ? "admin"
+        : "usuario";
+
+    router.push(
+      role === "admin"
+        ? "/admin/crear-campana"
+        : "/usuario/perfil"
+    );
   }
 
   return (

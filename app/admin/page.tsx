@@ -19,7 +19,7 @@ export default function AdminPage() {
     router.replace(
       role === "admin"
         ? "/admin/crear-campana"
-        : "/admin/perfil"
+        : "/usuario/perfil"
     );
   }, [router]);
 

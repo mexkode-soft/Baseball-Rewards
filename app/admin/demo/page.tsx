@@ -7,6 +7,7 @@ import {
   RotateCcw,
   Settings2,
   ShieldCheck,
+  MapPin,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import {
   saveDemoConfig,
   type DemoConfig,
 } from "@/lib/demoConfig";
+import { DYNAMIC_COOLDOWN_STORAGE_KEY } from "@/lib/campaignDynamics";
 import styles from "./Demo.module.css";
 
 const COLLECTED_STORAGE_KEY =
@@ -68,14 +70,23 @@ export default function DemoPage() {
     }, 2200);
   }
 
-  function enableAllRules() {
-    setConfig(
-      DEFAULT_DEMO_CONFIG
-    );
+  function updateSimulatedLocation(patch: Partial<DemoConfig>) {
+    const nextConfig = { ...config, ...patch };
+    setConfig(nextConfig);
+    saveDemoConfig(nextConfig);
+    setSavedMessage("Ubicación simulada actualizada.");
+    window.setTimeout(() => setSavedMessage(""), 2200);
+  }
 
-    saveDemoConfig(
-      DEFAULT_DEMO_CONFIG
-    );
+  function enableAllRules() {
+    const nextConfig: DemoConfig = {
+      ...config,
+      enable24HourCooldown: true,
+      blockAlreadyCollectedRewards: true,
+    };
+
+    setConfig(nextConfig);
+    saveDemoConfig(nextConfig);
 
     setSavedMessage(
       "Todas las reglas fueron activadas."
@@ -84,6 +95,7 @@ export default function DemoPage() {
 
   function disableAllRules() {
     const nextConfig: DemoConfig = {
+      ...config,
       enable24HourCooldown: false,
       blockAlreadyCollectedRewards: false,
     };
@@ -103,6 +115,10 @@ export default function DemoPage() {
 
     window.localStorage.removeItem(
       COOLDOWN_STORAGE_KEY
+    );
+
+    window.localStorage.removeItem(
+      DYNAMIC_COOLDOWN_STORAGE_KEY
     );
 
     setSavedMessage(
@@ -350,6 +366,29 @@ export default function DemoPage() {
           </label>
         </article>
       </div>
+
+      <section className={styles.simulatedLocationCard}>
+        <div className={styles.simulatedLocationHeading}>
+          <div className={styles.ruleIcon}><MapPin /></div>
+          <div>
+            <span>Ubicación para demostraciones</span>
+            <h2>Simular que el usuario está en un lugar</h2>
+            <p>Cuando está activa, la dinámica de mapa usa estas coordenadas en lugar del GPS real.</p>
+          </div>
+        </div>
+
+        <label className={styles.switchRow}>
+          <div><strong>Activar ubicación simulada</strong><span>Ideal para presentar la demo desde una computadora.</span></div>
+          <input type="checkbox" checked={config.simulatedLocationEnabled} onChange={(event) => updateSimulatedLocation({ simulatedLocationEnabled: event.target.checked })} />
+          <span className={styles.switch} aria-hidden="true" />
+        </label>
+
+        <div className={styles.locationInputs}>
+          <label>Latitud<input type="number" step="any" value={config.simulatedLatitude} onChange={(event) => updateSimulatedLocation({ simulatedLatitude: Number(event.target.value) })} /></label>
+          <label>Longitud<input type="number" step="any" value={config.simulatedLongitude} onChange={(event) => updateSimulatedLocation({ simulatedLongitude: Number(event.target.value) })} /></label>
+        </div>
+        <p className={styles.locationHint}>Copia aquí las coordenadas de cualquiera de los premios configurados para simular que ya llegaste.</p>
+      </section>
 
       <section
         className={
