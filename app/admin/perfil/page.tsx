@@ -26,7 +26,7 @@ import { getStateCode, LMB_TEAMS, MEXICO_STATES, normalizeStateName } from "@/li
 
 import styles from "./Perfil.module.css";
 
-type Role = "admin" | "usuario";
+type Role = "admin" | "usuario" | "sponsor";
 
 export default function Perfil() {
   const [role, setRole] =

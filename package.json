@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/check-env.mjs && next build",
-    "start": "next start"
+    "start": "next start",
+    "create-demo-sponsor": "node scripts/create-demo-sponsor.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

@@ -30,7 +30,7 @@ import {
 } from "@/lib/promotions";
 import styles from "./Promociones.module.css";
 
-type Role = "admin" | "usuario";
+type Role = "admin" | "usuario" | "sponsor";
 
 function formatDate(value: string) {
   if (!value) {

@@ -1,0 +1,5 @@
+"use client";
+import { useEffect, useState } from "react";
+import { getCurrentProfile } from "@/lib/supabase";
+import styles from "../SponsorDashboard.module.css";
+export default function SponsorProfile(){const [profile,setProfile]=useState<{full_name:string;email:string;avatar_url:string}|null>(null);useEffect(()=>{void getCurrentProfile().then(p=>p&&setProfile(p))},[]);return <div className={styles.page}><div className={styles.heading}><div><h1>Mi perfil</h1><p>Cuenta vinculada a la organización patrocinadora.</p></div></div><article className={styles.panel} style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>{profile?<><img src={profile.avatar_url||"/images/logo-home-run.png"} alt="Perfil" style={{width:96,height:96,borderRadius:"50%",objectFit:"cover",background:"#050607"}}/><div><h2 style={{margin:"0 0 8px"}}>{profile.full_name}</h2><p style={{margin:0}}>{profile.email}</p><span className={styles.badge} style={{marginTop:12}}>Patrocinador</span></div></>:<p>Cargando...</p>}</article></div>}

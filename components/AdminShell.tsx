@@ -42,7 +42,8 @@ import styles from "./AdminShell.module.css";
 
 type Role =
   | "admin"
-  | "usuario";
+  | "usuario"
+  | "sponsor";
 
 type MenuItem = readonly [
   href: string,

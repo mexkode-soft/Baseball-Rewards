@@ -19,7 +19,7 @@ export default function Login() {
 
   async function goHome() {
     const role = await getCurrentRole();
-    router.push(role === "admin" ? "/admin" : "/usuario");
+    router.push(role === "admin" ? "/admin" : role === "sponsor" ? "/patrocinador" : "/usuario");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

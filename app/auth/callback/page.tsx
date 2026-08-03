@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient, hasSupabaseConfig } from "@/lib/supabase";
 
-type ProfileRole = "admin" | "usuario";
+type ProfileRole = "admin" | "usuario" | "sponsor";
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 export default function AuthCallbackPage() {
@@ -37,12 +37,12 @@ export default function AuthCallbackPage() {
         let role: ProfileRole = "usuario";
         for (let attempt = 0; attempt < 5; attempt += 1) {
           const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", session.user.id).maybeSingle();
-          if (!error && profile) { if (profile.role === "admin") role = "admin"; break; }
+          if (!error && profile) { if (profile.role === "admin") role = "admin"; else if (profile.role === "sponsor") role = "sponsor"; break; }
           await wait(400);
         }
         if (cancelled) return;
         setMessage("Acceso correcto. Redirigiendo...");
-        window.location.replace(role === "admin" ? "/admin" : "/usuario");
+        window.location.replace(role === "admin" ? "/admin" : role === "sponsor" ? "/patrocinador" : "/usuario");
       } catch (error) {
         console.error("Error del callback:", error);
         if (cancelled) return;

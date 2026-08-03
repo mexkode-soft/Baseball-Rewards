@@ -18,7 +18,7 @@ export function createSupabaseBrowserClient(): SupabaseClient {
 }
 export const createSupabaseClient = createSupabaseBrowserClient;
 export const supabase: SupabaseClient = createSupabaseBrowserClient();
-export type AppRole = "admin" | "usuario";
+export type AppRole = "admin" | "usuario" | "sponsor";
 export interface CurrentProfile { id:string; email:string; full_name:string; avatar_url:string; role:AppRole; phone?:string|null; state?:string|null; municipality?:string|null; favorite_team?:string|null; total_points?:number|null; }
 export async function getCurrentRole(): Promise<AppRole> {
   if (!hasSupabaseConfig) throw new Error("Supabase no está configurado.");
@@ -26,7 +26,7 @@ export async function getCurrentRole(): Promise<AppRole> {
   if (userError || !user) throw new Error("No hay una sesión activa.");
   const { data, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
   if (error) throw error;
-  return data?.role === "admin" ? "admin" : "usuario";
+  return data?.role === "admin" ? "admin" : data?.role === "sponsor" ? "sponsor" : "usuario";
 }
 export async function getCurrentProfile(): Promise<CurrentProfile|null> {
   if (!hasSupabaseConfig) return null;
@@ -40,6 +40,6 @@ export async function getCurrentProfile(): Promise<CurrentProfile|null> {
     email: profile?.email ?? user.email ?? "",
     full_name: profile?.full_name ?? metadata.full_name ?? metadata.name ?? user.email?.split("@")[0] ?? "Usuario",
     avatar_url: profile?.avatar_url ?? metadata.avatar_url ?? metadata.picture ?? "",
-    role: profile?.role === "admin" ? "admin" : "usuario",
+    role: profile?.role === "admin" ? "admin" : profile?.role === "sponsor" ? "sponsor" : "usuario",
   } as CurrentProfile;
 }
