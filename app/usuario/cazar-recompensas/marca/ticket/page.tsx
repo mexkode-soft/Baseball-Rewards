@@ -1,352 +1,111 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Camera,
-  CheckCircle2,
-  Gift,
-  MapPin,
-  ReceiptText,
-  Upload,
-  XCircle,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, MapPin, ReceiptText, Send, Store, Upload, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import styles from "../../CazarRecompensas.module.css";
 import { persistTicketSubmission } from "@/lib/tickets";
-import { supabase } from "@/lib/supabase";
-import {
-  awardDynamicReward,
-  distanceMeters,
-  readActiveDynamicCampaigns,
-  type BrandCampaign,
-} from "@/lib/campaignDynamics";
-import {
-  DEFAULT_DEMO_CONFIG,
-  DEMO_CONFIG_EVENT,
-  readDemoConfig,
-  type DemoConfig,
-} from "@/lib/demoConfig";
-
-interface Analysis {
-  status: "approved" | "review" | "rejected";
-  message: string;
-  extraction?: {
-    merchantName?: string;
-    ticketNumber?: string;
-    purchaseDate?: string;
-    total?: number;
-    confidence?: number;
-  };
-}
+import { readActiveDynamicCampaigns, type BrandCampaign } from "@/lib/campaignDynamics";
 
 export default function BrandTicketPage() {
-  const router = useRouter();
   const campaignId = useSearchParams().get("campaign") ?? "";
-
   const [campaign, setCampaign] = useState<BrandCampaign | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [files, setFiles] = useState<File[]>([]);
+  const [branchId, setBranchId] = useState("");
+  const [ticketNumber, setTicketNumber] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [total, setTotal] = useState("");
+  const [working, setWorking] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     let active = true;
     void readActiveDynamicCampaigns("brand").then((items) => {
-      if (active) setCampaign((items as BrandCampaign[]).find((item) => item.id === campaignId) ?? null);
-    });
+      if (!active) return;
+      const found = (items as BrandCampaign[]).find((item) => item.id === campaignId) ?? null;
+      setCampaign(found);
+      setBranchId(found?.locations[0]?.id ?? "");
+      setLoading(false);
+    }).catch(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [campaignId]);
 
-  const [files, setFiles] = useState<File[]>([]);
-  const [coords, setCoords] = useState<{
-    lat: number;
-    lng: number;
-    accuracy: number;
-  } | null>(null);
-  const [working, setWorking] = useState(false);
-  const [result, setResult] = useState<Analysis | null>(null);
-  const [demoConfig, setDemoConfig] = useState<DemoConfig>(
-    DEFAULT_DEMO_CONFIG
-  );
+  const selectedBranch = useMemo(() => campaign?.locations.find((location) => location.id === branchId) ?? campaign?.locations[0], [campaign, branchId]);
 
-  useEffect(() => {
-    let active = true;
-    async function update() { try { const value = await readDemoConfig(); if (active) setDemoConfig(value); } catch {} }
-    void update();
-    const refresh = () => { void update(); };
-    window.addEventListener(DEMO_CONFIG_EVENT, refresh);
-    return () => { active = false; window.removeEventListener(DEMO_CONFIG_EVENT, refresh); };
-  }, []);
-
-  if (!campaign) {
-    return (
-      <main className={`${styles.mobileStage} ${styles.ticketStage}`}>
-        <section className={styles.emptyCard}>
-          <XCircle />
-          <h2>Campaña no disponible</h2>
-        </section>
-      </main>
-    );
-  }
-
-  const activeCampaign: BrandCampaign = campaign;
-
-  async function validateLocation() {
-    const demo = await readDemoConfig();
-
-    if (demo.simulatedLocationEnabled) {
-      const location = activeCampaign.locations[0];
-      if (!location) return;
-
-      setCoords({
-        lat: location.latitude,
-        lng: location.longitude,
-        accuracy: 5,
-      });
-
-      window.setTimeout(() => {
-        router.push(
-          `/usuario/cazar-recompensas/mapa/jugar?campaign=${encodeURIComponent(activeCampaign.id)}&location=${encodeURIComponent(location.id)}&mode=brand`
-        );
-      }, 650);
+  async function submit() {
+    if (!campaign || !selectedBranch || !files.length || !ticketNumber.trim() || !purchaseDate || !total || Number(total) <= 0) {
+      setResult({ ok: false, message: "Completa la sucursal, folio, fecha, monto y fotografía del ticket." });
       return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        setCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        }),
-      () => setCoords(null),
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 3000,
-      }
-    );
-  }
-
-  async function analyze() {
-    if (!files.length || !coords) return;
-
     setWorking(true);
     setResult(null);
-
-    const form = new FormData();
-    files.forEach((file) => form.append("images", file));
-    form.append("campaignId", activeCampaign.id);
-    form.append("location", JSON.stringify(coords));
-
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch("/api/tickets/analyze", {
-        method: "POST",
-        headers: sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : undefined,
-        body: form,
+      await persistTicketSubmission({
+        campaign,
+        files,
+        coords: { lat: selectedBranch.latitude, lng: selectedBranch.longitude, accuracy: 0 },
+        analysis: {
+          status: "review",
+          message: "Ticket recibido. Nuestro equipo lo revisará manualmente.",
+          extraction: {
+            merchantName: campaign.brandName,
+            branch: selectedBranch.name,
+            ticketNumber: ticketNumber.trim(),
+            purchaseDate,
+            total: Number(total),
+            currency: "MXN",
+            products: [],
+            confidence: 1,
+          },
+        },
       });
-
-      const data = (await response.json()) as Analysis;
-      await persistTicketSubmission({ campaign: activeCampaign, files, coords, analysis: data });
-      setResult(data);
-
-      if (data.status === "approved") {
-        await awardDynamicReward(activeCampaign);
-      }
-    } catch {
-      setResult({
-        status: "review",
-        message:
-          "No pudimos terminar el análisis. El ticket quedó para revisión.",
-      });
-    } finally {
-      setWorking(false);
-    }
+      setFiles([]); setTicketNumber(""); setTotal("");
+      setResult({ ok: true, message: "¡Listo! Tu ticket fue enviado. Te avisaremos en la campanita cuando sea aprobado o rechazado." });
+    } catch (error) {
+      setResult({ ok: false, message: error instanceof Error ? error.message : "No fue posible enviar el ticket." });
+    } finally { setWorking(false); }
   }
 
-  function simulatePrizeWon() {
-    const location = activeCampaign.locations[0];
+  if (loading) return <main className={`${styles.mobileStage} ${styles.ticketStage}`}><section className={styles.emptyCard}><ReceiptText /><h2>Cargando campaña...</h2></section></main>;
+  if (!campaign) return <main className={`${styles.mobileStage} ${styles.ticketStage}`}><section className={styles.emptyCard}><XCircle /><h2>Campaña no disponible</h2></section></main>;
 
-    if (location) {
-      setCoords({
-        lat: location.latitude,
-        lng: location.longitude,
-        accuracy: 5,
-      });
-    }
+  return <main className={`${styles.mobileStage} ${styles.ticketStage}`}>
+    <div className={styles.topBar}><Link href="/usuario/cazar-recompensas/marca" className={styles.backButton} aria-label="Regresar"><ArrowLeft /></Link><span>{campaign.brandName}</span></div>
+    <section className={styles.ticketPanel}>
+      <div className={styles.eyebrow}><ReceiptText />Validación manual</div>
+      <h1>{campaign.name}</h1>
+      <p>Compra en una sucursal participante, toma una foto clara y envíala. Un administrador revisará el ticket.</p>
 
-    setResult({
-      status: "approved",
-      message:
-        "La compra, la marca y la ubicación fueron validadas correctamente.",
-      extraction: {
-        merchantName: activeCampaign.brandName,
-        ticketNumber: `DEMO-${Date.now().toString().slice(-6)}`,
-        purchaseDate: new Date().toISOString().slice(0, 10),
-        total: Math.max(activeCampaign.minimumTotal, 199),
-        confidence: 0.98,
-      },
-    });
-
-    void awardDynamicReward(activeCampaign);
-  }
-
-  function simulateInvalidTicket() {
-    setResult({
-      status: "rejected",
-      message:
-        "El ticket no cumple con la marca, vigencia o productos requeridos para esta campaña.",
-      extraction: {
-        merchantName: "Marca no válida",
-        ticketNumber: `DEMO-${Date.now().toString().slice(-6)}`,
-        purchaseDate: new Date().toISOString().slice(0, 10),
-        total: 49,
-        confidence: 0.91,
-      },
-    });
-  }
-
-  const distance = coords
-    ? Math.round(
-        Math.min(
-          ...activeCampaign.locations.map((location) =>
-            distanceMeters(
-              coords.lat,
-              coords.lng,
-              location.latitude,
-              location.longitude
-            )
-          )
-        )
-      )
-    : null;
-
-  return (
-    <main className={`${styles.mobileStage} ${styles.ticketStage}`}>
-      <div className={styles.topBar}>
-        <Link
-          href="/usuario/cazar-recompensas/marca"
-          className={styles.backButton}
-          aria-label="Regresar"
-        >
-          <ArrowLeft />
-        </Link>
-
-        <span>{activeCampaign.brandName}</span>
+      <div className={styles.ticketResult}>
+        <Store /><h2>¿Dónde comprar?</h2>
+        <p><strong>{campaign.brandName}</strong></p>
+        {campaign.locations.map((location) => <small key={location.id}>{location.name}{location.address ? ` · ${location.address}` : ""}</small>)}
+        <p>Compra mínima: <strong>${campaign.minimumTotal.toLocaleString("es-MX")} MXN</strong></p>
       </div>
 
-      <section className={styles.ticketPanel}>
-        <div className={styles.eyebrow}>
-          <ReceiptText />
-          Validación con IA
-        </div>
+      <label className={styles.ticketField}>Sucursal participante
+        <select value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+          {campaign.locations.map((location) => <option key={location.id} value={location.id}>{location.name}{location.address ? ` — ${location.address}` : ""}</option>)}
+        </select>
+      </label>
+      <label className={styles.ticketField}>Folio del ticket<input value={ticketNumber} onChange={(event) => setTicketNumber(event.target.value)} placeholder="Ej. A-102938" /></label>
+      <label className={styles.ticketField}>Fecha de compra<input type="date" value={purchaseDate} onChange={(event) => setPurchaseDate(event.target.value)} /></label>
+      <label className={styles.ticketField}>Monto total (MXN)<input type="number" min="0" step="0.01" value={total} onChange={(event) => setTotal(event.target.value)} placeholder="300.00" /></label>
 
-        <h1>{activeCampaign.name}</h1>
+      <label className={styles.ticketUpload}><Upload /><strong>Seleccionar fotos</strong><span>{files.length}/3 imágenes</span><input type="file" accept="image/*" capture="environment" multiple onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 3))} /></label>
 
-        <p>
-          Sube hasta 3 fotos claras del ticket. Extraeremos folio, marca,
-          fecha, total y productos.
-        </p>
+      {selectedBranch && <div className={styles.locationButton}><MapPin />Sucursal seleccionada: {selectedBranch.name}</div>}
 
-        <label className={styles.ticketUpload}>
-          <Upload />
-          <strong>Seleccionar fotos</strong>
-          <span>{files.length}/3 imágenes</span>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            onChange={(event) =>
-              setFiles(Array.from(event.target.files ?? []).slice(0, 3))
-            }
-          />
-        </label>
+      <button type="button" className={`${styles.cameraButton} ${styles.ticketSubmitButton}`} onClick={() => void submit()} disabled={working}>
+        <Send />{working ? "Enviando ticket..." : "Enviar para revisión"}
+      </button>
 
-        <button
-          type="button"
-          className={styles.locationButton}
-          onClick={() => { void validateLocation(); }}
-          disabled={demoConfig.simulatedLocationEnabled && files.length === 0}
-        >
-          <MapPin />
-          {coords ? "Ubicación lista" : demoConfig.simulatedLocationEnabled ? "Validar ubicación y continuar" : "Validar ubicación"}
-        </button>
-
-        {!demoConfig.simulatedLocationEnabled && (
-          <button
-            type="button"
-            className={`${styles.cameraButton} ${styles.ticketSubmitButton}`}
-            onClick={analyze}
-            disabled={!files.length || !coords || working}
-          >
-            <Camera />
-            {working ? "Analizando ticket..." : "Enviar a validación"}
-          </button>
-        )}
-
-        {false && (
-          <section className={styles.brandDemoActions}>
-            <span>Controles de demostración</span>
-
-            <div>
-              <button type="button" onClick={simulatePrizeWon}>
-                <Gift />
-                Simular premio ganado
-              </button>
-
-              <button type="button" onClick={simulateInvalidTicket}>
-                <XCircle />
-                Simular ticket no válido
-              </button>
-            </div>
-          </section>
-        )}
-
-        {result && (
-          <div
-            className={`${styles.ticketResult} ${
-              styles[`ticket_${result.status}`]
-            }`}
-          >
-            {result.status === "approved" ? (
-              <Gift />
-            ) : result.status === "rejected" ? (
-              <XCircle />
-            ) : (
-              <ReceiptText />
-            )}
-
-            <h2>
-              {result.status === "approved"
-                ? "Premio ganado"
-                : result.status === "review"
-                  ? "En revisión"
-                  : "Ticket rechazado"}
-            </h2>
-
-            <p>{result.message}</p>
-
-            {result.extraction && (
-              <div>
-                <span>{result.extraction.merchantName}</span>
-                <strong>
-                  Folio {result.extraction.ticketNumber || "no detectado"}
-                </strong>
-                <small>
-                  Total ${result.extraction.total ?? 0} · Confianza{" "}
-                  {Math.round((result.extraction.confidence ?? 0) * 100)}%
-                </small>
-              </div>
-            )}
-
-            {result.status === "approved" && (
-              <Link href="/usuario/cazar-recompensas/capturas">
-                Ver mi recompensa
-              </Link>
-            )}
-          </div>
-        )}
-      </section>
-    </main>
-  );
+      {result && <div className={`${styles.ticketResult} ${result.ok ? styles.ticket_review : styles.ticket_rejected}`}>
+        {result.ok ? <CheckCircle2 /> : <XCircle />}<h2>{result.ok ? "Ticket enviado" : "Revisa los datos"}</h2><p>{result.message}</p>
+        {result.ok && <Link href="/usuario">Volver al inicio</Link>}
+      </div>}
+    </section>
+  </main>;
 }

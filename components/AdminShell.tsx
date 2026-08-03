@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
   Percent,
   Radio,
+  ReceiptText,
   Settings2,
   Trophy,
   UserRound,
@@ -71,6 +72,11 @@ const adminItems:
       "/admin/campanas-patrocinadores",
       "Aprobar campañas",
       ClipboardCheck,
+    ],
+    [
+      "/admin/tickets",
+      "Validar tickets",
+      ReceiptText,
     ],
     ["/admin/patrocinadores", "Patrocinadores", Building2],
     [

@@ -121,30 +121,12 @@ export default function PromoTicker() {
           schema: "public",
           table: "announcements",
         },
-        refresh,
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "app_settings",
-          filter: "key=eq.ticker_enabled",
-        },
-        refresh,
+        refresh
       )
       .subscribe();
 
-    const pollingId = window.setInterval(refresh, 10000);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
     return () => {
       window.removeEventListener(ANNOUNCEMENTS_UPDATED_EVENT, refresh);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.clearInterval(pollingId);
       void supabase.removeChannel(channel);
     };
   }, []);
