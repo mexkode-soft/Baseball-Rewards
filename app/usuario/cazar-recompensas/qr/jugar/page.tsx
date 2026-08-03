@@ -36,12 +36,6 @@ import {
   type QrScanResult,
 } from "@/lib/qrCampaigns";
 
-import {
-  DEFAULT_DEMO_CONFIG,
-  DEMO_CONFIG_EVENT,
-  readDemoConfig,
-  type DemoConfig,
-} from "@/lib/demoConfig";
 
 type ScannerState =
   | "idle"
@@ -91,13 +85,6 @@ export default function QrPlayPage() {
     setPoints,
   ] = useState(0);
 
-  const [
-    demoConfig,
-    setDemoConfig,
-  ] = useState<DemoConfig>(
-    DEFAULT_DEMO_CONFIG
-  );
-
   const scannerRef =
     useRef<
       import("html5-qrcode").Html5Qrcode | null
@@ -139,15 +126,6 @@ export default function QrPlayPage() {
         update
       );
     };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    async function updateDemoConfig() { try { const value = await readDemoConfig(); if (active) setDemoConfig(value); } catch {} }
-    void updateDemoConfig();
-    const refresh = () => { void updateDemoConfig(); };
-    window.addEventListener(DEMO_CONFIG_EVENT, refresh);
-    return () => { active = false; window.removeEventListener(DEMO_CONFIG_EVENT, refresh); };
   }, []);
 
   useEffect(() => {
@@ -233,23 +211,20 @@ export default function QrPlayPage() {
   ) {
     await stopScanner();
 
-    const scanResult =
-      await validateQrPayload(
-        payload,
-        campaignId
-      );
-
-    setResult(
-      scanResult
-    );
-
-    setPoints(
-      await readDemoPoints()
-    );
-
-    setScannerState(
-      "result"
-    );
+    try {
+      const scanResult = await validateQrPayload(payload, campaignId);
+      setResult(scanResult);
+      setPoints(await readDemoPoints());
+      setScannerState("result");
+    } catch (error) {
+      console.error("Error validando QR:", error);
+      setResult({
+        ok: false,
+        status: "invalid",
+        message: error instanceof Error ? error.message : "No fue posible validar este QR.",
+      });
+      setScannerState("result");
+    }
   }
 
   async function startScanner() {
@@ -328,57 +303,6 @@ export default function QrPlayPage() {
 
     setScannerState(
       "idle"
-    );
-  }
-
-  function simulateScanOutcome(
-    winner: boolean
-  ) {
-    if (
-      !campaign?.codes.length
-    ) {
-      return;
-    }
-
-    const preferredCode =
-      campaign.codes.find(
-        (code) =>
-          code.isWinner === winner
-      ) ??
-      campaign.codes[0];
-
-    const simulatedResult:
-      QrScanResult = {
-      ok: true,
-      status: winner
-        ? "winner"
-        : "not_winner",
-      message: winner
-        ? `¡Felicidades! Ganaste ${preferredCode.reward || campaign.reward}.`
-        : "Este código no contiene premio. Sigue participando.",
-      campaign,
-      code: {
-        ...preferredCode,
-        isWinner: winner,
-        reward: winner
-          ? preferredCode.reward ||
-            campaign.reward
-          : "",
-        points: winner
-          ? campaign.winnerPoints
-          : campaign.participationPoints,
-      },
-      pointsAwarded: winner
-        ? campaign.winnerPoints
-        : campaign.participationPoints,
-    };
-
-    setResult(
-      simulatedResult
-    );
-
-    setScannerState(
-      "result"
     );
   }
 
@@ -513,53 +437,7 @@ export default function QrPlayPage() {
           Abrir cámara
         </button>
 
-        {demoConfig.simulatedLocationEnabled && (
-          <div
-            className={
-              styles.qrDemoActions
-            }
-          >
-            <span>
-              Modo demo
-            </span>
 
-            <div>
-              <button
-                type="button"
-                onClick={() =>
-                  simulateScanOutcome(
-                    true
-                  )
-                }
-                disabled={
-                  !campaign
-                }
-              >
-                <Gift />
-
-                Simular escaneo
-                exitoso
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  simulateScanOutcome(
-                    false
-                  )
-                }
-                disabled={
-                  !campaign
-                }
-              >
-                <XCircle />
-
-                Simular escaneo
-                fallido
-              </button>
-            </div>
-          </div>
-        )}
       </section>
 
       {scannerState !== "idle" &&

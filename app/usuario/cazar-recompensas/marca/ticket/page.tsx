@@ -11,7 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import styles from "../../CazarRecompensas.module.css";
 import { persistTicketSubmission } from "@/lib/tickets";
@@ -42,6 +42,7 @@ interface Analysis {
 }
 
 export default function BrandTicketPage() {
+  const router = useRouter();
   const campaignId = useSearchParams().get("campaign") ?? "";
 
   const [campaign, setCampaign] = useState<BrandCampaign | null>(null);
@@ -92,11 +93,20 @@ export default function BrandTicketPage() {
     const demo = await readDemoConfig();
 
     if (demo.simulatedLocationEnabled) {
+      const location = activeCampaign.locations[0];
+      if (!location) return;
+
       setCoords({
-        lat: demo.simulatedLatitude,
-        lng: demo.simulatedLongitude,
+        lat: location.latitude,
+        lng: location.longitude,
         accuracy: 5,
       });
+
+      window.setTimeout(() => {
+        router.push(
+          `/usuario/cazar-recompensas/mapa/jugar?campaign=${encodeURIComponent(activeCampaign.id)}&location=${encodeURIComponent(location.id)}&mode=brand`
+        );
+      }, 650);
       return;
     }
 
@@ -256,22 +266,25 @@ export default function BrandTicketPage() {
           type="button"
           className={styles.locationButton}
           onClick={() => { void validateLocation(); }}
+          disabled={demoConfig.simulatedLocationEnabled && files.length === 0}
         >
           <MapPin />
-          {coords ? `Ubicación lista · ${distance} m` : "Validar ubicación"}
+          {coords ? "Ubicación lista" : demoConfig.simulatedLocationEnabled ? "Validar ubicación y continuar" : "Validar ubicación"}
         </button>
 
-        <button
-          type="button"
-          className={`${styles.cameraButton} ${styles.ticketSubmitButton}`}
-          onClick={analyze}
-          disabled={!files.length || !coords || working}
-        >
-          <Camera />
-          {working ? "Analizando ticket..." : "Enviar a validación"}
-        </button>
+        {!demoConfig.simulatedLocationEnabled && (
+          <button
+            type="button"
+            className={`${styles.cameraButton} ${styles.ticketSubmitButton}`}
+            onClick={analyze}
+            disabled={!files.length || !coords || working}
+          >
+            <Camera />
+            {working ? "Analizando ticket..." : "Enviar a validación"}
+          </button>
+        )}
 
-        {demoConfig.simulatedLocationEnabled && (
+        {false && (
           <section className={styles.brandDemoActions}>
             <span>Controles de demostración</span>
 

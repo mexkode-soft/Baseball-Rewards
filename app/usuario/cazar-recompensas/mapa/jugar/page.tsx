@@ -32,6 +32,7 @@ import {
   setMapCooldown,
   type CampaignLocation,
   type MapCampaign,
+  type BrandCampaign,
 } from "@/lib/campaignDynamics";
 
 import {
@@ -62,18 +63,20 @@ export default function MapPlayPage() {
   const campaignId =
     params.get("campaign") ?? "";
 
-  const locationId =
-    params.get("location") ?? "";
+  const locationId = params.get("location") ?? "";
+  const mode = params.get("mode") === "brand" ? "brand" : "map";
 
-  const [campaign, setCampaign] = useState<MapCampaign | null>(null);
+  const [campaign, setCampaign] = useState<MapCampaign | BrandCampaign | null>(null);
 
   useEffect(() => {
     let active = true;
-    void readActiveDynamicCampaigns("map").then((items) => {
-      if (active) setCampaign((items as MapCampaign[]).find((item) => item.id === campaignId) ?? null);
+    void readActiveDynamicCampaigns(mode).then((items) => {
+      if (active) {
+        setCampaign((items as Array<MapCampaign | BrandCampaign>).find((item) => item.id === campaignId) ?? null);
+      }
     });
     return () => { active = false; };
-  }, [campaignId]);
+  }, [campaignId, mode]);
 
   const location =
     campaign?.locations.find(
@@ -237,7 +240,7 @@ export default function MapPlayPage() {
    * para evitar errores de posiblemente undefined.
    */
   const activeCampaign:
-    MapCampaign = campaign;
+    MapCampaign | BrandCampaign = campaign;
 
   const activeLocation:
     CampaignLocation = location;
@@ -533,7 +536,7 @@ export default function MapPlayPage() {
         }
       >
         <Link
-          href="/usuario/cazar-recompensas/mapa"
+          href={mode === "brand" ? "/usuario/cazar-recompensas/marca" : "/usuario/cazar-recompensas/mapa"}
           className={
             styles.backButton
           }

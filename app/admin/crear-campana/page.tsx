@@ -93,8 +93,25 @@ export default function CrearCampanaPage() {
       setStartDate(item.startDate); setEndDate(item.endDate); setStatus(item.status); setAttemptsPerUser(item.attemptsPerUser);
       setParticipationPoints(item.participationPoints); setWinnerPoints(item.winnerPoints); setReward(item.reward);
       setTotalCodes(item.codes.length || 15); setWinnerCodes(item.codes.filter((code) => code.isWinner).length || 0);
-      setExistingCoverUrl(item.coverUrl ?? ""); setCoverPreview(item.coverUrl ?? ""); setCodes([]);
-      setNotice("Estás editando una campaña. Regenera los códigos QR antes de guardar para mantener tokens seguros.");
+      setExistingCoverUrl(item.coverUrl ?? "");
+      setCoverPreview(item.coverUrl ?? "");
+
+      const recoverableCodes = item.codes.filter((code) => Boolean(code.token && code.payload));
+      if (recoverableCodes.length === item.codes.length && recoverableCodes.length > 0) {
+        setCodes(recoverableCodes);
+        setNotice("Campaña cargada. Los códigos QR existentes se conservaron y puedes descargarlos nuevamente.");
+      } else {
+        const regenerated = generateQrCodes({
+          campaignId: item.id,
+          total: item.codes.length || 15,
+          winners: item.codes.filter((code) => code.isWinner).length || 0,
+          reward: item.reward,
+          participationPoints: item.participationPoints,
+          winnerPoints: item.winnerPoints,
+        });
+        setCodes(regenerated);
+        setNotice("Esta campaña usaba el formato anterior. Se generó un nuevo juego de QR que quedará asociado al guardar. Los QR impresos anteriormente ya no podrán recuperarse porque solo se almacenaba su hash.");
+      }
     }).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudo cargar la campaña."));
     return () => { active = false; };
   }, [editId, requestedType]);

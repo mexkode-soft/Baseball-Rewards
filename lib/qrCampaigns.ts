@@ -107,6 +107,7 @@ export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
   const codeRows = await Promise.all(campaign.codes.map(async (code) => ({
     campaign_id: id,
     token_hash: await sha256(code.token),
+    token_value: code.token,
     display_code: code.label,
     is_winner: code.isWinner,
     reward_name: code.reward || null,
@@ -127,7 +128,7 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
   if (error) throw error;
   const ids = (campaigns ?? []).map((item) => String(item.id));
   const { data: codes, error: codeError } = ids.length
-    ? await supabase.from("qr_codes").select("id,campaign_id,display_code,is_winner,reward_name,reward_code,points,total_uses").in("campaign_id", ids).order("created_at")
+    ? await supabase.from("qr_codes").select("id,campaign_id,display_code,is_winner,reward_name,reward_code,points,total_uses,token_value").in("campaign_id", ids).order("created_at")
     : { data: [], error: null };
   if (codeError) throw codeError;
   return (campaigns ?? []).map((campaign) => ({
@@ -136,7 +137,10 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
     attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
     reward: String((campaign.metadata as { reward?: string } | null)?.reward ?? "Premio"), createdAt: String(campaign.created_at),
     codes: (codes ?? []).filter((code) => code.campaign_id === campaign.id).map((code) => ({
-      id: String(code.id), token: "", payload: "", label: String(code.display_code), isWinner: Boolean(code.is_winner),
+      id: String(code.id),
+      token: String(code.token_value ?? ""),
+      payload: code.token_value ? createQrPayload(String(campaign.id), String(code.token_value)) : "",
+      label: String(code.display_code), isWinner: Boolean(code.is_winner),
       reward: String(code.reward_name ?? ""), rewardCode: String(code.reward_code ?? ""), points: Number(code.points), scannedBy: [], totalScans: Number(code.total_uses),
     })),
   }));
@@ -162,7 +166,13 @@ export async function validateQrPayload(payload: string, expectedCampaignId?: st
   if (brand !== "HRR" || type !== "QR" || !campaignId || !token) return { ok: false, status: "invalid", message: "Este código no pertenece a Home Run Rewards." };
   if (expectedCampaignId && campaignId !== expectedCampaignId) return { ok: false, status: "wrong_campaign", message: "Este QR pertenece a otra campaña." };
   const { data, error } = await supabase.rpc("scan_qr", { p_campaign_id: campaignId, p_token: token });
-  if (error) throw error;
+  if (error) {
+    return {
+      ok: false,
+      status: "invalid",
+      message: error.message || "No fue posible validar este código QR.",
+    };
+  }
   return data as QrScanResult;
 }
 

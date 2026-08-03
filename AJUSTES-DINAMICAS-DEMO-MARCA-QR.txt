@@ -1,0 +1,20 @@
+HOME RUN REWARDS - AJUSTES DINÁMICAS
+
+MARCA EN MODO DEMO
+- Ya no aparecen botones de simular ganado o inválido.
+- El usuario carga cualquier fotografía; no se analiza con IA.
+- Al pulsar Validar ubicación muestra Ubicación lista y abre la trivia.
+- Reutiliza el flujo de cámara, cuenta regresiva, trivia y pelota AR del mapa.
+
+QR
+- Se eliminó la simulación QR aunque esté activo el modo demo.
+- Al editar se vuelven a cargar exactamente los mismos QR cuando fueron guardados con token_value.
+- La migración agrega qr_codes.token_value.
+- Campañas antiguas creadas antes de esta migración no pueden recuperar el token original porque solo almacenaban el hash. La primera edición genera un nuevo juego asociado; después sí se conserva.
+- Los errores de validación ya muestran un resultado en pantalla en lugar de dejarla negra.
+
+PASOS
+1. Ejecuta en Supabase SQL Editor:
+   supabase/migrations/202608020005_qr_tokens_demo_brand_flow.sql
+2. Conserva .env.local.
+3. Ejecuta npm run build antes de desplegar.
