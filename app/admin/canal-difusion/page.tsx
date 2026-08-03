@@ -29,13 +29,16 @@ import {
 
 import styles from "./CanalDifusion.module.css";
 import { readBroadcasts, sendBroadcast, type BroadcastRecord } from "@/lib/broadcasts";
+import { supabase } from "@/lib/supabase";
 
 type AudienceType =
   | "all"
   | "level"
   | "location"
   | "random"
-  | "custom";
+  | "custom"
+  | "sponsors"
+  | "specific";
 
 type MessageType =
   | "promotion"
@@ -71,6 +74,18 @@ const audienceOptions = [
     description:
       "Elegir usuarios al azar.",
     icon: Sparkles,
+  },
+  {
+    id: "sponsors" as const,
+    title: "Patrocinadores",
+    description: "Enviar a todos los usuarios sponsor.",
+    icon: Gift,
+  },
+  {
+    id: "specific" as const,
+    title: "Usuarios específicos",
+    description: "Seleccionar hasta 10 personas.",
+    icon: Target,
   },
   {
     id: "custom" as const,
@@ -153,19 +168,26 @@ export default function Page() {
     setRandomAmount,
   ] = useState("250");
 
+  const [directory, setDirectory] = useState<Array<{id:string;email:string;full_name:string|null;role:string}>>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+
   const [historyItems, setHistoryItems] = useState<BroadcastRecord[]>([]);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
     void readBroadcasts().then(setHistoryItems).catch(() => setHistoryItems([]));
+    void supabase.from("profiles").select("id,email,full_name,role").in("role", ["usuario","sponsor"]).order("full_name").then(({data}) => setDirectory((data ?? []) as Array<{id:string;email:string;full_name:string|null;role:string}>));
   }, []);
 
   async function prepareSend() {
     if (!title.trim() || !message.trim()) { setNotice("Escribe el título y el mensaje."); return; }
+    if (audienceType === "specific" && selectedUserIds.length === 0) { setNotice("Selecciona al menos un usuario."); return; }
     try {
       const recipients = await sendBroadcast({
         title: title.trim(), body: message.trim(), messageType, priority, audienceType,
-        level, state, randomAmount: Number(randomAmount) || 1,
+        level, state, randomAmount: Number(randomAmount) || 1, userIds: selectedUserIds,
+        actionUrl: audienceType === "sponsors" ? "/patrocinador" : "/usuario",
       });
       setNotice(`Comunicado enviado a ${recipients} usuarios.`);
       setHistoryItems(await readBroadcasts());
@@ -600,6 +622,19 @@ export default function Page() {
                     </option>
                   </select>
                 </label>
+              )}
+
+              {audienceType === "specific" && (
+                <div className={styles.fullField}>
+                  <span>Destinatarios ({selectedUserIds.length}/10)</span>
+                  <input value={userSearch} onChange={(event)=>setUserSearch(event.target.value)} placeholder="Buscar por nombre o correo" />
+                  <div style={{display:"grid",gap:8,maxHeight:260,overflow:"auto",marginTop:10}}>
+                    {directory.filter((user)=>`${user.full_name ?? ""} ${user.email}`.toLowerCase().includes(userSearch.toLowerCase())).map((user)=>{
+                      const checked=selectedUserIds.includes(user.id);
+                      return <label key={user.id} style={{display:"flex",alignItems:"center",gap:10,padding:10,border:"1px solid #30333a",borderRadius:10}}><input type="checkbox" checked={checked} disabled={!checked && selectedUserIds.length>=10} onChange={()=>setSelectedUserIds((current)=>checked?current.filter((id)=>id!==user.id):[...current,user.id].slice(0,10))}/><span>{user.full_name || user.email}<small style={{display:"block",opacity:.65}}>{user.email} · {user.role}</small></span></label>
+                    })}
+                  </div>
+                </div>
               )}
 
               {audienceType ===

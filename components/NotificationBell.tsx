@@ -16,6 +16,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pushMessage, setPushMessage] = useState("");
+  const [pushEnabled, setPushEnabled] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
@@ -24,6 +25,16 @@ export default function NotificationBell() {
 
   useEffect(() => {
     void refresh();
+    void (async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        setPushEnabled(Boolean(subscription) && Notification.permission === "granted");
+      } catch {
+        setPushEnabled(false);
+      }
+    })();
     let channel: ReturnType<typeof supabase.channel> | null = null;
     void supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return;
@@ -52,6 +63,7 @@ export default function NotificationBell() {
     setPushMessage("Activando...");
     try {
       const result = await subscribeToPush();
+      if (result === "subscribed") setPushEnabled(true);
       setPushMessage(result === "subscribed" ? "Notificaciones push activadas." : result === "denied" ? "Permiso rechazado desde el dispositivo." : result === "missing-key" ? "Falta configurar la llave pública VAPID." : "Este navegador no admite notificaciones push.");
     } catch (error) { setPushMessage(error instanceof Error ? error.message : "No se pudo activar push."); }
   }
@@ -62,7 +74,7 @@ export default function NotificationBell() {
     </button>
     {open ? <section className={styles.panel} aria-label="Bandeja de notificaciones">
       <header><div><strong>Notificaciones</strong><small>{unread ? `${unread} sin leer` : "Todo al día"}</small></div><button type="button" onClick={() => setOpen(false)} aria-label="Cerrar"><X /></button></header>
-      <div className={styles.actions}><button type="button" onClick={readAll} disabled={!unread}><CheckCheck /> Marcar todas</button><button type="button" onClick={enablePush}><BellRing /> Activar push</button></div>
+      <div className={styles.actions}><button type="button" onClick={readAll} disabled={!unread}><CheckCheck /> Marcar todas</button>{!pushEnabled ? <button type="button" onClick={enablePush}><BellRing /> Activar push</button> : null}</div>
       {pushMessage ? <p className={styles.pushMessage}>{pushMessage}</p> : null}
       <div className={styles.list}>
         {loading ? <div className={styles.empty}><LoaderCircle className={styles.spinner} /> Cargando...</div> : items.length === 0 ? <div className={styles.empty}>Todavía no tienes notificaciones.</div> : items.map((item) => {

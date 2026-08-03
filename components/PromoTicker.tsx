@@ -18,6 +18,7 @@ import {
   ANNOUNCEMENTS_UPDATED_EVENT,
   DEFAULT_ANNOUNCEMENTS,
   readAnnouncements,
+  readTickerEnabled,
 } from "@/lib/announcements";
 
 import { supabase } from "@/lib/supabase";
@@ -82,6 +83,8 @@ function PromotionGroup({ announcements, hidden = false, groupId }: PromotionGro
 }
 
 export default function PromoTicker() {
+  const [tickerEnabled, setTickerEnabled] = useState(true);
+
   const [
     announcements,
     setAnnouncements,
@@ -92,7 +95,9 @@ export default function PromoTicker() {
   useEffect(() => {
     async function refreshAnnouncements() {
       try {
-        setAnnouncements(await readAnnouncements());
+        const [items, enabled] = await Promise.all([readAnnouncements(), readTickerEnabled()]);
+        setAnnouncements(items);
+        setTickerEnabled(enabled);
       } catch (error) {
         console.error("No fue posible actualizar la cinta:", error);
         setAnnouncements([]);
@@ -155,7 +160,7 @@ export default function PromoTicker() {
     ).flat();
   }, [activeAnnouncements]);
 
-  if (marqueeAnnouncements.length === 0) {
+  if (!tickerEnabled || marqueeAnnouncements.length === 0) {
     return null;
   }
 

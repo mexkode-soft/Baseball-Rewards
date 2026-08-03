@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import {
   CalendarRange,
+  ChevronDown,
+  Building2,
   ClipboardCheck,
   ChartNoAxesColumnIncreasing,
   CircleHelp,
@@ -70,6 +72,7 @@ const adminItems:
       "Aprobar campañas",
       ClipboardCheck,
     ],
+    ["/admin/patrocinadores", "Patrocinadores", Building2],
     [
       "/admin/temporadas",
       "Temporadas",
@@ -354,48 +357,31 @@ export default function AdminShell({
           </div>
         </Link>
 
-        <nav
-          className={
-            styles.navigation
-          }
-        >
-          {menuItems.map(
-            ([
-              href,
-              label,
-              Icon,
-            ]) => {
-              const active =
-                pathname ===
-                  href ||
-                pathname.startsWith(
-                  `${href}/`
-                );
-
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={
-                    active
-                      ? styles.active
-                      : ""
-                  }
-                  title={
-                    sidebarCollapsed
-                      ? label
-                      : undefined
-                  }
-                >
-                  <Icon />
-
-                  <span>
-                    {label}
-                  </span>
-                </Link>
-              );
-            }
-          )}
+        <nav className={styles.navigation}>
+          {role === "admin" ? (
+            <>
+              <Link href="/admin" className={pathname === "/admin" ? styles.active : ""}><UserRound /><span>Inicio</span></Link>
+              {[
+                { label: "Campañas", icon: Trophy, paths: ["/admin/crear-campana","/admin/campanas","/admin/campanas-patrocinadores"], items: [["/admin/crear-campana","Crear campaña",Trophy],["/admin/campanas","Mis campañas",ListChecks],["/admin/campanas-patrocinadores","Aprobar campañas",ClipboardCheck]] },
+                { label: "Patrocinadores", icon: Building2, paths: ["/admin/patrocinadores"], items: [["/admin/patrocinadores","Marcas y planes",Building2]] },
+                { label: "Configuración", icon: Settings2, paths: ["/admin/temporadas","/admin/preguntas","/admin/niveles","/admin/ranking","/admin/demo"], items: [["/admin/temporadas","Temporadas",CalendarRange],["/admin/preguntas","Preguntas",CircleHelp],["/admin/niveles","Niveles",ChartNoAxesColumnIncreasing],["/admin/ranking","Ranking",Trophy],["/admin/demo","Demo",Settings2]] },
+                { label: "Anuncios", icon: Megaphone, paths: ["/admin/promociones","/admin/anuncios","/admin/canal-difusion"], items: [["/admin/promociones","Promociones",Percent],["/admin/anuncios","Cinta y anuncios",Megaphone],["/admin/canal-difusion","Canal de difusión",Radio]] },
+              ].map((group) => {
+                const GroupIcon = group.icon;
+                const groupActive = group.paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+                return <details key={group.label} className={styles.navGroup} open={groupActive || undefined}>
+                  <summary className={groupActive ? styles.groupActive : ""}><GroupIcon/><span>{group.label}</span><ChevronDown className={styles.groupChevron}/></summary>
+                  <div className={styles.navChildren}>{group.items.map(([href,label,Icon]) => {
+                    const active = pathname === href || pathname.startsWith(`${href}/`);
+                    return <Link key={String(href)} href={String(href)} className={active ? styles.active : ""}><Icon/><span>{String(label)}</span></Link>;
+                  })}</div>
+                </details>;
+              })}
+            </>
+          ) : menuItems.map(([href,label,Icon]) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return <Link key={href} href={href} className={active ? styles.active : ""} title={sidebarCollapsed ? label : undefined}><Icon/><span>{label}</span></Link>;
+          })}
         </nav>
 
         <button

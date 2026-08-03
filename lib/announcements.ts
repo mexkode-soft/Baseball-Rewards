@@ -165,3 +165,16 @@ export async function saveAnnouncements(items: Announcement[]): Promise<Announce
 
   return normalized;
 }
+
+export async function readTickerEnabled(): Promise<boolean> {
+  const { data, error } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "ticker_enabled").maybeSingle();
+  if (error) return true;
+  return data?.setting_value !== false;
+}
+
+export async function saveTickerEnabled(enabled: boolean): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from("app_settings").upsert({ setting_key: "ticker_enabled", setting_value: enabled, updated_at: new Date().toISOString(), updated_by: user?.id ?? null });
+  if (error) throw error;
+  window.dispatchEvent(new CustomEvent(ANNOUNCEMENTS_UPDATED_EVENT));
+}

@@ -18,6 +18,10 @@ function isIos() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
+function isIosChrome() {
+  return isIos() && /CriOS/i.test(navigator.userAgent);
+}
+
 export default function InstallPwaButton() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
@@ -60,8 +64,13 @@ export default function InstallPwaButton() {
       return;
     }
 
+    if (isIosChrome()) {
+      setMessage("En Chrome para iPhone toca Compartir y después “Añadir a pantalla de inicio”. Si tu versión no muestra esa opción, abre el menú Compartir, elige “Abrir en Safari” y agrégala desde Safari.");
+      return;
+    }
+
     if (isIos()) {
-      setMessage("En Safari toca Compartir y después “Agregar a pantalla de inicio”.");
+      setMessage("En Safari toca Compartir y después “Añadir a pantalla de inicio”. iPhone no permite abrir el instalador automáticamente desde un botón web.");
       return;
     }
 

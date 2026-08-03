@@ -31,6 +31,8 @@ import {
   DEFAULT_ANNOUNCEMENTS,
   readAnnouncements,
   saveAnnouncements,
+  readTickerEnabled,
+  saveTickerEnabled,
 } from "@/lib/announcements";
 
 import styles from "./Anuncios.module.css";
@@ -109,13 +111,15 @@ export default function Page() {
     string | null
   >(null);
 
+  const [tickerEnabled, setTickerEnabled] = useState(true);
+
   const [
     message,
     setMessage,
   ] = useState("");
 
   useEffect(() => {
-    void readAnnouncements(true).then(setAnnouncements).catch((error) => setMessage(error instanceof Error ? error.message : "No se pudieron cargar los anuncios."));
+    void Promise.all([readAnnouncements(true), readTickerEnabled()]).then(([items, enabled]) => { setAnnouncements(items); setTickerEnabled(enabled); }).catch((error) => setMessage(error instanceof Error ? error.message : "No se pudieron cargar los anuncios."));
   }, []);
 
   const activeAnnouncements =
@@ -335,6 +339,8 @@ export default function Page() {
 
   return (
     <>
+      <section style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,padding:18,border:"1px solid #2b2d33",borderRadius:16,background:"#0d0f12",marginBottom:20}}><div><strong>Cinta infinita</strong><p style={{margin:4,color:"#9ca3af"}}>Prende o apaga la cinta pública sin borrar anuncios.</p></div><button type="button" onClick={async()=>{const next=!tickerEnabled;try{await saveTickerEnabled(next);setTickerEnabled(next);setMessage(next?"Cinta activada.":"Cinta desactivada.")}catch(error){setMessage(error instanceof Error?error.message:"No se pudo actualizar.")}}} style={{padding:"12px 18px",borderRadius:12,border:0,fontWeight:800,background:tickerEnabled?"#f4c542":"#2a2d33",color:tickerEnabled?"#111":"#fff"}}>{tickerEnabled?"Encendida":"Apagada"}</button></section>
+
       <div
         className={
           styles.pageHeader
