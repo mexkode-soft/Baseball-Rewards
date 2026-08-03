@@ -1,15 +1,14 @@
+import Link from "next/link";
 import {
-  Award,
   BadgeCheck,
+  Camera,
   CircleDot,
   Gift,
   MapPinned,
-  Medal,
-  Radio,
+  QrCode,
+  ReceiptText,
   Sparkles,
-  Star,
-  Target,
-  Ticket,
+  Store,
   Trophy,
 } from "lucide-react";
 
@@ -21,49 +20,46 @@ import styles from "./Campanas.module.css";
 
 const campaigns = [
   {
-    number: "Campaña 01",
-    title: "Caza el jonrón",
+    number: "Dinámica 01",
+    title: "Búsqueda QR",
     description:
-      "Encuentra recompensas ocultas, supera el reto y captura el premio antes que los demás participantes.",
-    icon: Target,
-    secondaryIcon: MapPinned,
+      "Encuentra códigos ocultos, escanéalos desde tu celular y descubre al instante si ganaste una recompensa.",
+    icon: QrCode,
+    secondaryIcon: Camera,
     benefits: [
-      "Mapa interactivo",
-      "Premios geolocalizados",
-      "Experiencia de captura",
+      "Escaneo directo desde la cámara",
+      "Premios y puntos al instante",
+      "Sin encuesta durante la búsqueda",
     ],
-    buttonText: "Próximamente",
-    featured: false,
+    accent: "qr",
   },
   {
-    number: "Campaña 02",
-    title: "Reto de la afición",
+    number: "Dinámica 02",
+    title: "Recompensa en mapa",
     description:
-      "Participa en dinámicas especiales, responde preguntas y demuestra cuánto sabes de béisbol.",
-    icon: Trophy,
-    secondaryIcon: Medal,
+      "Elige un premio cercano, sigue la ruta hasta la ubicación y completa la trivia para desbloquearlo.",
+    icon: MapPinned,
+    secondaryIcon: Trophy,
     benefits: [
-      "Preguntas y niveles",
-      "Puntos para el ranking",
-      "Recompensas exclusivas",
+      "Ubicaciones y premios disponibles",
+      "Progreso de distancia en tiempo real",
+      "Trivia y experiencia de recompensa",
     ],
-    buttonText: "Conocer campaña",
-    featured: true,
+    accent: "map",
   },
   {
-    number: "Campaña 03",
-    title: "Premio sorpresa",
+    number: "Dinámica 03",
+    title: "Visita a marca",
     description:
-      "Desbloquea promociones, beneficios y premios sorpresa proporcionados por nuestras marcas aliadas.",
-    icon: Gift,
-    secondaryIcon: Ticket,
+      "Compra con una marca participante, carga tu ticket y valida la visita para obtener puntos o beneficios.",
+    icon: Store,
+    secondaryIcon: ReceiptText,
     benefits: [
-      "Promociones especiales",
-      "Premios de patrocinadores",
-      "Beneficios limitados",
+      "Carga y lectura de ticket",
+      "Validación de ubicación",
+      "Premios de marcas aliadas",
     ],
-    buttonText: "Próximamente",
-    featured: false,
+    accent: "brand",
   },
 ];
 
@@ -76,21 +72,16 @@ export default function Campanas() {
         <section className={styles.heroSection}>
           <span className={styles.eyebrow}>
             <CircleDot />
-            Campañas
+            Dinámicas oficiales
           </span>
 
           <h1>
-            Vive el béisbol
-            <span>
-              de una manera diferente.
-            </span>
+            Tres formas de jugar,
+            <span>una sola experiencia.</span>
           </h1>
 
           <p className={styles.introduction}>
-            Explora nuestras campañas,
-            completa retos, encuentra premios y
-            conviértete en uno de los mejores
-            jugadores de Home Run Rewards.
+            Participa en campañas QR, busca premios en el mapa o visita a nuestras marcas aliadas. Cada dinámica suma puntos y recompensas a tu perfil.
           </p>
 
           <CampaignBaseballScene />
@@ -100,113 +91,61 @@ export default function Campanas() {
           <div className={styles.sectionHeading}>
             <span>
               <Sparkles />
-              Experiencias disponibles
+              Cómo puedes participar
             </span>
 
-            <h2>
-              Elige tu próxima campaña
-            </h2>
+            <h2>Elige tu dinámica</h2>
 
             <p>
-              Cada experiencia ofrece retos,
-              recompensas y formas diferentes de
-              participar.
+              Las campañas activas se publican dentro de tu cuenta y conservan el mismo flujo en celular, tablet y computadora.
             </p>
           </div>
 
           <div className={styles.campaignGrid}>
             {campaigns.map((campaign) => {
-              const MainIcon =
-                campaign.icon;
-
-              const SecondaryIcon =
-                campaign.secondaryIcon;
+              const MainIcon = campaign.icon;
+              const SecondaryIcon = campaign.secondaryIcon;
 
               return (
                 <article
                   key={campaign.title}
-                  className={`${styles.campaignCard} ${
-                    campaign.featured
-                      ? styles.featured
-                      : ""
-                  }`}
+                  className={`${styles.campaignCard} ${styles[campaign.accent]}`}
                 >
-                  {campaign.featured && (
-                    <span
-                      className={
-                        styles.featuredBadge
-                      }
-                    >
-                      <Star />
-                      Campaña destacada
-                    </span>
-                  )}
-
                   <div className={styles.cardTop}>
-                    <div
-                      className={
-                        styles.mainIcon
-                      }
-                    >
+                    <div className={styles.mainIcon}>
                       <MainIcon />
                     </div>
 
-                    <div
-                      className={
-                        styles.secondaryIcon
-                      }
-                    >
+                    <div className={styles.secondaryIcon}>
                       <SecondaryIcon />
                     </div>
                   </div>
 
-                  <span
-                    className={
-                      styles.campaignNumber
-                    }
-                  >
+                  <span className={styles.campaignNumber}>
                     {campaign.number}
                   </span>
 
                   <h3>{campaign.title}</h3>
 
-                  <p
-                    className={
-                      styles.cardDescription
-                    }
-                  >
+                  <p className={styles.cardDescription}>
                     {campaign.description}
                   </p>
 
                   <div className={styles.divider} />
 
                   <ul>
-                    {campaign.benefits.map(
-                      (benefit) => (
-                        <li key={benefit}>
-                          <BadgeCheck />
-                          {benefit}
-                        </li>
-                      )
-                    )}
+                    {campaign.benefits.map((benefit) => (
+                      <li key={benefit}>
+                        <BadgeCheck />
+                        {benefit}
+                      </li>
+                    ))}
                   </ul>
 
-                  <button
-                    type="button"
-                    className={
-                      campaign.featured
-                        ? styles.primaryButton
-                        : styles.secondaryButton
-                    }
-                  >
-                    {campaign.featured ? (
-                      <Radio />
-                    ) : (
-                      <Award />
-                    )}
-
-                    {campaign.buttonText}
-                  </button>
+                  <Link href="/login" className={styles.primaryButton}>
+                    <Gift />
+                    Entrar para participar
+                  </Link>
                 </article>
               );
             })}

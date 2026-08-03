@@ -1,0 +1,19 @@
+HOME RUN REWARDS - CINTA MÓVIL Y CAMPAÑAS OFICIALES
+
+Cambios incluidos:
+- Se aumentó el alto real de la cinta en móvil.
+- Se agregó espacio vertical y line-height específico para evitar texto cortado en Safari/iPhone.
+- Se mantuvo el efecto de cinta infinita en una sola línea.
+- La sección pública de campañas ya no muestra “Caza el jonrón”.
+- Ahora presenta únicamente las tres dinámicas reales:
+  1. Búsqueda QR
+  2. Recompensa en mapa
+  3. Visita a marca
+- Cada tarjeta explica el flujo real y lleva al inicio de sesión para participar.
+
+Conserva tu archivo .env.local.
+
+Prueba local:
+rm -rf .next
+npm run build
+npm run dev

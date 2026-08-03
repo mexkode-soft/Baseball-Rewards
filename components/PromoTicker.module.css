@@ -6,14 +6,14 @@
   left: 0;
 
   width: 100%;
-  min-height: 48px;
-  height: 48px;
+  min-height: 52px;
+  height: 52px;
+  padding-block: 4px;
 
   display: flex;
   align-items: center;
 
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: hidden;
 
   border-top:
     1px solid
@@ -39,6 +39,10 @@
 
 .tickerViewport {
   width: 100%;
+  min-height: 44px;
+
+  display: flex;
+  align-items: center;
 
   overflow: hidden;
 
@@ -63,6 +67,7 @@
 
 .tickerTrack {
   width: max-content;
+  min-height: 44px;
 
   display: flex;
   align-items: center;
@@ -84,6 +89,8 @@
   display: flex;
   align-items: center;
 
+  min-height: 44px;
+
   flex-shrink: 0;
 }
 
@@ -104,7 +111,7 @@
 
   font-size: 12px;
   font-weight: 900;
-  line-height: 1.35;
+  line-height: 1.2;
   letter-spacing: 0.06em;
 
   text-shadow:
@@ -114,8 +121,8 @@
 
 .promotionItem > span:first-of-type {
   display: inline-block;
-  padding-block: 3px;
-  line-height: 1.35;
+  padding-block: 5px;
+  line-height: 1.2;
 }
 
 .promotionItem svg {
@@ -174,24 +181,26 @@
 @media (max-width: 540px) {
   .ticker {
     top: 76px;
-    min-height: 44px;
-    height: 44px;
+    min-height: 50px;
+    height: 50px;
+    padding-block: 5px;
   }
 
   .promotionItem {
+    min-height: 40px;
     gap: 7px;
 
     padding-inline: 14px;
 
     font-size: 10px;
-    line-height: 1.4;
+    line-height: 1.2;
     letter-spacing: 0.04em;
   }
 
   .promotionItem > span:first-of-type {
   display: inline-block;
-  padding-block: 3px;
-  line-height: 1.35;
+  padding-block: 5px;
+  line-height: 1.2;
 }
 
 .promotionItem svg {

@@ -527,3 +527,24 @@
     margin-bottom: 18px;
   }
 }
+.qr {
+  border-color: rgba(242, 189, 69, 0.42);
+}
+
+.map {
+  border-color: rgba(53, 190, 128, 0.34);
+}
+
+.brand {
+  border-color: rgba(71, 143, 255, 0.34);
+}
+
+.primaryButton {
+  text-decoration: none;
+}
+
+@media (max-width: 540px) {
+  .campaignCard {
+    min-height: auto;
+  }
+}
