@@ -129,14 +129,20 @@ export default function Page() {
     );
 
   async function persist(
-    nextAnnouncements:
-      Announcement[]
-  ) {
-    setAnnouncements(
-      nextAnnouncements
-    );
-
-    await saveAnnouncements(nextAnnouncements);
+    nextAnnouncements: Announcement[]
+  ): Promise<boolean> {
+    try {
+      const savedAnnouncements = await saveAnnouncements(nextAnnouncements);
+      setAnnouncements(savedAnnouncements);
+      return true;
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No fue posible guardar los anuncios."
+      );
+      return false;
+    }
   }
 
   function resetForm() {
@@ -145,9 +151,8 @@ export default function Page() {
     setEditingId(null);
   }
 
-  function handleSubmit(
-    event:
-      FormEvent<HTMLFormElement>
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
@@ -176,13 +181,11 @@ export default function Page() {
               : announcement
         );
 
-      void persist(
-        nextAnnouncements
-      );
+      const saved = await persist(nextAnnouncements);
 
-      setMessage(
-        "Anuncio actualizado."
-      );
+      if (!saved) return;
+
+      setMessage("Anuncio actualizado.");
     } else {
       const newAnnouncement:
         Announcement = {
@@ -195,14 +198,14 @@ export default function Page() {
           1,
       };
 
-      void persist([
+      const saved = await persist([
         ...announcements,
         newAnnouncement,
       ]);
 
-      setMessage(
-        "Anuncio agregado."
-      );
+      if (!saved) return;
+
+      setMessage("Anuncio agregado.");
     }
 
     resetForm();
@@ -231,10 +234,10 @@ export default function Page() {
     });
   }
 
-  function toggleAnnouncement(
+  async function toggleAnnouncement(
     id: string
   ) {
-    void persist(
+    await persist(
       announcements.map(
         (announcement) =>
           announcement.id === id
@@ -248,7 +251,7 @@ export default function Page() {
     );
   }
 
-  function deleteAnnouncement(
+  async function deleteAnnouncement(
     id: string
   ) {
     const nextAnnouncements =
@@ -267,9 +270,7 @@ export default function Page() {
           })
         );
 
-    void persist(
-      nextAnnouncements
-    );
+    await persist(nextAnnouncements);
 
     if (
       editingId === id
@@ -278,7 +279,7 @@ export default function Page() {
     }
   }
 
-  function moveAnnouncement(
+  async function moveAnnouncement(
     index: number,
     direction:
       | "up"
@@ -309,7 +310,7 @@ export default function Page() {
       reordered[index],
     ];
 
-    void persist(
+    await persist(
       reordered.map(
         (
           announcement,
@@ -323,16 +324,13 @@ export default function Page() {
     );
   }
 
-  function restoreDefaults() {
-    void persist(
-      DEFAULT_ANNOUNCEMENTS
-    );
+  async function restoreDefaults() {
+    const saved = await persist(DEFAULT_ANNOUNCEMENTS);
+
+    if (!saved) return;
 
     resetForm();
-
-    setMessage(
-      "Anuncios predeterminados restaurados."
-    );
+    setMessage("Anuncios predeterminados restaurados.");
   }
 
   return (

@@ -267,3 +267,40 @@
     top: 39%;
   }
 }
+
+.rewardsButton {
+  width: min(360px, 100%);
+  min-height: 54px;
+  margin-top: 24px;
+  border: 1px solid rgba(242, 189, 69, 0.88);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f3d77a, #d7a92f);
+  color: #100d07;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 16px 34px rgba(242, 189, 69, 0.2);
+}
+
+.rewardsButton:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+@media (max-width: 700px) {
+  .prize {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-top: max(84px, env(safe-area-inset-top));
+    padding-bottom: max(36px, env(safe-area-inset-bottom));
+  }
+
+  .prize h2 {
+    margin-bottom: 18px;
+  }
+
+  .rewardsButton {
+    flex: 0 0 auto;
+    margin-top: 22px;
+  }
+}

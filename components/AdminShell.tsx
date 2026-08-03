@@ -118,9 +118,14 @@ const userItems:
       Trophy,
     ],
     [
+      "/usuario/recompensas",
+      "Mis recompensas",
+      Gift,
+    ],
+    [
       "/usuario/promociones",
       "Promociones",
-      Gift,
+      Percent,
     ],
   ];
 

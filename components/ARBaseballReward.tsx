@@ -9,17 +9,29 @@ import styles from "./ARBaseballReward.module.css";
 interface Props {
   reward: string;
   code: string;
-  onComplete: () => void;
+  onComplete: () => void | Promise<void>;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+function distance(a: Point, b: Point) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 export default function ARBaseballReward({ reward, code, onComplete }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const startY = useRef<number | null>(null);
+  const pointersRef = useRef(new Map<number, Point>());
+  const pinchStartDistanceRef = useRef<number | null>(null);
+  const pinchStartProgressRef = useRef(0);
   const progressRef = useRef(0);
 
   const [progress, setProgress] = useState(0);
   const [won, setWon] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [modelFailed, setModelFailed] = useState(false);
 
@@ -134,18 +146,57 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
     };
   }, []);
 
-  function move(pointerY: number) {
-    if (startY.current === null) return;
+  function beginPinch() {
+    const points = Array.from(pointersRef.current.values());
 
-    const delta = Math.max(0, startY.current - pointerY);
-    const nextProgress = Math.min(1, delta / 240);
+    if (points.length !== 2) {
+      pinchStartDistanceRef.current = null;
+      return;
+    }
+
+    pinchStartDistanceRef.current = distance(points[0], points[1]);
+    pinchStartProgressRef.current = progressRef.current;
+  }
+
+  function updatePinch() {
+    if (won) return;
+
+    const points = Array.from(pointersRef.current.values());
+    const startDistance = pinchStartDistanceRef.current;
+
+    if (points.length !== 2 || !startDistance || startDistance <= 0) return;
+
+    const currentDistance = distance(points[0], points[1]);
+    const expansion = Math.max(0, currentDistance - startDistance);
+    const nextProgress = Math.min(
+      1,
+      pinchStartProgressRef.current + expansion / Math.max(220, startDistance * 1.45)
+    );
 
     progressRef.current = nextProgress;
     setProgress(nextProgress);
 
-    if (nextProgress >= 1 && !won) {
+    if (nextProgress >= 1) {
       setWon(true);
-      window.setTimeout(onComplete, 2200);
+    }
+  }
+
+  function removePointer(pointerId: number) {
+    pointersRef.current.delete(pointerId);
+    beginPinch();
+  }
+
+  async function goToRewards() {
+    if (saving) return;
+
+    setSaving(true);
+
+    try {
+      await onComplete();
+      window.location.assign("/usuario/recompensas");
+    } catch (error) {
+      console.error("No fue posible guardar la recompensa:", error);
+      setSaving(false);
     }
   }
 
@@ -154,13 +205,29 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
       ref={wrapRef}
       className={styles.wrap}
       onPointerDown={(event) => {
-        startY.current = event.clientY;
+        if (event.pointerType === "mouse") return;
+
+        pointersRef.current.set(event.pointerId, {
+          x: event.clientX,
+          y: event.clientY,
+        });
+
         event.currentTarget.setPointerCapture(event.pointerId);
+        beginPinch();
       }}
-      onPointerMove={(event) => move(event.clientY)}
-      onPointerUp={() => {
-        startY.current = null;
+      onPointerMove={(event) => {
+        if (!pointersRef.current.has(event.pointerId)) return;
+
+        pointersRef.current.set(event.pointerId, {
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        updatePinch();
       }}
+      onPointerUp={(event) => removePointer(event.pointerId)}
+      onPointerCancel={(event) => removePointer(event.pointerId)}
+      onLostPointerCapture={(event) => removePointer(event.pointerId)}
     >
       <div className={styles.aura} />
       <div className={styles.shadow} />
@@ -179,7 +246,7 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
       {!won ? (
         <div className={styles.prompt}>
           <strong>Hazla crecer</strong>
-          <span>Desliza hacia arriba hasta llenar la pantalla</span>
+          <span>Usa dos dedos y sepáralos para ampliar la pelota</span>
           <div>
             <i style={{ width: `${progress * 100}%` }} />
           </div>
@@ -204,6 +271,14 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
             <h2>{reward}</h2>
             <small>Código</small>
             <strong>{code}</strong>
+            <button
+              type="button"
+              className={styles.rewardsButton}
+              onClick={() => void goToRewards()}
+              disabled={saving}
+            >
+              {saving ? "Guardando recompensa..." : "Ir a mis recompensas"}
+            </button>
           </div>
         </>
       )}

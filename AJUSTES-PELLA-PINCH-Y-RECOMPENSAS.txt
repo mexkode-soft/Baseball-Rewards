@@ -1,0 +1,18 @@
+HOME RUN REWARDS - AJUSTE DE PELOTA AR Y MIS RECOMPENSAS
+
+Cambios incluidos:
+- La pelota solamente aumenta mediante gesto de dos dedos hacia afuera.
+- Un dedo ya no modifica el tamaño.
+- Se elimina el comportamiento de deslizar verticalmente.
+- Al desbloquear el premio aparece un botón visible: Ir a mis recompensas.
+- El botón espera a que la recompensa se guarde antes de navegar.
+- Nueva sección de usuario: /usuario/recompensas.
+- Nueva opción Mis recompensas en el menú lateral del usuario.
+- La pantalla muestra puntos, premios y todas las recompensas QR, mapa y marca.
+- El resultado final de mapa enlaza a la nueva sección.
+
+Antes de desplegar:
+1. Conserva tu .env.local.
+2. Ejecuta npm install.
+3. Ejecuta npm run build.
+4. Sube los cambios y genera un deployment nuevo en Vercel.

@@ -999,7 +999,7 @@ export default function MapPlayPage() {
             className={
               styles.resultPrimary
             }
-            href="/usuario/cazar-recompensas/capturas"
+            href="/usuario/recompensas"
           >
             Ver mis
             recompensas

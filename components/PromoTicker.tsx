@@ -20,6 +20,8 @@ import {
   readAnnouncements,
 } from "@/lib/announcements";
 
+import { supabase } from "@/lib/supabase";
+
 import styles from "./PromoTicker.module.css";
 
 const iconMap = {
@@ -93,12 +95,39 @@ export default function PromoTicker() {
 
   useEffect(() => {
     async function refreshAnnouncements() {
-      try { setAnnouncements(await readAnnouncements()); } catch { setAnnouncements([]); }
+      try {
+        setAnnouncements(await readAnnouncements());
+      } catch (error) {
+        console.error("No fue posible actualizar la cinta:", error);
+        setAnnouncements([]);
+      }
     }
+
     void refreshAnnouncements();
-    const refresh = () => { void refreshAnnouncements(); };
+
+    const refresh = () => {
+      void refreshAnnouncements();
+    };
+
     window.addEventListener(ANNOUNCEMENTS_UPDATED_EVENT, refresh);
-    return () => window.removeEventListener(ANNOUNCEMENTS_UPDATED_EVENT, refresh);
+
+    const channel = supabase
+      .channel("public-announcements-ticker")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "announcements",
+        },
+        refresh
+      )
+      .subscribe();
+
+    return () => {
+      window.removeEventListener(ANNOUNCEMENTS_UPDATED_EVENT, refresh);
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   const activeAnnouncements =

@@ -174,3 +174,82 @@
  .navLinks{position:fixed!important;z-index:30003!important;inset:76px 0 0!important;border-radius:0!important;border-inline:0!important;padding:28px 20px!important;background:#090a0d!important;box-shadow:0 30px 70px rgba(0,0,0,.85)!important;overflow-y:auto}
  .navLinks.open{display:flex!important}
 }
+
+/* Portal móvil: queda fuera del stacking context del hero/video. */
+.mobileMenuLayer {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .publicHeader {
+    z-index: 2147483646 !important;
+  }
+
+  .navLinks {
+    display: none !important;
+  }
+
+  .mobileMenuLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: block;
+    isolation: isolate;
+  }
+
+  .mobileMenuBackdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.96);
+    backdrop-filter: blur(8px);
+  }
+
+  .mobileMenuPanel {
+    position: absolute;
+    top: 76px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 30px 22px max(30px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    background: #050608;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .mobileMenuPanel a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 58px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: #0d0e12;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .mobileMenuPanel a:hover,
+  .mobileMenuPanel a:focus-visible {
+    border-color: rgba(242, 189, 69, 0.65);
+    background: rgba(242, 189, 69, 0.08);
+    color: var(--gold);
+  }
+
+  .mobileMenuPanel .mobileLoginButton {
+    border-color: var(--gold);
+    background: rgba(242, 189, 69, 0.08);
+    color: var(--gold);
+  }
+}
