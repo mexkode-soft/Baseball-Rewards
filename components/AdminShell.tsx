@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import {
   CalendarRange,
+  ClipboardCheck,
   ChartNoAxesColumnIncreasing,
   CircleHelp,
   ListChecks,
@@ -65,9 +66,15 @@ const adminItems:
       ListChecks,
     ],
     [
+      "/admin/campanas-patrocinadores",
+      "Aprobar campañas",
+      ClipboardCheck,
+    ],
+    [
       "/admin/temporadas",
       "Temporadas",
       CalendarRange,
+  ClipboardCheck,
     ],
     [
       "/admin/preguntas",
