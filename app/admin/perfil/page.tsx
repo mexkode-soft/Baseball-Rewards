@@ -21,6 +21,7 @@ import {
 
 import { getCurrentProfile, supabase } from "@/lib/supabase";
 import { readRanking } from "@/lib/ranking";
+import { prepareProfileAvatar } from "@/lib/image";
 
 import styles from "./Perfil.module.css";
 
@@ -59,6 +60,8 @@ export default function Perfil() {
     useState(false);
 
   const [rankingPosition, setRankingPosition] = useState<number | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoMessage, setPhotoMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -92,28 +95,34 @@ export default function Perfil() {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) return;
 
-    const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-    const path = `${userData.user.id}/avatar.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
-      upsert: true,
-      contentType: file.type,
-      cacheControl: "3600",
-    });
-    if (uploadError) {
-      console.error(uploadError);
-      return;
-    }
+    setPhotoLoading(true);
+    setPhotoMessage("");
 
-    const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
-    const value = `${publicData.publicUrl}?v=${Date.now()}`;
-    const { error: profileError } = await supabase.from("profiles").update({ avatar_url: value }).eq("id", userData.user.id);
-    if (profileError) {
-      console.error(profileError);
-      return;
-    }
+    try {
+      const optimized = await prepareProfileAvatar(file);
+      const path = `${userData.user.id}/avatar.webp`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, optimized, {
+        upsert: true,
+        contentType: "image/webp",
+        cacheControl: "31536000",
+      });
+      if (uploadError) throw uploadError;
 
-    setPhoto(value);
-    window.dispatchEvent(new Event("hrr-profile-updated"));
+      const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const value = `${publicData.publicUrl}?v=${Date.now()}`;
+      const { error: profileError } = await supabase.from("profiles").update({ avatar_url: value, updated_at: new Date().toISOString() }).eq("id", userData.user.id);
+      if (profileError) throw profileError;
+
+      setPhoto(value);
+      setPhotoMessage(`Fotografía optimizada (${Math.max(1, Math.round(optimized.size / 1024))} KB).`);
+      window.dispatchEvent(new Event("hrr-profile-updated"));
+    } catch (error) {
+      console.error(error);
+      setPhotoMessage(error instanceof Error ? error.message : "No fue posible subir la fotografía.");
+    } finally {
+      setPhotoLoading(false);
+      event.target.value = "";
+    }
   }
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
@@ -194,15 +203,17 @@ export default function Perfil() {
               type="file"
               accept="image/png,image/jpeg,image/webp"
               onChange={uploadPhoto}
+              disabled={photoLoading}
             />
           </label>
 
           <p
             className={styles.imageHelp}
           >
-            Usa una imagen JPG, PNG
-            o WEBP.
+            La imagen se recorta al centro y se comprime automáticamente.
           </p>
+
+          {photoMessage && <p className={styles.photoMessage} role="status">{photoMessage}</p>}
 
           {isAdmin ? (
             <div

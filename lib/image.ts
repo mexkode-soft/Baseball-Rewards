@@ -25,3 +25,39 @@ export async function compressPublicationImage(
     }
   );
 }
+export async function prepareProfileAvatar(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Selecciona una imagen válida.");
+  }
+
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const side = Math.min(bitmap.width, bitmap.height);
+  const sourceX = Math.max(0, (bitmap.width - side) / 2);
+  const sourceY = Math.max(0, (bitmap.height - side) / 2);
+  const size = 320;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext("2d", { alpha: false });
+  if (!context) {
+    bitmap.close();
+    throw new Error("No fue posible procesar la fotografía.");
+  }
+
+  context.fillStyle = "#111111";
+  context.fillRect(0, 0, size, size);
+  context.drawImage(bitmap, sourceX, sourceY, side, side, 0, 0, size, size);
+  bitmap.close();
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) => result ? resolve(result) : reject(new Error("No fue posible comprimir la fotografía.")),
+      "image/webp",
+      0.7
+    );
+  });
+
+  const baseName = file.name.replace(/\.[^/.]+$/, "") || "avatar";
+  return new File([blob], `${baseName}.webp`, { type: "image/webp", lastModified: Date.now() });
+}

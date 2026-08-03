@@ -1,50 +1,43 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Gift,
-  QrCode,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
-
+import { ArrowLeft, Gift, QrCode, Sparkles, Trophy } from "lucide-react";
 import Link from "next/link";
-
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
+import { useEffect, useState } from "react";
 import styles from "../cazar-recompensas/CazarRecompensas.module.css";
+import { readMyRewardsDashboard, type RewardDashboard } from "@/lib/rewards";
 
-import {
-  readDemoPoints,
-  readQrCaptures,
-  type QrCapture,
-} from "@/lib/qrCampaigns";
-import { readDynamicCaptures, type DynamicCapture } from "@/lib/campaignDynamics";
+const EMPTY_DASHBOARD: RewardDashboard = { points: 0, captures: 0, prizes: 0, items: [] };
 
 function formatCaptureDate(value: string) {
   return new Intl.DateTimeFormat("es-MX", {
     day: "2-digit",
     month: "short",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
 }
 
 export default function RecompensasPage() {
-  const [captures, setCaptures] = useState<QrCapture[]>([]);
-  const [points, setPoints] = useState(0);
-  const [dynamicCaptures, setDynamicCaptures] = useState<DynamicCapture[]>([]);
+  const [dashboard, setDashboard] = useState<RewardDashboard>(EMPTY_DASHBOARD);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    let active = true;
+
     const update = async () => {
-      const [qr, currentPoints, dynamic] = await Promise.all([readQrCaptures(), readDemoPoints(), readDynamicCaptures()]);
-      setCaptures(qr);
-      setPoints(currentPoints);
-      setDynamicCaptures(dynamic);
+      try {
+        const current = await readMyRewardsDashboard();
+        if (!active) return;
+        setDashboard(current);
+        setErrorMessage("");
+      } catch (error) {
+        if (!active) return;
+        setErrorMessage(error instanceof Error ? error.message : "No fue posible cargar tus recompensas.");
+      } finally {
+        if (active) setLoading(false);
+      }
     };
 
     void update();
@@ -53,39 +46,29 @@ export default function RecompensasPage() {
     window.addEventListener("hrr-dynamic-captures-updated", update);
 
     return () => {
+      active = false;
       window.removeEventListener("hrr-qr-captures-updated", update);
       window.removeEventListener("hrr-points-updated", update);
       window.removeEventListener("hrr-dynamic-captures-updated", update);
     };
   }, []);
 
-  const winners = useMemo(
-    () => captures.filter((capture) => capture.isWinner),
-    [captures]
-  );
-
-
   return (
     <main className={`${styles.mobileStage} ${styles.capturesStage}`}>
       <div className={styles.topBar}>
-        <Link
-          href="/usuario"
-          className={styles.backButton}
-          aria-label="Regresar"
-        >
-          <ArrowLeft />
-        </Link>
-
+        <Link href="/usuario" className={styles.backButton} aria-label="Regresar"><ArrowLeft /></Link>
         <span>Mis recompensas</span>
       </div>
 
-      <section className={styles.capturesSummary}>
-        <div><Trophy /><span>Puntos</span><strong>{points}</strong></div>
-        <div><Gift /><span>Premios</span><strong>{winners.length + dynamicCaptures.length}</strong></div>
-        <div><QrCode /><span>Capturas</span><strong>{captures.length + dynamicCaptures.length}</strong></div>
+      <section className={styles.capturesSummary} aria-busy={loading}>
+        <div><Trophy /><span>Puntos</span><strong>{dashboard.points}</strong></div>
+        <div><Gift /><span>Premios</span><strong>{dashboard.prizes}</strong></div>
+        <div><QrCode /><span>Capturas</span><strong>{dashboard.captures}</strong></div>
       </section>
 
-      {captures.length === 0 && dynamicCaptures.length === 0 ? (
+      {errorMessage ? (
+        <section className={styles.emptyCard}><Sparkles /><h2>No pudimos cargar tus recompensas</h2><p>{errorMessage}</p></section>
+      ) : !loading && dashboard.items.length === 0 ? (
         <section className={styles.emptyCard}>
           <Sparkles />
           <h2>Todavía no tienes recompensas</h2>
@@ -94,40 +77,22 @@ export default function RecompensasPage() {
         </section>
       ) : (
         <section className={styles.captureList}>
-          {dynamicCaptures.map((capture) => (
-            <article key={capture.id} className={`${styles.captureCard} ${styles.captureWinner}`}>
+          {dashboard.items.map((item) => (
+            <article key={item.id} className={`${styles.captureCard} ${styles.captureWinner}`}>
               <div className={styles.captureIcon}><Gift /></div>
-              <div className={styles.captureContent}><span>{capture.campaignName}</span><strong>{capture.reward}</strong><small>{capture.rewardCode} · {formatCaptureDate(capture.capturedAt)}</small></div>
-              <div className={styles.capturePoints}>+{capture.points}</div>
-            </article>
-          ))}
-          {captures.map((capture) => (
-            <article
-              key={capture.id}
-              className={`${styles.captureCard} ${
-                capture.isWinner ? styles.captureWinner : ""
-              }`}
-            >
-              <div className={styles.captureIcon}>
-                {capture.isWinner ? <Gift /> : <QrCode />}
-              </div>
-
               <div className={styles.captureContent}>
-                <span>{capture.campaignName}</span>
-                <strong>{capture.isWinner ? capture.reward : "QR capturado"}</strong>
-                <small>{capture.codeLabel} · {formatCaptureDate(capture.capturedAt)}</small>
+                <span>{item.campaignName}</span>
+                <strong>{item.rewardName}</strong>
+                <small>{item.rewardCode ? `${item.rewardCode} · ` : ""}{formatCaptureDate(item.claimedAt)}</small>
               </div>
-
-              <div className={styles.capturePoints}>+{capture.points}</div>
+              <div className={styles.capturePoints}>+{item.points}</div>
             </article>
           ))}
         </section>
       )}
 
       <div className={styles.captureActions}>
-        <Link href="/usuario/cazar-recompensas" className={styles.capturePrimary}>
-          Explorar dinámicas
-        </Link>
+        <Link href="/usuario/cazar-recompensas" className={styles.capturePrimary}>Explorar dinámicas</Link>
       </div>
     </main>
   );

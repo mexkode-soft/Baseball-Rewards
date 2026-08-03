@@ -1,11 +1,10 @@
-import type {
-  Metadata,
-  Viewport,
-} from "next";
+import type { Metadata, Viewport } from "next";
+import PwaRegister from "@/components/PwaRegister";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
+  manifest: "/manifest.webmanifest",
   title: "Home Run Rewards",
 
   description:
@@ -28,6 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  themeColor: "#08090c",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -43,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
+        <PwaRegister />
         {children}
       </body>
     </html>

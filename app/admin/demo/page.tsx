@@ -102,7 +102,7 @@ export default function DemoPage() {
 
   async function clearDemoProgress() {
     const { error } = await supabase.rpc("reset_demo_progress");
-    setSavedMessage(error ? error.message : "Premios, puntos, tickets e intentos de la demo fueron reiniciados.");
+    setSavedMessage(error ? error.message : "Los puntos, premios, tickets e intentos de tu usuario demo fueron eliminados.");
   }
 
   return (
@@ -431,7 +431,7 @@ export default function DemoPage() {
           >
             <Trash2 />
 
-            Reiniciar progreso
+            Limpiar datos de demo
           </button>
         </div>
       </section>

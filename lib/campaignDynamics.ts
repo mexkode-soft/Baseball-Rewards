@@ -49,6 +49,8 @@ export interface BrandCampaign extends BaseCampaign {
 }
 export type DynamicCampaign = MapCampaign | BrandCampaign;
 export const DYNAMIC_CAMPAIGNS_EVENT = "hrr-dynamic-campaigns-updated";
+const ACTIVE_DYNAMIC_CACHE_TTL = 30_000;
+const activeDynamicCache = new Map<string, { expiresAt: number; value: DynamicCampaign[] }>();
 
 export interface DynamicCapture {
   id: string;
@@ -76,9 +78,9 @@ async function mapCampaignRows(rows: Array<Record<string, unknown>>): Promise<Dy
   if (!rows.length) return [];
   const ids = rows.map((row) => String(row.id));
   const [{ data: locations, error: locationsError }, { data: links, error: linksError }, { data: rules, error: rulesError }] = await Promise.all([
-    supabase.from("campaign_locations").select("*").in("campaign_id", ids).order("created_at"),
+    supabase.from("campaign_locations").select("id,campaign_id,name,address,latitude,longitude,radius_meters,reward_name,reward_code,points,reward_units").in("campaign_id", ids).order("created_at"),
     supabase.from("campaign_questions").select("campaign_id,question_id,sort_order").in("campaign_id", ids).order("sort_order"),
-    supabase.from("brand_rules").select("*").in("campaign_id", ids),
+    supabase.from("brand_rules").select("campaign_id,expected_brand,minimum_total,required_products,confidence_threshold").in("campaign_id", ids),
   ]);
   if (locationsError) throw locationsError;
   if (linksError) throw linksError;
@@ -148,12 +150,23 @@ export async function readDynamicCampaigns(type?: DynamicCampaignType): Promise<
 }
 
 export async function readActiveDynamicCampaigns(type?: DynamicCampaignType): Promise<DynamicCampaign[]> {
+  const cacheKey = type ?? "all";
+  const cached = activeDynamicCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
   const now = new Date().toISOString();
-  let query = supabase.from("campaigns").select("*").eq("status", "active").in("type", type ? [type] : ["map", "brand"])
-    .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order("created_at", { ascending: false });
+  const query = supabase.from("campaigns")
+    .select("id,type,name,sponsor,description,status,starts_at,ends_at,points_on_success,passing_percentage,created_at,metadata")
+    .eq("status", "active")
+    .in("type", type ? [type] : ["map", "brand"])
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .order("created_at", { ascending: false });
   const { data, error } = await query;
   if (error) throw error;
-  return mapCampaignRows((data ?? []) as Array<Record<string, unknown>>);
+  const value = await mapCampaignRows((data ?? []) as Array<Record<string, unknown>>);
+  activeDynamicCache.set(cacheKey, { expiresAt: Date.now() + ACTIVE_DYNAMIC_CACHE_TTL, value });
+  return value;
 }
 
 export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<string> {
@@ -223,6 +236,7 @@ export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<st
     });
     if (ruleError) throw ruleError;
   }
+  activeDynamicCache.clear();
   window.dispatchEvent(new CustomEvent(DYNAMIC_CAMPAIGNS_EVENT));
   return id;
 }

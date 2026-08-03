@@ -1,0 +1,14 @@
+{
+  "name": "Home Run Rewards",
+  "short_name": "HR Rewards",
+  "description": "Participa en campañas, captura recompensas y suma puntos.",
+  "start_url": "/usuario",
+  "display": "standalone",
+  "background_color": "#08090c",
+  "theme_color": "#08090c",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

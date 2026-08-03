@@ -52,6 +52,9 @@ export interface QrCapture {
 }
 
 export const QR_CAMPAIGNS_EVENT = "hrr-qr-campaigns-updated";
+const ACTIVE_QR_CACHE_TTL = 30_000;
+let activeQrCache: { expiresAt: number; value: QrCampaign[] } | null = null;
+
 
 function randomPart(length = 16) {
   const bytes = new Uint8Array(length);
@@ -119,6 +122,7 @@ export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
   })));
   const { error: codeError } = await supabase.from("qr_codes").insert(codeRows);
   if (codeError) throw codeError;
+  activeQrCache = null;
   window.dispatchEvent(new CustomEvent(QR_CAMPAIGNS_EVENT));
   return id;
 }
@@ -147,11 +151,16 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
 }
 
 export async function readActiveQrCampaigns(): Promise<QrCampaign[]> {
+  if (activeQrCache && activeQrCache.expiresAt > Date.now()) return activeQrCache.value;
   const now = new Date().toISOString();
-  const { data, error } = await supabase.from("active_qr_campaign_summary").select("*").eq("status", "active")
-    .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("active_qr_campaign_summary")
+    .select("id,name,sponsor,description,cover_url,status,starts_at,ends_at,participation_limit,points_on_failure,points_on_success,created_at,code_count")
+    .eq("status", "active")
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((campaign) => ({
+  const value: QrCampaign[] = (data ?? []).map((campaign) => ({
     id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""), coverUrl: String(campaign.cover_url ?? ""),
     startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: "active",
     attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
@@ -159,6 +168,8 @@ export async function readActiveQrCampaigns(): Promise<QrCampaign[]> {
       id: `summary-${index}`, token: "", payload: "", label: `QR-${index + 1}`, isWinner: false, reward: "", points: 0, scannedBy: [], totalScans: 0,
     })),
   }));
+  activeQrCache = { expiresAt: Date.now() + ACTIVE_QR_CACHE_TTL, value };
+  return value;
 }
 
 export async function validateQrPayload(payload: string, expectedCampaignId?: string): Promise<QrScanResult> {

@@ -1,0 +1,35 @@
+AJUSTES DE CIERRE
+
+1. Mis recompensas
+- Se agregó la función RPC get_my_rewards_dashboard.
+- Puntos, capturas, premios y listado usan una misma consulta.
+- Los puntos se leen desde profiles.total_points, igual que el acumulado general.
+- Los premios se leen desde reward_claims.
+- Las capturas cuentan participaciones completadas.
+
+2. Fotografía de perfil
+- Recorte cuadrado centrado a 320x320.
+- Conversión a WEBP con calidad 0.70.
+- Archivo único avatar.webp con cache prolongado.
+- object-fit: cover para llenar el círculo sin huecos.
+
+3. Demo
+- Botón "Limpiar datos de demo".
+- La función elimina únicamente el progreso del usuario autenticado, no el de todos los usuarios.
+
+4. Rendimiento
+- Caché en memoria de 30 segundos para campañas activas.
+- Consultas con selección específica de columnas.
+- Índices adicionales para campañas, participaciones, QR y recompensas.
+
+5. PWA
+- manifest.webmanifest.
+- Service worker para recursos estáticos.
+- Registro del service worker solo en producción.
+- Iconos 192x192 y 512x512.
+
+MIGRACIÓN NUEVA OBLIGATORIA
+supabase/migrations/20260802233000_recovery_rewards_performance_pwa.sql
+
+Aplicar en Supabase SQL Editor o con:
+npx supabase db push
