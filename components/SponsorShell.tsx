@@ -5,6 +5,7 @@ import { BarChart3, BriefcaseBusiness, LogOut, Menu, PlusCircle, UserRound, X } 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import styles from "./SponsorShell.module.css";
+import NotificationBell from "@/components/NotificationBell";
 
 const items = [
   ["/patrocinador", "Dashboard", BarChart3],
@@ -23,6 +24,6 @@ export default function SponsorShell({children}:{children:React.ReactNode}){
       <button className={styles.logout} onClick={logout}><LogOut/>Cerrar sesión</button>
     </aside>
     {open?<button className={styles.overlay} onClick={()=>setOpen(false)} aria-label="Cerrar menú"/>:null}
-    <section className={styles.content}><header><button onClick={()=>setOpen(true)} aria-label="Abrir menú"><Menu/></button><div><span>Home Run Rewards</span><strong>Centro de resultados</strong></div></header><main>{children}</main></section>
+    <section className={styles.content}><header><button onClick={()=>setOpen(true)} aria-label="Abrir menú"><Menu/></button><div><span>Home Run Rewards</span><strong>Centro de resultados</strong></div><NotificationBell /></header><main>{children}</main></section>
   </div>
 }

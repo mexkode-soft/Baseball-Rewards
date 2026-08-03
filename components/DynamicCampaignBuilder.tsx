@@ -19,7 +19,12 @@ import {
   type DynamicCampaignStatus,
   type MapCampaign,
 } from "@/lib/campaignDynamics";
-import MapLocationPicker from "./MapLocationPicker";
+import dynamic from "next/dynamic";
+
+const MapLocationPicker = dynamic(() => import("./MapLocationPicker"), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: 320, display: "grid", placeItems: "center", border: "1px solid #2d3138", borderRadius: 16 }}>Cargando mapa…</div>,
+});
 import styles from "./DynamicCampaignBuilder.module.css";
 
 function newLocation(index: number): CampaignLocation {

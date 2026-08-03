@@ -35,7 +35,6 @@ export default function MapLocationPicker({
   const markerRef = useRef<any>(null);
   const abortRef = useRef<AbortController | null>(null);
   const selectedResultRef = useRef(false);
-  const locationRequestedRef = useRef(false);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -141,17 +140,6 @@ export default function MapLocationPicker({
 
       window.setTimeout(() => map.invalidateSize(), 100);
 
-      const usingDefaultCoordinates =
-        Math.abs(latitude - DEFAULT_LATITUDE) < 0.00001 &&
-        Math.abs(longitude - DEFAULT_LONGITUDE) < 0.00001;
-
-      if (
-        usingDefaultCoordinates &&
-        !locationRequestedRef.current
-      ) {
-        locationRequestedRef.current = true;
-        useCurrentLocation();
-      }
     }
 
     void initialize();

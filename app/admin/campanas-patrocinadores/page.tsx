@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock3, RotateCcw, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import styles from "./SponsorCampaignReview.module.css";
@@ -45,6 +46,8 @@ const statusLabels: Record<ApprovalStatus, string> = {
 };
 
 export default function SponsorCampaignReviewPage() {
+  const searchParams = useSearchParams();
+  const requestedCampaign = searchParams.get("campaign") ?? "";
   const [rows, setRows] = useState<SponsorCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ApprovalStatus | "all">("in_review");
@@ -83,8 +86,8 @@ export default function SponsorCampaignReviewPage() {
   }, [load]);
 
   const visibleRows = useMemo(
-    () => rows.filter((row) => filter === "all" || row.approval_status === filter),
-    [filter, rows]
+    () => rows.filter((row) => requestedCampaign ? row.campaign_id === requestedCampaign : (filter === "all" || row.approval_status === filter)),
+    [filter, requestedCampaign, rows]
   );
 
   async function review(campaignId: string, decision: Decision) {
@@ -124,6 +127,8 @@ export default function SponsorCampaignReviewPage() {
         <h1>Aprobación de campañas</h1>
         <p>Revisa las propuestas enviadas por las marcas antes de publicarlas.</p>
       </header>
+
+      {requestedCampaign ? <p className={styles.message}>Mostrando la campaña seleccionada desde la notificación.</p> : null}
 
       <div className={styles.toolbar}>
         <label>

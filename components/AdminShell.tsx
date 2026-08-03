@@ -74,7 +74,6 @@ const adminItems:
       "/admin/temporadas",
       "Temporadas",
       CalendarRange,
-  ClipboardCheck,
     ],
     [
       "/admin/preguntas",
@@ -424,7 +423,7 @@ export default function AdminShell({
           styles.adminMain
         }
       >
-        {role === "usuario" ? <div className={styles.desktopNotification}><NotificationBell /></div> : null}
+        <div className={styles.desktopNotification}><NotificationBell /></div>
         <header
           className={
             styles.mobileHeader
@@ -458,7 +457,7 @@ export default function AdminShell({
           </div>
 
           <div className={styles.mobileHeaderActions}>
-            {role === "usuario" ? <NotificationBell /> : null}
+            <NotificationBell />
             <img
               src="/images/logo-home-run.png"
               alt="Home Run Rewards"
