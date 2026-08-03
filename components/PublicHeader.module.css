@@ -1,63 +1,49 @@
 .publicHeader {
   position: fixed;
-  z-index: 30;
+  z-index: 1000;
   top: 0;
   left: 0;
-
   width: 100%;
-
-  background: rgba(8, 8, 10, 0.78);
-
+  background: rgba(8, 8, 10, 0.94);
   border-bottom: 1px solid var(--line);
-
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .publicNav {
   width: min(1180px, calc(100% - 32px));
   height: 86px;
-
   margin-inline: auto;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 30px;
 }
 
-.publicBrand {
+.publicBrand,
+.mobileMenuBrand {
   display: flex;
   align-items: center;
-
   flex-shrink: 0;
 }
 
 .publicBrand img {
   display: block;
-
   width: 130px;
   height: 72px;
-
   object-fit: contain;
 }
 
 .navLinks {
   display: flex;
   align-items: center;
-
   gap: 28px;
-
   font-weight: 700;
 }
 
 .navLinks a {
   color: #fff;
-
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .navLinks a:hover {
@@ -66,7 +52,6 @@
 
 .navbarLoginButton {
   padding: 11px 20px;
-
   border: 1px solid var(--gold);
   border-radius: 999px;
 }
@@ -77,81 +62,138 @@
 
 .mobileMenuButton {
   display: none;
-
   align-items: center;
   justify-content: center;
-
-  width: 44px;
-  height: 44px;
-
+  width: 48px;
+  height: 48px;
   padding: 0;
-
-  border: 1px solid var(--line);
-  border-radius: 12px;
-
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: #0b0c0f;
   color: #fff;
 }
 
-.mobileMenuButton svg {
-  width: 24px;
-  height: 24px;
+.mobileMenuButton svg,
+.mobileMenuClose svg {
+  width: 26px;
+  height: 26px;
+}
+
+.mobileMenuLayer {
+  display: none;
 }
 
 @media (max-width: 900px) {
+  .publicHeader {
+    z-index: 1000;
+    background: #07080a;
+  }
+
   .mobileMenuButton {
     display: inline-flex;
   }
 
   .navLinks {
-    position: absolute;
-
-    top: 86px;
-    left: 16px;
-    right: 16px;
-
     display: none;
-    flex-direction: column;
-    align-items: stretch;
-
-    gap: 8px;
-
-    padding: 18px;
-
-    background: #111216;
-
-    border: 1px solid var(--line);
-    border-radius: 18px;
   }
 
-  .navLinks.open {
+  .mobileMenuLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
     display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    background: #050608;
+    color: #fff;
+    overflow: hidden;
+    isolation: isolate;
+    transform: translateZ(0);
   }
 
-  .navLinks a {
+  .mobileMenuHeader {
+    position: relative;
+    z-index: 2;
+    min-height: 96px;
+    padding: max(14px, env(safe-area-inset-top)) 22px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-shrink: 0;
+    background: #050608;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .mobileMenuBrand img {
+    display: block;
+    width: 132px;
+    height: 76px;
+    object-fit: contain;
+  }
+
+  .mobileMenuClose {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 18px;
+    background: #0d0e12;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .mobileMenuPanel {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    padding: 28px 22px max(32px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #050608;
+  }
+
+  .mobileMenuPanel a {
     display: flex;
     align-items: center;
     justify-content: center;
-
-    min-height: 46px;
-
-    padding: 10px 14px;
-
-    border-radius: 12px;
+    width: 100%;
+    min-height: 64px;
+    padding: 15px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    background: #0d0e12;
+    color: #fff;
+    font-size: clamp(18px, 5vw, 22px);
+    font-weight: 900;
+    text-align: center;
   }
 
-  .navLinks a:hover {
-    background: rgba(255, 255, 255, 0.05);
+  .mobileMenuPanel a:active,
+  .mobileMenuPanel a:focus-visible {
+    border-color: rgba(242, 189, 69, 0.75);
+    background: rgba(242, 189, 69, 0.1);
+    color: var(--gold);
   }
 
-  .navbarLoginButton {
-    border: 1px solid var(--gold);
+  .mobileMenuPanel .mobileLoginButton {
+    border-color: var(--gold);
+    background: rgba(242, 189, 69, 0.08);
+    color: var(--gold);
   }
 }
 
 @media (max-width: 540px) {
   .publicNav {
-    width: min(100% - 24px, 1180px);
+    width: calc(100% - 24px);
     height: 76px;
   }
 
@@ -160,96 +202,23 @@
     height: 64px;
   }
 
-  .navLinks {
-    top: 76px;
-    left: 12px;
-    right: 12px;
-  }
-}
-/* Menú móvil siempre visible sobre el hero y cualquier video */
-.publicHeader{z-index:30000!important;isolation:isolate}
-@media(max-width:900px){
- .publicNav{position:relative;z-index:30002}
- .mobileMenuButton{position:relative;z-index:30004;background:#0b0c0f!important}
- .navLinks{position:fixed!important;z-index:30003!important;inset:76px 0 0!important;border-radius:0!important;border-inline:0!important;padding:28px 20px!important;background:#090a0d!important;box-shadow:0 30px 70px rgba(0,0,0,.85)!important;overflow-y:auto}
- .navLinks.open{display:flex!important}
-}
-
-/* Portal móvil: queda fuera del stacking context del hero/video. */
-.mobileMenuLayer {
-  display: none;
-}
-
-@media (max-width: 900px) {
-  .publicHeader {
-    z-index: 2147483646 !important;
+  .mobileMenuHeader {
+    min-height: 88px;
+    padding-inline: 18px;
   }
 
-  .navLinks {
-    display: none !important;
+  .mobileMenuBrand img {
+    width: 118px;
+    height: 68px;
   }
 
-  .mobileMenuLayer {
-    position: fixed;
-    inset: 0;
-    z-index: 2147483647;
-    display: block;
-    isolation: isolate;
-  }
-
-  .mobileMenuBackdrop {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    border: 0;
-    background: rgba(0, 0, 0, 0.96);
-    backdrop-filter: blur(8px);
+  .mobileMenuClose {
+    width: 54px;
+    height: 54px;
   }
 
   .mobileMenuPanel {
-    position: absolute;
-    top: 76px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    padding: 30px 22px max(30px, env(safe-area-inset-bottom));
-    overflow-y: auto;
-    background: #050608;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .mobileMenuPanel a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 58px;
-    padding: 14px 18px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    background: #0d0e12;
-    color: #fff;
-    font-size: 17px;
-    font-weight: 800;
-    text-align: center;
-  }
-
-  .mobileMenuPanel a:hover,
-  .mobileMenuPanel a:focus-visible {
-    border-color: rgba(242, 189, 69, 0.65);
-    background: rgba(242, 189, 69, 0.08);
-    color: var(--gold);
-  }
-
-  .mobileMenuPanel .mobileLoginButton {
-    border-color: var(--gold);
-    background: rgba(242, 189, 69, 0.08);
-    color: var(--gold);
+    justify-content: flex-start;
+    padding-top: 34px;
   }
 }

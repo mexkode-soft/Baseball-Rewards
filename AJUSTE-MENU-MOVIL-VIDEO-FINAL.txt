@@ -1,0 +1,39 @@
+HOME RUN REWARDS - CORRECCIÓN FINAL MENÚ MÓVIL Y VIDEO
+
+Cambios incluidos:
+
+1. Menú móvil reconstruido como una capa de pantalla completa mediante portal.
+2. El menú tiene su propio encabezado, logo, botón de cierre y enlaces.
+3. Al abrir el menú se ocultan el video, la pantalla "Iniciar experiencia" y sus controles.
+4. El video se pausa al abrir el menú y continúa desde el mismo punto al cerrarlo.
+5. Se eliminó la reproducción repetida y los reintentos que podían trabar el video.
+6. El autoplay de escritorio solo se intenta una vez cuando el video está listo.
+7. En móvil el video solo inicia después de tocar "Iniciar experiencia".
+8. Se optimizó video1.mp4 de 19 MB/1080p a aproximadamente 6.4 MB/720p,
+   H.264 con fast-start, para reducir pausas y acelerar la carga en celular.
+9. El video no se reinicia al activar o desactivar el sonido.
+10. Al abrir el menú se bloquea el scroll del documento.
+
+Archivos principales modificados:
+- components/PublicHeader.tsx
+- components/PublicHeader.module.css
+- components/HeroExperience.tsx
+- components/HeroExperience.module.css
+- public/media/video1.mp4
+
+INSTALACIÓN
+
+1. Conserva tu archivo .env.local actual.
+2. Sustituye el proyecto por el contenido de este ZIP.
+3. Ejecuta:
+
+   npm install
+   rm -rf .next
+   npm run build
+   npm run dev
+
+4. Sube los cambios a GitHub y crea un deployment nuevo en Vercel sin caché.
+
+Nota de validación:
+No fue posible ejecutar npm install en el entorno de generación porque su
+registro interno no contiene jspdf. El cambio no agrega dependencias nuevas.
