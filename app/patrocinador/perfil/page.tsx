@@ -7,6 +7,7 @@ import { prepareProfileAvatar } from "@/lib/image";
 import styles from "../SponsorDashboard.module.css";
 
 type SponsorProfile = { id: string; full_name: string; email: string; avatar_url: string };
+type SponsorPlan = { organization: string; code: string; name: string; modalities: string };
 
 export default function SponsorProfile() {
   const [profile, setProfile] = useState<SponsorProfile | null>(null);
@@ -14,6 +15,7 @@ export default function SponsorProfile() {
   const [photo, setPhoto] = useState("");
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
+  const [plan, setPlan] = useState<SponsorPlan | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -22,6 +24,12 @@ export default function SponsorProfile() {
       setProfile(value);
       setName(value.full_name ?? "");
       setPhoto(value.avatar_url ?? "");
+    });
+    void supabase.from("sponsor_members").select("sponsor_organizations(name,plan_code,subscription_plans(name,allows_ticket,allows_qr,allows_map))").limit(1).maybeSingle().then(({data}) => {
+      const organization = Array.isArray(data?.sponsor_organizations) ? data?.sponsor_organizations[0] : data?.sponsor_organizations;
+      const currentPlan = Array.isArray(organization?.subscription_plans) ? organization?.subscription_plans[0] : organization?.subscription_plans;
+      if (!organization) return;
+      setPlan({ organization: organization.name ?? "", code: organization.plan_code ?? "basic", name: currentPlan?.name ?? organization.plan_code ?? "Básico", modalities: [currentPlan?.allows_ticket && "Ticket", currentPlan?.allows_qr && "QR", currentPlan?.allows_map && "Mapa"].filter(Boolean).join(" · ") });
     });
     return () => { active = false; };
   }, []);
@@ -84,7 +92,11 @@ export default function SponsorProfile() {
         </div>
         <label>Nombre visible<input value={name} onChange={(event) => setName(event.target.value)} style={input} /></label>
         <label>Correo<input value={profile.email} readOnly style={{ ...input, opacity: .72 }} /></label>
-        <span className={styles.badge} style={{ justifySelf: "start" }}>Patrocinador</span>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+          <div><small style={{color:"#aeb5c1"}}>Rol</small><span className={styles.badge} style={{ display:"flex", marginTop:6, justifySelf: "start" }}>Patrocinador</span></div>
+          <div><small style={{color:"#aeb5c1"}}>Plan actual</small><strong style={{display:"block",marginTop:6}}>{plan?.name ?? "Cargando..."}</strong></div>
+          <div><small style={{color:"#aeb5c1"}}>Modalidades habilitadas</small><strong style={{display:"block",marginTop:6}}>{plan?.modalities || "—"}</strong></div>
+        </div>
         {message ? <p style={{ margin: 0, color: message.toLowerCase().includes("correct") || message.toLowerCase().includes("actualizada") ? "#8de3a8" : "#ffaaaa" }}>{message}</p> : null}
         <button className={styles.button} type="submit" disabled={working} style={{ border: 0, justifySelf: "start", cursor: "pointer" }}><Save size={18} /> {working ? "Guardando..." : "Guardar cambios"}</button>
       </>}
