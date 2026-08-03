@@ -46,6 +46,8 @@ export default function DynamicCampaignBuilder({
   const [editingId, setEditingId] = useState(campaignId);
   const [selected, setSelected] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [name, setName] = useState("");
   const [sponsor, setSponsor] = useState("");
   const [description, setDescription] = useState("");
@@ -156,57 +158,18 @@ export default function DynamicCampaignBuilder({
   }
 
   async function save() {
-    if (!name.trim() || selected.length === 0) {
-      setNotice("Completa el nombre y selecciona al menos una pregunta.");
-      return;
-    }
-
-    const base = {
-      id: editingId || makeId(type),
-      name: name.trim(),
-      sponsor: sponsor.trim(),
-      description: description.trim(),
-      reward: reward.trim(),
-      rewardCode: rewardCode.trim(),
-      points,
-      startDate,
-      endDate,
-      status,
-      selectedQuestionIds: selected,
-      questionCount: Math.min(questionCount, selected.length),
-      passingPercentage: passing,
-      questionSeconds: 5 as const,
-      cooldownHours: 24 as const,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (type === "map") {
-      await saveDynamicCampaign({
-        ...base,
-        type: "map",
-        locations,
-      } as MapCampaign);
-    } else {
-      await saveDynamicCampaign({
-        ...base,
-        type: "brand",
-        brandName: sponsor,
-        locations,
-        minimumTotal,
-        requiredProducts: products
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        minimumConfidence: confidence,
-        maxTicketImages: 3,
-      } as BrandCampaign);
-    }
-
-    setNotice(
-      `Campaña guardada con ${locations.length} ${
-        locations.length === 1 ? "ubicación" : "ubicaciones"
-      }.`
-    );
+    if (!name.trim() || selected.length === 0) { setSaved(false); setNotice("Completa el nombre y selecciona al menos una pregunta."); return; }
+    if (!locations.length || locations.some((item) => !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude))) { setSaved(false); setNotice("Configura al menos una ubicación válida."); return; }
+    setSaving(true); setSaved(false); setNotice("");
+    try {
+      const base = { id: editingId || makeId(type), name:name.trim(), sponsor:sponsor.trim(), description:description.trim(), reward:reward.trim(), rewardCode:rewardCode.trim(), points, startDate, endDate, status, selectedQuestionIds:selected, questionCount:Math.min(questionCount,selected.length), passingPercentage:passing, questionSeconds:5 as const, cooldownHours:24 as const, createdAt:new Date().toISOString() };
+      const savedId = type === "map"
+        ? await saveDynamicCampaign({ ...base, type:"map", locations } as MapCampaign)
+        : await saveDynamicCampaign({ ...base, type:"brand", brandName:sponsor.trim(), locations, minimumTotal, requiredProducts:products.split(",").map(v=>v.trim()).filter(Boolean), minimumConfidence:confidence, maxTicketImages:3 } as BrandCampaign);
+      setEditingId(savedId); setSaved(true); setNotice(`Campaña guardada correctamente con ${locations.length} ${locations.length===1?"ubicación":"ubicaciones"}.`);
+      window.setTimeout(()=>{setNotice("");setSaved(false)},3800);
+    } catch(error) { console.error("Error guardando campaña:",error); setSaved(false); setNotice(error instanceof Error ? error.message : "No se pudo guardar la campaña."); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -612,12 +575,11 @@ export default function DynamicCampaignBuilder({
       )}
 
       <section className={`${styles.panel} ${styles.finalActions}`}>
-        <button className={styles.save} type="button" onClick={() => void save()}>
+        {notice && <p className={`${styles.notice} ${saved ? styles.successToast : styles.errorToast}`}>{notice}</p>}
+        <button className={styles.save} type="button" disabled={saving} onClick={() => void save()}>
           <Save />
-          Guardar campaña
+          {saving ? "Guardando..." : "Guardar campaña"}
         </button>
-
-        {notice && <p className={styles.notice}>{notice}</p>}
       </section>
     </div>
   );

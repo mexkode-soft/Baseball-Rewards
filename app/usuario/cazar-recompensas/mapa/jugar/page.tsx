@@ -128,6 +128,8 @@ export default function MapPlayPage() {
   const watchRef =
     useRef<number | null>(null);
 
+  const trackingStartedRef = useRef(false);
+
   useEffect(() => {
     let active = true;
     async function updateDemoConfig() {
@@ -197,6 +199,12 @@ export default function MapPlayPage() {
     void cooldownRemaining(campaign.id, location.id).then(setRemaining).catch(() => setRemaining(0));
   }, [campaign, location]);
 
+
+  useEffect(() => {
+    if (!campaign || !location || phase !== "location" || trackingStartedRef.current) return;
+    trackingStartedRef.current = true;
+    void locate();
+  }, [campaign, location, phase, demoConfig.simulatedLocationEnabled]);
   if (
     !campaign ||
     !location
@@ -306,16 +314,13 @@ export default function MapPlayPage() {
   }
 
   async function locate() {
+    if (watchRef.current !== null) return;
     const demo = await readDemoConfig();
 
-    if (
-      demo.simulatedLocationEnabled
-    ) {
-      applyPosition(
-        demo.simulatedLatitude,
-        demo.simulatedLongitude
-      );
-
+    if (demo.simulatedLocationEnabled) {
+      setDistance(0);
+      setWatching(false);
+      setPhase("permission");
       return;
     }
 
@@ -706,7 +711,7 @@ export default function MapPlayPage() {
               className={
                 styles.cameraButton
               }
-              onClick={() => { void locate(); }}
+              onClick={() => { void locate(); window.open(mapsUrl, "_blank", "noopener,noreferrer"); }}
               disabled={
                 watching
               }
@@ -714,8 +719,8 @@ export default function MapPlayPage() {
               <MapPin />
 
               {watching
-                ? "Actualizando ubicación..."
-                : "Validar mi ubicación"}
+                ? "Siguiendo tu recorrido..."
+                : "Ir al objetivo"}
             </button>
           )}
 

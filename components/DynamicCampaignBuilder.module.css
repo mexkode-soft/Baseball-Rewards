@@ -38,3 +38,5 @@
 .mapPanel .helper strong {
   color: #fff;
 }
+
+.successToast,.errorToast{width:min(620px,100%);margin:0 auto 12px!important;padding:12px 14px;border-radius:13px;text-align:center;font-weight:800;animation:toastIn .25s ease both}.successToast{border:1px solid rgba(75,220,137,.35);background:rgba(46,180,105,.14);color:#9ff2bf!important}.errorToast{border:1px solid rgba(255,96,86,.3);background:rgba(210,55,48,.12);color:#ffaaa3!important}.save:disabled{opacity:.58;cursor:wait}@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}

@@ -22,6 +22,7 @@ import styles from "./CrearCampana.module.css";
 import DynamicCampaignBuilder from "@/components/DynamicCampaignBuilder";
 import {
   createId,
+  createQrPayload,
   generateQrCodes,
   readQrCampaigns,
   saveQrCampaign,
@@ -180,8 +181,11 @@ export default function CrearCampanaPage() {
         coverUrl = supabase.storage.from("campaign-images").getPublicUrl(path).data.publicUrl;
         setExistingCoverUrl(coverUrl);
       }
-      await saveQrCampaign({ ...buildCampaign(), coverUrl });
-      setNotice("Campaña guardada. Ya puedes probarla en el escáner QR.");
+      const savedId = await saveQrCampaign({ ...buildCampaign(), coverUrl });
+      setCampaignId(savedId);
+      setCodes((current) => current.map((code) => ({ ...code, payload: createQrPayload(savedId, code.token) })));
+      setNotice("Campaña guardada correctamente. Ya puedes probarla en el escáner QR.");
+      window.setTimeout(() => setNotice(""), 3800);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo guardar la campaña.");
     } finally { setWorking(false); }
@@ -342,6 +346,7 @@ export default function CrearCampanaPage() {
                 <label><span>Estado</span><select value={status} onChange={(event) => setStatus(event.target.value as QrCampaignStatus)}><option value="draft">Borrador</option><option value="scheduled">Programada</option><option value="active">Activa</option></select></label>
                 <div className={styles.summaryCard}><Gift /><div><strong>{reward}</strong><span>{winnerCodes} ganadores · {totalCodes - winnerCodes} sin premio</span></div></div>
               </div>
+              {notice && <div className={`${styles.notice} ${notice.toLowerCase().includes("guardada") ? styles.successToast : ""}`}><CheckCircle2 /><span>{notice}</span></div>}
               <div className={styles.footerActions}><a href="/usuario/cazar-recompensas/qr"><QrCode /> Abrir escáner</a><button type="button" className={styles.primaryButton} disabled={working || codes.length === 0} onClick={() => void saveCampaign()}><Save /> Guardar campaña</button></div>
             </section>
           </main>

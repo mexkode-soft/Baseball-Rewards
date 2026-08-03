@@ -1,0 +1,15 @@
+HOME RUN REWARDS - AJUSTES FINALES
+
+Incluye:
+- Menú móvil opaco y por encima del hero, mapas y cámara.
+- Seguimiento de ubicación en tiempo real y botón Ir al objetivo.
+- Modo demo de ubicación permite entrar directamente a la trivia.
+- QR con UUID estable para evitar el mensaje de otra campaña.
+- Botón Google negro con borde dorado.
+- Inicio personalizado: Bienvenido, nombre.
+- Guardado de campañas de marca/mapa con errores visibles y confirmación verde temporal.
+- Confirmación verde temporal para campañas QR.
+- Compatibilidad Supabase/Auth y variables de Vercel.
+
+IMPORTANTE: conserva tu .env.local y ejecuta las migraciones existentes.
+Antes de subir: npm install && npm run build

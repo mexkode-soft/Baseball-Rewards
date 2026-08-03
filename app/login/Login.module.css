@@ -1176,3 +1176,5 @@
   cursor: pointer;
 }
 .googleButton svg { width: 20px; height: 20px; flex: 0 0 auto; }
+
+.googleButton{background:#090a0d!important;color:#fff!important;border:1px solid rgba(242,189,69,.72)!important;box-shadow:0 0 0 1px rgba(242,189,69,.08) inset!important}.googleButton:hover{background:rgba(242,189,69,.08)!important;border-color:#f2bd45!important}

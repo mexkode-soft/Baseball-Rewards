@@ -166,3 +166,11 @@
     right: 12px;
   }
 }
+/* Menú móvil siempre visible sobre el hero y cualquier video */
+.publicHeader{z-index:30000!important;isolation:isolate}
+@media(max-width:900px){
+ .publicNav{position:relative;z-index:30002}
+ .mobileMenuButton{position:relative;z-index:30004;background:#0b0c0f!important}
+ .navLinks{position:fixed!important;z-index:30003!important;inset:76px 0 0!important;border-radius:0!important;border-inline:0!important;padding:28px 20px!important;background:#090a0d!important;box-shadow:0 30px 70px rgba(0,0,0,.85)!important;overflow-y:auto}
+ .navLinks.open{display:flex!important}
+}

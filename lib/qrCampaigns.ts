@@ -58,7 +58,7 @@ function randomPart(length = 16) {
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (value) => value.toString(36).padStart(2, "0")).join("").slice(0, length).toUpperCase();
 }
-export function createId(prefix: string) { return `${prefix}-${Date.now().toString(36)}-${randomPart(8)}`; }
+export function createId(prefix: string) { return prefix === "campaign" && typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${prefix}-${Date.now().toString(36)}-${randomPart(8)}`; }
 export function createQrPayload(campaignId: string, token: string) { return `HRR|QR|${campaignId}|${token}`; }
 
 export function generateQrCodes(options: { campaignId: string; total: number; winners: number; reward: string; participationPoints: number; winnerPoints: number; }): QrCodeRecord[] {
@@ -98,7 +98,7 @@ export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
     metadata: { reward: campaign.reward },
   };
   const { data: saved, error } = isUuid
-    ? await supabase.from("campaigns").update(payload).eq("id", campaign.id).select("id").single()
+    ? await supabase.from("campaigns").upsert({ id: campaign.id, ...payload }, { onConflict: "id" }).select("id").single()
     : await supabase.from("campaigns").insert(payload).select("id").single();
   if (error) throw error;
   const id = String(saved.id);
