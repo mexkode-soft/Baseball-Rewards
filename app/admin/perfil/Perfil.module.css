@@ -605,3 +605,31 @@
   object-position: 50% 50%;
   border-radius: inherit;
 }
+
+.inputWrap select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.inputWrap select option {
+  background: #111319;
+  color: #fff;
+}
+
+.inputWrap select:disabled {
+  color: #747985;
+  cursor: wait;
+}
+
+.catalogError {
+  margin: 14px 0 0;
+  color: #ff9a9a;
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -1,0 +1,27 @@
+AJUSTES INCLUIDOS
+
+1. Google OAuth
+- El acceso con Google fuerza el selector de cuentas mediante prompt=select_account.
+- Se limpia solo la sesión local antes de iniciar el nuevo flujo OAuth.
+- Funciona tanto en navegador como en PWA.
+
+2. Cinta infinita
+- El contenido se repite suficientes veces para cubrir pantallas grandes.
+- Se usan dos bloques idénticos para un ciclo continuo sin espacios vacíos.
+- Se eliminó la pausa al pasar el cursor.
+
+3. Perfil
+- Estado convertido a lista desplegable de las 32 entidades.
+- Municipio dependiente del estado, consultado desde el catálogo oficial de INEGI.
+- Equipo favorito convertido a lista con los 20 equipos LMB de la temporada 2026.
+
+4. Iconos PWA
+- Se generaron archivos nuevos v2 para evitar que Android reutilice los nombres cacheados.
+- Iconos normales con logo más grande.
+- Iconos maskable con zona segura para launchers Android.
+- Se actualizó manifest.webmanifest y metadata de Next.js.
+
+DESPUÉS DE PUBLICAR
+- Haz Redeploy en Vercel.
+- En Android elimina la PWA anterior, borra los datos del sitio e instálala de nuevo para que el launcher tome el icono v2.
+- No se requiere una migración de Supabase para estos cambios.

@@ -78,9 +78,18 @@ export default function Login() {
       return;
     }
 
+    // Fuerza a Google a mostrar el selector de cuentas incluso dentro de la PWA.
+    // Así el usuario no queda atrapado en la última cuenta utilizada.
+    await supabase.auth.signOut({ scope: "local" });
+
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: "select_account",
+        },
+      },
     });
 
     if (oauthError) setError(oauthError.message);

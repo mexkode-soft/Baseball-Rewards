@@ -34,9 +34,10 @@ const iconMap = {
 interface PromotionGroupProps {
   announcements: Announcement[];
   hidden?: boolean;
+  groupId: string;
 }
 
-function PromotionGroup({ announcements, hidden = false }: PromotionGroupProps) {
+function PromotionGroup({ announcements, hidden = false, groupId }: PromotionGroupProps) {
   return (
     <div
       className={styles.promotionGroup}
@@ -51,9 +52,7 @@ function PromotionGroup({ announcements, hidden = false }: PromotionGroupProps) 
 
           return (
             <div
-              key={
-                announcement.id
-              }
+              key={`${groupId}-${announcement.id}`}
               className={
                 styles.promotionItem
               }
@@ -143,10 +142,20 @@ export default function PromoTicker() {
       [announcements]
     );
 
-  if (
-    activeAnnouncements.length ===
-    0
-  ) {
+  const marqueeAnnouncements = useMemo(() => {
+    if (activeAnnouncements.length === 0) return [];
+    // Repite el contenido dentro de cada bloque para que aun con una sola
+    // promoción el ancho siempre supere al viewport y nunca aparezca un hueco.
+    const repetitions = Math.max(4, Math.ceil(10 / activeAnnouncements.length));
+    return Array.from({ length: repetitions }, (_, repetition) =>
+      activeAnnouncements.map((announcement) => ({
+        ...announcement,
+        id: `${announcement.id}-${repetition}`,
+      })),
+    ).flat();
+  }, [activeAnnouncements]);
+
+  if (marqueeAnnouncements.length === 0) {
     return null;
   }
 
@@ -168,12 +177,15 @@ export default function PromoTicker() {
           }
         >
           <PromotionGroup
-            announcements={
-              activeAnnouncements
-            }
+            announcements={marqueeAnnouncements}
+            groupId="primary"
           />
 
-          <PromotionGroup announcements={activeAnnouncements} hidden />
+          <PromotionGroup
+            announcements={marqueeAnnouncements}
+            groupId="duplicate"
+            hidden
+          />
         </div>
       </div>
     </aside>

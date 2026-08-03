@@ -22,6 +22,7 @@ import {
 import { getCurrentProfile, supabase } from "@/lib/supabase";
 import { readRanking } from "@/lib/ranking";
 import { prepareProfileAvatar } from "@/lib/image";
+import { getStateCode, LMB_TEAMS, MEXICO_STATES, normalizeStateName } from "@/lib/mexicoCatalog";
 
 import styles from "./Perfil.module.css";
 
@@ -59,6 +60,10 @@ export default function Perfil() {
   const [saved, setSaved] =
     useState(false);
 
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [municipalitiesLoading, setMunicipalitiesLoading] = useState(false);
+  const [municipalitiesError, setMunicipalitiesError] = useState("");
+
   const [rankingPosition, setRankingPosition] = useState<number | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoMessage, setPhotoMessage] = useState("");
@@ -74,7 +79,7 @@ export default function Perfil() {
       setName(profile.full_name ?? "");
       setEmail(profile.email ?? "");
       setPhone(profile.phone ?? "");
-      setState(profile.state ?? "");
+      setState(normalizeStateName(profile.state));
       setMunicipality(profile.municipality ?? "");
       setFavoriteTeam(profile.favorite_team ?? "");
       if (profile.role !== "admin") {
@@ -87,6 +92,47 @@ export default function Perfil() {
     void loadProfile();
     return () => { active = false; };
   }, []);
+
+
+  useEffect(() => {
+    const stateCode = getStateCode(state);
+
+    if (!stateCode) {
+      setMunicipalities([]);
+      setMunicipalitiesError("");
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    async function loadMunicipalities() {
+      setMunicipalitiesLoading(true);
+      setMunicipalitiesError("");
+
+      try {
+        const response = await fetch(`/api/geo/municipalities?state=${stateCode}`, {
+          signal: controller.signal,
+        });
+        const payload = await response.json() as { municipalities?: string[]; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? "No fue posible cargar los municipios.");
+        if (!active) return;
+
+        const options = payload.municipalities ?? [];
+        setMunicipalities(options);
+        setMunicipality((current) => current && options.includes(current) ? current : "");
+      } catch (error) {
+        if (controller.signal.aborted || !active) return;
+        setMunicipalities([]);
+        setMunicipalitiesError(error instanceof Error ? error.message : "No fue posible cargar los municipios.");
+      } finally {
+        if (active) setMunicipalitiesLoading(false);
+      }
+    }
+
+    void loadMunicipalities();
+    return () => { active = false; controller.abort(); };
+  }, [state]);
 
   async function uploadPhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -364,15 +410,21 @@ export default function Perfil() {
               >
                 <MapPin />
 
-                <input
+                <select
                   value={state}
-                  onChange={(event) =>
-                    setState(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Ej. Veracruz"
-                />
+                  onChange={(event) => {
+                    setState(event.target.value);
+                    setMunicipality("");
+                  }}
+                  required
+                >
+                  <option value="">Selecciona un estado</option>
+                  {MEXICO_STATES.map((stateOption) => (
+                    <option key={stateOption.code} value={stateOption.name}>
+                      {stateOption.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </label>
 
@@ -386,15 +438,25 @@ export default function Perfil() {
               >
                 <MapPin />
 
-                <input
+                <select
                   value={municipality}
-                  onChange={(event) =>
-                    setMunicipality(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Ej. Boca del Río"
-                />
+                  onChange={(event) => setMunicipality(event.target.value)}
+                  disabled={!state || municipalitiesLoading}
+                  required
+                >
+                  <option value="">
+                    {!state
+                      ? "Primero selecciona un estado"
+                      : municipalitiesLoading
+                        ? "Cargando municipios..."
+                        : "Selecciona un municipio"}
+                  </option>
+                  {municipalities.map((municipalityOption) => (
+                    <option key={municipalityOption} value={municipalityOption}>
+                      {municipalityOption}
+                    </option>
+                  ))}
+                </select>
               </div>
             </label>
 
@@ -408,18 +470,23 @@ export default function Perfil() {
               >
                 <Shield />
 
-                <input
+                <select
                   value={favoriteTeam}
-                  onChange={(event) =>
-                    setFavoriteTeam(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Nombre del equipo"
-                />
+                  onChange={(event) => setFavoriteTeam(event.target.value)}
+                  required
+                >
+                  <option value="">Selecciona tu equipo favorito</option>
+                  {LMB_TEAMS.map((team) => (
+                    <option key={team} value={team}>{team}</option>
+                  ))}
+                </select>
               </div>
             </label>
           </div>
+
+          {municipalitiesError && (
+            <p className={styles.catalogError} role="alert">{municipalitiesError}</p>
+          )}
 
           <div
             className={styles.formActions}
