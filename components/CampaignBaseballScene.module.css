@@ -7,6 +7,8 @@
   margin-inline: auto;
 
   overflow: hidden;
+  isolation: isolate;
+  contain: layout paint;
 
   border: 1px solid
     rgba(242, 189, 69, 0.24);
@@ -37,6 +39,7 @@
 
   cursor: grab;
   touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .scene:active {

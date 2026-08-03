@@ -1,0 +1,24 @@
+HOME RUN REWARDS - AJUSTE CINTA INFINITA Y PELOTA 3D
+
+Cambios:
+- Se aumentó la altura útil de la cinta infinita.
+- Se corrigió el line-height y el espacio vertical para que el texto no se corte.
+- Se mantienen los textos en una sola línea para conservar el efecto infinito.
+- La pelota 3D ahora permite acercamiento mucho mayor.
+- Zoom con rueda en computadora y pellizco con dos dedos en móvil.
+- La pelota sigue contenida dentro de su tarjeta gracias a overflow, isolation y contain.
+- Se ajustó el plano cercano de la cámara para evitar recortes al acercarse.
+- Se actualizó el texto de ayuda de la escena.
+
+Archivos principales modificados:
+components/PromoTicker.module.css
+components/CampaignBaseballScene.tsx
+components/CampaignBaseballScene.module.css
+
+Conserva tu .env.local.
+
+Prueba:
+npm install
+rm -rf .next
+npm run build
+npm run dev

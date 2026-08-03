@@ -48,7 +48,7 @@ export default function CampaignBaseballScene() {
       new THREE.PerspectiveCamera(
         40,
         1,
-        0.1,
+        0.01,
         100
       );
 
@@ -161,11 +161,21 @@ export default function CampaignBaseballScene() {
     controls.enableZoom =
       true;
 
+    /*
+     * Permite acercarse mucho más a la superficie
+     * sin sacar la pelota del contenedor.
+     */
     controls.minDistance =
-      3.3;
+      1.24;
 
     controls.maxDistance =
-      6.5;
+      8.5;
+
+    controls.zoomSpeed =
+      0.85;
+
+    controls.zoomToCursor =
+      true;
 
     controls.autoRotate =
       true;
@@ -437,9 +447,9 @@ export default function CampaignBaseballScene() {
           </strong>
 
           <p>
-            Arrastra para girarla y
-            usa la rueda para acercar
-            o alejar.
+            Arrastra para girarla. Usa
+            la rueda o pellizca con dos
+            dedos para verla de cerca.
           </p>
         </div>
       </div>
