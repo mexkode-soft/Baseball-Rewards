@@ -32,18 +32,15 @@ const iconMap = {
 };
 
 interface PromotionGroupProps {
-  announcements:
-    Announcement[];
+  announcements: Announcement[];
+  hidden?: boolean;
 }
 
-function PromotionGroup({
-  announcements,
-}: PromotionGroupProps) {
+function PromotionGroup({ announcements, hidden = false }: PromotionGroupProps) {
   return (
     <div
-      className={
-        styles.promotionGroup
-      }
+      className={styles.promotionGroup}
+      aria-hidden={hidden || undefined}
     >
       {announcements.map(
         (announcement) => {
@@ -176,15 +173,7 @@ export default function PromoTicker() {
             }
           />
 
-          <div
-            aria-hidden="true"
-          >
-            <PromotionGroup
-              announcements={
-                activeAnnouncements
-              }
-            />
-          </div>
+          <PromotionGroup announcements={activeAnnouncements} hidden />
         </div>
       </div>
     </aside>

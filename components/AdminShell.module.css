@@ -878,3 +878,7 @@
 /* Capas móviles: navbar y sidebar por encima de Leaflet, cámara y escenas 3D */
 .sidebar{z-index:40000!important}.sidebarOverlay{z-index:39998!important}.mobileHeader{z-index:39997!important;background:#090a0d!important;isolation:isolate}.adminMain{position:relative;z-index:1}.leaflet-container{z-index:1!important}
 @media(max-width:980px){.sidebar{background:#090a0d!important}.sidebarOverlayOpen{background:rgba(0,0,0,.78)!important;backdrop-filter:blur(4px)}}
+
+.mobileHeaderActions{display:flex;align-items:center;gap:10px}.mobileHeaderActions>img{width:76px;height:52px;object-fit:contain}@media(min-width:981px){.adminMain{position:relative}.adminContent{position:relative}.adminContent:before{content:""}.mobileHeader{display:none}.adminMain>.desktopNotificationPlaceholder{display:none}}
+.desktopNotification{position:fixed;z-index:30000;top:20px;right:24px}@media(max-width:980px){.desktopNotification{display:none}}
+@media (min-width:700px) and (max-width:1200px) and (orientation:landscape){.adminContent{width:min(1180px,calc(100% - 36px));padding-top:28px}.mobileHeader{min-height:68px}.mobileHeaderActions>img{width:70px;height:46px}}

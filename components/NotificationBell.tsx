@@ -1,0 +1,75 @@
+"use client";
+
+import Link from "next/link";
+import { Bell, BellRing, CheckCheck, LoaderCircle, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { markAllNotificationsRead, markNotificationRead, readNotifications, subscribeToPush, type UserNotification } from "@/lib/notifications";
+import { supabase } from "@/lib/supabase";
+import styles from "./NotificationBell.module.css";
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+export default function NotificationBell() {
+  const [items, setItems] = useState<UserNotification[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [pushMessage, setPushMessage] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const refresh = useCallback(async () => {
+    try { setItems(await readNotifications()); } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      channel = supabase.channel(`notifications-${data.user.id}`).on("postgres_changes", {
+        event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${data.user.id}`,
+      }, () => { void refresh(); }).subscribe();
+    });
+    const close = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", close);
+    return () => { document.removeEventListener("pointerdown", close); if (channel) void supabase.removeChannel(channel); };
+  }, [refresh]);
+
+  const unread = useMemo(() => items.filter((item) => !item.read_at).length, [items]);
+
+  async function readOne(item: UserNotification) {
+    if (!item.read_at) { await markNotificationRead(item.id); setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry)); }
+  }
+
+  async function readAll() {
+    await markAllNotificationsRead();
+    const now = new Date().toISOString();
+    setItems((current) => current.map((item) => ({ ...item, read_at: item.read_at ?? now })));
+  }
+
+  async function enablePush() {
+    setPushMessage("Activando...");
+    try {
+      const result = await subscribeToPush();
+      setPushMessage(result === "subscribed" ? "Notificaciones push activadas." : result === "denied" ? "Permiso rechazado desde el dispositivo." : result === "missing-key" ? "Falta configurar la llave pública VAPID." : "Este navegador no admite notificaciones push.");
+    } catch (error) { setPushMessage(error instanceof Error ? error.message : "No se pudo activar push."); }
+  }
+
+  return <div className={styles.root} ref={rootRef}>
+    <button type="button" className={styles.bellButton} onClick={() => setOpen((value) => !value)} aria-label={`Notificaciones${unread ? `, ${unread} sin leer` : ""}`}>
+      {unread ? <BellRing /> : <Bell />}{unread > 0 ? <span>{unread > 99 ? "99+" : unread}</span> : null}
+    </button>
+    {open ? <section className={styles.panel} aria-label="Bandeja de notificaciones">
+      <header><div><strong>Notificaciones</strong><small>{unread ? `${unread} sin leer` : "Todo al día"}</small></div><button type="button" onClick={() => setOpen(false)} aria-label="Cerrar"><X /></button></header>
+      <div className={styles.actions}><button type="button" onClick={readAll} disabled={!unread}><CheckCheck /> Marcar todas</button><button type="button" onClick={enablePush}><BellRing /> Activar push</button></div>
+      {pushMessage ? <p className={styles.pushMessage}>{pushMessage}</p> : null}
+      <div className={styles.list}>
+        {loading ? <div className={styles.empty}><LoaderCircle className={styles.spinner} /> Cargando...</div> : items.length === 0 ? <div className={styles.empty}>Todavía no tienes notificaciones.</div> : items.map((item) => {
+          const content = <><div className={styles.itemTop}><strong>{item.title}</strong>{!item.read_at ? <i /> : null}</div><p>{item.body}</p><time>{formatDate(item.created_at)}</time></>;
+          return item.action_url ? <Link href={item.action_url} key={item.id} className={`${styles.item} ${!item.read_at ? styles.unread : ""}`} onClick={() => { void readOne(item); setOpen(false); }}>{content}</Link> : <button type="button" key={item.id} className={`${styles.item} ${!item.read_at ? styles.unread : ""}`} onClick={() => void readOne(item)}>{content}</button>;
+        })}
+      </div>
+    </section> : null}
+  </div>;
+}

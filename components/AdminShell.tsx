@@ -37,6 +37,7 @@ import {
   supabase,
 } from "@/lib/supabase";
 
+import NotificationBell from "@/components/NotificationBell";
 import styles from "./AdminShell.module.css";
 
 type Role =
@@ -415,6 +416,7 @@ export default function AdminShell({
           styles.adminMain
         }
       >
+        {role === "usuario" ? <div className={styles.desktopNotification}><NotificationBell /></div> : null}
         <header
           className={
             styles.mobileHeader
@@ -447,10 +449,13 @@ export default function AdminShell({
             </span>
           </div>
 
-          <img
-            src="/images/logo-home-run.png"
-            alt="Home Run Rewards"
-          />
+          <div className={styles.mobileHeaderActions}>
+            {role === "usuario" ? <NotificationBell /> : null}
+            <img
+              src="/images/logo-home-run.png"
+              alt="Home Run Rewards"
+            />
+          </div>
         </header>
 
         <main
