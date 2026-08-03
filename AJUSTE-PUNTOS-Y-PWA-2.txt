@@ -1,0 +1,15 @@
+AJUSTE DE PUNTOS, PREMIOS E INSTALACIÓN PWA
+
+1. Nueva migración:
+   supabase/migrations/20260803050000_fix_rewards_totals_and_pwa.sql
+
+2. La pantalla Mis recompensas ahora calcula los puntos directamente desde point_transactions,
+   igual que el ranking de temporada, y sincroniza profiles.total_points.
+
+3. Los premios QR ganadores se muestran incluso si un registro histórico no alcanzó a crear
+   su reward_claim, siempre que exista la participación ganadora.
+
+4. Se corrigió el registro del service worker. Antes podía no registrarse porque el listener
+   se agregaba después de que la ventana ya había terminado de cargar.
+
+5. Se agregó un botón "Instalar aplicación" al inicio del panel del usuario.

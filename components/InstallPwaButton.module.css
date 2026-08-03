@@ -1,0 +1,41 @@
+.wrapper {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(242, 189, 69, .45);
+  border-radius: 999px;
+  background: rgba(242, 189, 69, .14);
+  color: #f8d477;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .28);
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  background: rgba(242, 189, 69, .22);
+  border-color: rgba(242, 189, 69, .7);
+}
+
+.message {
+  max-width: 330px;
+  margin: 0;
+  color: #b9bdc7;
+  font-size: 12px;
+  line-height: 1.45;
+}
