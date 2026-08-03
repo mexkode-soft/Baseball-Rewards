@@ -17,7 +17,6 @@ type PlanInfo = {
   max_active_campaigns: number | null;
 };
 type LocationDraft = { name: string; address: string; latitude: string; longitude: string; radius: string; reward: string; rewardCode: string; points: string; units: string };
-type BranchDraft = { name: string; address: string; latitude: string; longitude: string; radius: string };
 
 const typeOptions = [
   { id: "brand" as const, title: "Ticket de compra", description: "El usuario carga su ticket y la IA valida comercio, monto y reglas.", icon: Store, plan: "Básico" },
@@ -26,7 +25,6 @@ const typeOptions = [
 ];
 
 const emptyLocation = (): LocationDraft => ({ name: "", address: "", latitude: "", longitude: "", radius: "80", reward: "", rewardCode: "", points: "100", units: "1" });
-const emptyBranch = (): BranchDraft => ({ name: "", address: "", latitude: "", longitude: "", radius: "150" });
 
 async function sha256(value: string) {
   const data = new TextEncoder().encode(value);
@@ -45,9 +43,6 @@ export default function NewCampaign() {
   const [description, setDescription] = useState("");
   const [minimum, setMinimum] = useState("300");
   const [requiredProducts, setRequiredProducts] = useState("");
-  const [branchMode, setBranchMode] = useState<"all" | "selected" | "online">("selected");
-  const [branches, setBranches] = useState<BranchDraft[]>([emptyBranch()]);
-  const [merchantAliases, setMerchantAliases] = useState("");
   const [confidence, setConfidence] = useState("80");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -67,23 +62,19 @@ export default function NewCampaign() {
 
   useEffect(() => {
     void (async () => {
-      const { data, error } = await supabase.rpc("get_my_sponsor_context");
-      const context = Array.isArray(data) ? data[0] : data;
-      if (error || !context?.organization_id) {
-        setMessage(error?.message ?? "No se encontró la organización o el plan del patrocinador.");
-        return;
-      }
-      setOrgId(context.organization_id);
-      setOrganizationName(context.organization_name ?? "");
-      setBrand(context.organization_name ?? "");
-      setPlan({
-        code: context.plan_code as PlanCode,
-        name: context.plan_name,
-        allows_ticket: Boolean(context.allows_ticket),
-        allows_qr: Boolean(context.allows_qr),
-        allows_map: Boolean(context.allows_map),
-        max_active_campaigns: context.max_active_campaigns ?? null,
-      });
+      const { data: member, error } = await supabase
+        .from("sponsor_members")
+        .select("organization_id,sponsor_organizations(id,name,plan_code)")
+        .limit(1)
+        .maybeSingle();
+      if (error || !member?.organization_id) return setMessage(error?.message ?? "No se encontró la organización del patrocinador.");
+      const organization = Array.isArray(member.sponsor_organizations) ? member.sponsor_organizations[0] : member.sponsor_organizations;
+      const planCode = (organization?.plan_code ?? "basic") as PlanCode;
+      setOrgId(member.organization_id);
+      setOrganizationName(organization?.name ?? "");
+      setBrand(organization?.name ?? "");
+      const { data: planData } = await supabase.from("subscription_plans").select("code,name,allows_ticket,allows_qr,allows_map,max_active_campaigns").eq("code", planCode).maybeSingle();
+      if (planData) setPlan(planData as PlanInfo);
     })();
   }, []);
 
@@ -101,10 +92,6 @@ export default function NewCampaign() {
 
   function updateLocation(index: number, field: keyof LocationDraft, value: string) {
     setLocations((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item));
-  }
-
-  function updateBranch(index: number, field: keyof BranchDraft, value: string) {
-    setBranches((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item));
   }
 
   async function submit(event: FormEvent) {
@@ -134,7 +121,7 @@ export default function NewCampaign() {
         participation_limit: participationLimit,
         points_on_success: successPoints,
         created_by: user.id,
-        metadata: { createdBySponsor: true, requestedModality: campaignType, planCode: plan?.code ?? "basic", branchMode, merchantAliases: merchantAliases.split(",").map((item) => item.trim()).filter(Boolean) },
+        metadata: { createdBySponsor: true, requestedModality: campaignType, planCode: plan?.code ?? "basic" },
       }).select("id").single();
       if (error) throw error;
 
@@ -157,26 +144,9 @@ export default function NewCampaign() {
           minimum_total: Number(minimum),
           required_products: products,
           confidence_threshold: Math.min(1, Math.max(0, Number(confidence) / 100)),
-          require_location: branchMode === "selected",
           automatic_approval: false,
         });
         if (ruleError) throw ruleError;
-
-        if (branchMode === "selected") {
-          if (!branches.length || branches.some((item) => !item.name.trim() || !item.address.trim())) {
-            throw new Error("Agrega al menos una sucursal con nombre y dirección.");
-          }
-          const { error: branchError } = await supabase.from("brand_locations").insert(branches.map((item) => ({
-            campaign_id: campaign.id,
-            branch_name: item.name.trim(),
-            address: item.address.trim(),
-            latitude: item.latitude ? Number(item.latitude) : 0,
-            longitude: item.longitude ? Number(item.longitude) : 0,
-            radius_meters: Math.max(20, Number(item.radius) || 150),
-            is_active: false,
-          })));
-          if (branchError) throw branchError;
-        }
       }
 
       if (campaignType === "qr") {
@@ -267,21 +237,6 @@ export default function NewCampaign() {
           <label>Confianza mínima IA %<input type="number" min="1" max="100" value={confidence} onChange={(event) => setConfidence(event.target.value)} style={input} /></label>
         </div>
         <label>Productos requeridos <small style={{ color: "#aeb5c1" }}>(separados por coma, opcional)</small><input value={requiredProducts} onChange={(event) => setRequiredProducts(event.target.value)} style={input} placeholder="Combo familiar, hamburguesa, refresco" /></label>
-        <label>Nombres que pueden aparecer en el ticket <small style={{ color: "#aeb5c1" }}>(separados por coma)</small><input value={merchantAliases} onChange={(event) => setMerchantAliases(event.target.value)} style={input} placeholder="Carls Jr, Carls Junior, Operadora XYZ" /></label>
-        <div style={{ display: "grid", gap: 8 }}>
-          <strong>¿Dónde serán válidos los tickets?</strong>
-          <label style={radioRow}><input type="radio" name="branchMode" checked={branchMode === "selected"} onChange={() => setBranchMode("selected")} /> Solo sucursales seleccionadas</label>
-          <label style={radioRow}><input type="radio" name="branchMode" checked={branchMode === "all"} onChange={() => setBranchMode("all")} /> Todas las sucursales de la marca</label>
-          <label style={radioRow}><input type="radio" name="branchMode" checked={branchMode === "online"} onChange={() => setBranchMode("online")} /> Compra en línea</label>
-        </div>
-        {branchMode === "selected" ? <div style={{ display: "grid", gap: 14 }}>
-          {branches.map((branch, index) => <section key={index} style={{ border: "1px solid #30343c", borderRadius: 16, padding: 16, display: "grid", gap: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><strong>Sucursal {index + 1}</strong>{branches.length > 1 ? <button type="button" onClick={() => setBranches((items) => items.filter((_, itemIndex) => itemIndex !== index))} style={smallButton}>Eliminar</button> : null}</div>
-            <div style={responsiveGrid}><label>Nombre de sucursal<input value={branch.name} onChange={(event) => updateBranch(index, "name", event.target.value)} style={input} placeholder="Boca del Río" /></label><label>Dirección<input value={branch.address} onChange={(event) => updateBranch(index, "address", event.target.value)} style={input} placeholder="Av. Ejército Mexicano 123" /></label></div>
-            <div style={responsiveGrid}><label>Latitud <small style={{ color: "#aeb5c1" }}>(opcional por ahora)</small><input type="number" step="any" value={branch.latitude} onChange={(event) => updateBranch(index, "latitude", event.target.value)} style={input} /></label><label>Longitud <small style={{ color: "#aeb5c1" }}>(opcional por ahora)</small><input type="number" step="any" value={branch.longitude} onChange={(event) => updateBranch(index, "longitude", event.target.value)} style={input} /></label><label>Radio permitido (m)<input type="number" min="20" value={branch.radius} onChange={(event) => updateBranch(index, "radius", event.target.value)} style={input} /></label></div>
-          </section>)}
-          <button type="button" onClick={() => setBranches((items) => [...items, emptyBranch()])} style={{ ...smallButton, justifySelf: "start" }}>+ Agregar sucursal</button>
-        </div> : null}
       </> : null}
 
       {campaignType === "qr" ? <>
@@ -317,5 +272,3 @@ export default function NewCampaign() {
 const input = { display: "block", width: "100%", marginTop: 7, boxSizing: "border-box" as const, border: "1px solid #30343c", borderRadius: 12, padding: "12px 13px", background: "#0b0d10", color: "white", font: "inherit" };
 const responsiveGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14 };
 const smallButton = { border: "1px solid #3b4049", borderRadius: 10, padding: "8px 11px", background: "#171a20", color: "white", cursor: "pointer" };
-
-const radioRow = { display: "flex", alignItems: "center", gap: 9, color: "#d8dce4" };

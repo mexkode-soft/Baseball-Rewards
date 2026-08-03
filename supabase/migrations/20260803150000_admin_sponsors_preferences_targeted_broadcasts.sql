@@ -21,13 +21,13 @@ alter table public.sponsor_organizations add column if not exists membership_sta
 update public.sponsor_organizations set plan_code='premium' where slug='marca-demo-home-run';
 
 create table if not exists public.app_settings (
-  setting_key text primary key,
-  setting_value jsonb not null,
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
   updated_by uuid references public.profiles(id)
 );
-insert into public.app_settings(setting_key,setting_value) values('ticker_enabled','true'::jsonb)
-on conflict(setting_key) do nothing;
+insert into public.app_settings(key,value,updated_at) values('ticker_enabled','true'::jsonb,now())
+on conflict(key) do nothing;
 alter table public.app_settings enable row level security;
 drop policy if exists app_settings_read on public.app_settings;
 create policy app_settings_read on public.app_settings for select using (true);

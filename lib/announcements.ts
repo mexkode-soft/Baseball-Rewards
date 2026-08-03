@@ -166,15 +166,55 @@ export async function saveAnnouncements(items: Announcement[]): Promise<Announce
   return normalized;
 }
 
+function parseTickerSetting(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "false" || normalized === "0") return false;
+    if (normalized === "true" || normalized === "1") return true;
+  }
+
+  return true;
+}
+
 export async function readTickerEnabled(): Promise<boolean> {
-  const { data, error } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "ticker_enabled").maybeSingle();
-  if (error) return true;
-  return data?.setting_value !== false;
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "ticker_enabled")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`No se pudo consultar el estado de la cinta: ${error.message}`);
+  }
+
+  return parseTickerSetting(data?.value);
 }
 
 export async function saveTickerEnabled(enabled: boolean): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase.from("app_settings").upsert({ setting_key: "ticker_enabled", setting_value: enabled, updated_at: new Date().toISOString(), updated_by: user?.id ?? null });
-  if (error) throw error;
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("Tu sesión expiró. Vuelve a iniciar sesión para actualizar la cinta.");
+  }
+
+  const { error } = await supabase.from("app_settings").upsert(
+    {
+      key: "ticker_enabled",
+      value: enabled,
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    },
+    { onConflict: "key" },
+  );
+
+  if (error) {
+    throw new Error(`No se pudo actualizar la cinta: ${error.message}`);
+  }
+
   window.dispatchEvent(new CustomEvent(ANNOUNCEMENTS_UPDATED_EVENT));
 }
