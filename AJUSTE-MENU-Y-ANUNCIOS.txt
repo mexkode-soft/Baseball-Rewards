@@ -1,0 +1,32 @@
+HOME RUN REWARDS - AJUSTE DE MENÚ MÓVIL Y ANUNCIOS
+
+Cambios realizados:
+
+1. Menú público móvil
+- El menú se renderiza mediante un portal directamente en document.body.
+- Queda fuera del contexto de capas del video y de la pantalla "Iniciar experiencia".
+- Usa el z-index máximo seguro y fondo negro sólido.
+- Bloquea el scroll del fondo mientras está abierto.
+- Se puede cerrar tocando fuera, pulsando una opción o usando Escape.
+
+2. Anuncios de la cinta infinita
+- El mensaje de éxito aparece únicamente después de guardar realmente en Supabase.
+- Los errores de sesión, permisos, RLS o base de datos ahora se muestran en pantalla.
+- Los nuevos anuncios reciben UUID válido antes de guardarse.
+- Guardado estable mediante upsert y eliminación controlada de registros retirados.
+- La cinta se actualiza mediante evento local y Supabase Realtime, incluso entre pestañas.
+
+Archivos principales modificados:
+- components/PublicHeader.tsx
+- components/PublicHeader.module.css
+- components/PromoTicker.tsx
+- lib/announcements.ts
+- app/admin/anuncios/page.tsx
+
+Instalación:
+- Conserva tu archivo .env.local.
+- Reemplaza el proyecto por el contenido del ZIP.
+- Ejecuta npm install, npm run build y npm run dev.
+
+Nota de validación:
+No fue posible ejecutar npm install en el entorno de generación porque el registro interno no contenía jspdf. No se agregaron dependencias nuevas.
