@@ -1,0 +1,8 @@
+HOME RUN REWARDS - AJUSTE RECOMPENSAS Y PORTADAS
+
+1. Se eliminó el botón contextual “Buscar otro QR / premio / marca”.
+2. La pantalla de recompensas ahora tiene un único botón “Explorar dinámicas”.
+3. El estado vacío también dirige al selector general de dinámicas.
+4. Las portadas de campañas quedan confinadas al encabezado de la tarjeta.
+5. La imagen ya no cubre nombre, descripción, fechas ni botones.
+6. Editar, Pausar/Activar y Eliminar permanecen siempre visibles y clicables.

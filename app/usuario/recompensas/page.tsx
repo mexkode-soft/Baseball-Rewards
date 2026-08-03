@@ -64,37 +64,6 @@ export default function RecompensasPage() {
     [captures]
   );
 
-  const latestActivity = useMemo(() => {
-    const qrItems = captures.map((capture) => ({
-      type: "qr" as const,
-      capturedAt: capture.capturedAt,
-    }));
-
-    const dynamicItems = dynamicCaptures.map((capture) => ({
-      type: capture.type,
-      capturedAt: capture.capturedAt,
-    }));
-
-    return [...qrItems, ...dynamicItems].sort(
-      (a, b) =>
-        new Date(b.capturedAt).getTime() -
-        new Date(a.capturedAt).getTime()
-    )[0];
-  }, [captures, dynamicCaptures]);
-
-  const nextRoute =
-    latestActivity?.type === "map"
-      ? "/usuario/cazar-recompensas/mapa"
-      : latestActivity?.type === "brand"
-        ? "/usuario/cazar-recompensas/marca"
-        : "/usuario/cazar-recompensas/qr";
-
-  const nextLabel =
-    latestActivity?.type === "map"
-      ? "Buscar otro premio en mapa"
-      : latestActivity?.type === "brand"
-        ? "Participar con otra marca"
-        : "Buscar otro QR";
 
   return (
     <main className={`${styles.mobileStage} ${styles.capturesStage}`}>
@@ -121,7 +90,7 @@ export default function RecompensasPage() {
           <Sparkles />
           <h2>Todavía no tienes recompensas</h2>
           <p>Participa en una dinámica para comenzar tu colección.</p>
-          <Link href="/usuario/cazar-recompensas/qr">Buscar campaña</Link>
+          <Link href="/usuario/cazar-recompensas">Buscar campaña</Link>
         </section>
       ) : (
         <section className={styles.captureList}>
@@ -156,11 +125,8 @@ export default function RecompensasPage() {
       )}
 
       <div className={styles.captureActions}>
-        <Link href={nextRoute} className={styles.capturePrimary}>
-          {nextLabel}
-        </Link>
-        <Link href="/usuario/cazar-recompensas" className={styles.captureSecondary}>
-          Volver a dinámicas
+        <Link href="/usuario/cazar-recompensas" className={styles.capturePrimary}>
+          Explorar dinámicas
         </Link>
       </div>
     </main>
