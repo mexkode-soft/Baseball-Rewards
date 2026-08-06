@@ -93,11 +93,11 @@ export default function PublicHeader() {
               <Link href="/#inicio" onClick={closeMenu}>
                 Inicio
               </Link>
+              <Link href="/#campanas" onClick={closeMenu}>
+                Campañas
+              </Link>
               <Link href="/#quienes-somos" onClick={closeMenu}>
                 ¿Quiénes somos?
-              </Link>
-              <Link href="/campanas" onClick={closeMenu}>
-                Campañas
               </Link>
               <Link
                 href="/login"
@@ -140,8 +140,8 @@ export default function PublicHeader() {
 
           <nav className={styles.navLinks}>
             <Link href="/#inicio">Inicio</Link>
+            <Link href="/#campanas">Campañas</Link>
             <Link href="/#quienes-somos">¿Quiénes somos?</Link>
-            <Link href="/campanas">Campañas</Link>
             <Link href="/login" className={styles.navbarLoginButton}>
               Login
             </Link>

@@ -1,57 +1,25 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient, hasSupabaseConfig } from "@/lib/supabase";
-
-type ProfileRole = "admin" | "usuario" | "sponsor";
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-export default function AuthCallbackPage() {
-  const [message, setMessage] = useState("Validando tu cuenta...");
-  useEffect(() => {
-    let cancelled = false;
-    async function completeLogin() {
-      if (!hasSupabaseConfig) { setMessage("Supabase no está configurado."); window.setTimeout(() => window.location.replace("/login"), 1800); return; }
-      const supabase = createSupabaseBrowserClient();
-      try {
-        const currentUrl = new URL(window.location.href);
-        const code = currentUrl.searchParams.get("code");
-        if (code) {
-          setMessage("Confirmando el acceso...");
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error && !error.message.toLowerCase().includes("code verifier")) throw error;
-          currentUrl.searchParams.delete("code");
-          currentUrl.searchParams.delete("state");
-          window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
-        }
-
-        let session = null;
-        let lastError: Error | null = null;
-        for (let attempt = 0; attempt < 8 && !session; attempt += 1) {
-          const result = await supabase.auth.getSession();
-          session = result.data.session;
-          if (result.error) lastError = result.error;
-          if (!session) await wait(450 + attempt * 150);
-        }
-        if (!session?.user) throw lastError ?? new Error("No se pudo recuperar la sesión. Cierra la PWA y vuelve a iniciar sesión.");
-
-        let role: ProfileRole = "usuario";
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-          const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", session.user.id).maybeSingle();
-          if (!error && profile) { if (profile.role === "admin") role = "admin"; else if (profile.role === "sponsor") role = "sponsor"; break; }
-          await wait(400);
-        }
-        if (cancelled) return;
-        setMessage("Acceso correcto. Redirigiendo...");
-        window.location.replace(role === "admin" ? "/admin" : role === "sponsor" ? "/patrocinador" : "/usuario");
-      } catch (error) {
-        console.error("Error del callback:", error);
-        if (cancelled) return;
-        setMessage(error instanceof Error ? error.message : "No fue posible completar el inicio de sesión.");
-        window.setTimeout(() => window.location.replace("/login"), 5000);
-      }
-    }
-    void completeLogin();
-    return () => { cancelled = true; };
-  }, []);
-  return <main style={{ minHeight: "100svh", display: "grid", placeItems: "center", padding: 24, background: "#07080a", color: "#fff", textAlign: "center" }}><section><img src="/images/logo-home-run.png" alt="Home Run Rewards" style={{ width: "min(280px,72vw)", height: "auto", objectFit: "contain", marginBottom: 24 }} /><p>{message}</p></section></main>;
+import { obtenerRolActual, obtenerRutaInicialPorRol } from "@/lib/roles";
+const esperar=(ms:number)=>new Promise((r)=>window.setTimeout(r,ms));
+export default function PaginaCallbackAutenticacion(){
+ const [mensaje,setMensaje]=useState("Validando tu cuenta...");
+ useEffect(()=>{let cancelado=false; async function completar(){
+  if(!hasSupabaseConfig){setMensaje("Supabase no está configurado.");window.setTimeout(()=>window.location.replace("/login"),1800);return;}
+  const supabase=createSupabaseBrowserClient();
+  try{
+   const url=new URL(window.location.href); const codigo=url.searchParams.get("code");
+   if(codigo){setMensaje("Confirmando el acceso...");const {error}=await supabase.auth.exchangeCodeForSession(codigo);if(error&&!error.message.toLowerCase().includes("code verifier"))throw error;url.searchParams.delete("code");url.searchParams.delete("state");window.history.replaceState({},"",`${url.pathname}${url.search}`);}
+   let sesion=null;let ultimoError:Error|null=null;for(let i=0;i<8&&!sesion;i++){const r=await supabase.auth.getSession();sesion=r.data.session;if(r.error)ultimoError=r.error;if(!sesion)await esperar(450+i*150);}if(!sesion?.user)throw(ultimoError??new Error("No se pudo recuperar la sesión de Supabase."));
+   setMensaje("Revisando tu perfil...");
+   const {data:profile,error:profileError}=await supabase.from("profiles").select("phone,state,municipality,favorite_team,registration_completed").eq("id",sesion.user.id).maybeSingle();
+   if(profileError)throw profileError;
+   const complete=Boolean(profile?.registration_completed&&profile?.phone&&profile?.state&&profile?.municipality&&profile?.favorite_team);
+   if(!complete){window.location.replace("/completar-registro");return;}
+   const rol=await obtenerRolActual(supabase); if(cancelado)return; setMensaje("Acceso correcto. Redirigiendo...");window.location.replace(obtenerRutaInicialPorRol(rol));
+  }catch(error){console.error(error);if(!cancelado)setMensaje(error instanceof Error?error.message:"No fue posible completar el inicio de sesión.");}
+ }
+ void completar();return()=>{cancelado=true};},[]);
+ return <main style={{minHeight:"100svh",display:"grid",placeItems:"center",padding:24,background:"#07080a",color:"#fff",textAlign:"center"}}><section><img src="/images/logo-home-run.png" alt="Home Run Rewards" style={{width:"min(280px,72vw)",height:"auto",objectFit:"contain",marginBottom:24}}/><p>{mensaje}</p></section></main>;
 }

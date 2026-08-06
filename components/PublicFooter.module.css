@@ -164,3 +164,4 @@
     height: 21px;
   }
 }
+.legalLinks{display:flex;justify-content:center;flex-wrap:wrap;gap:12px 20px}.legalLinks a{color:#bfc1c8;font-size:12px;text-decoration:none}.legalLinks a:hover{color:#f2bd45}

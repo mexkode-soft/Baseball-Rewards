@@ -349,7 +349,10 @@
 
 .sidebarCollapsed
 .profileHead {
-  padding: 10px;
+  width: 64px;
+  min-height: 64px;
+  margin: 18px auto;
+  padding: 9px;
 
   justify-content: center;
 }
@@ -358,6 +361,7 @@
 .avatar {
   width: 44px;
   height: 44px;
+  margin: 0 auto;
 }
 
 .sidebarCollapsed
@@ -883,3 +887,25 @@
 .desktopNotification{position:fixed;z-index:30000;top:20px;right:24px}@media(max-width:980px){.desktopNotification{display:none}}
 @media (min-width:700px) and (max-width:1200px) and (orientation:landscape){.adminContent{width:min(1180px,calc(100% - 36px));padding-top:28px}.mobileHeader{min-height:68px}.mobileHeaderActions>img{width:70px;height:46px}}
 .navGroup{display:grid;gap:4px}.navGroup summary{list-style:none;display:flex;align-items:center;gap:14px;padding:13px 15px;border-radius:13px;color:#b7bdc8;cursor:pointer;font-weight:700}.navGroup summary::-webkit-details-marker{display:none}.navGroup summary:hover,.groupActive{background:rgba(244,197,66,.08);color:#f4c542}.navGroup summary svg{width:21px}.groupChevron{margin-left:auto;transition:transform .2s}.navGroup[open] .groupChevron{transform:rotate(180deg)}.navChildren{display:grid;gap:4px;padding-left:14px}.navChildren a{font-size:.92rem;padding-top:11px!important;padding-bottom:11px!important}.sidebarCollapsed .navGroup summary span,.sidebarCollapsed .groupChevron,.sidebarCollapsed .navChildren{display:none}.sidebarCollapsed .navGroup{display:block}
+
+
+/* v2.5: centrado definitivo de la foto al contraer el menú. */
+.sidebarCollapsed .profileHead {
+  width: 64px !important;
+  min-width: 64px !important;
+  min-height: 64px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 9px !important;
+  display: grid !important;
+  place-items: center !important;
+  gap: 0 !important;
+}
+.sidebarCollapsed .avatar {
+  width: 44px !important;
+  height: 44px !important;
+  margin: 0 auto !important;
+  justify-self: center !important;
+  align-self: center !important;
+}
+.sidebarCollapsed .profileInformation { display: none !important; }

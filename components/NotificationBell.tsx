@@ -50,13 +50,16 @@ export default function NotificationBell() {
   const unread = useMemo(() => items.filter((item) => !item.read_at).length, [items]);
 
   async function readOne(item: UserNotification) {
-    if (!item.read_at) { await markNotificationRead(item.id); setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry)); }
+    if (item.read_at) return;
+    const ahora = new Date().toISOString();
+    setItems((actuales) => actuales.map((entrada) => entrada.id === item.id ? { ...entrada, read_at: ahora } : entrada));
+    try { await markNotificationRead(item.id); } catch { await refresh(); }
   }
 
   async function readAll() {
-    await markAllNotificationsRead();
-    const now = new Date().toISOString();
-    setItems((current) => current.map((item) => ({ ...item, read_at: item.read_at ?? now })));
+    const ahora = new Date().toISOString();
+    setItems((actuales) => actuales.map((item) => ({ ...item, read_at: item.read_at ?? ahora })));
+    try { await markAllNotificationsRead(); } catch { await refresh(); }
   }
 
   async function enablePush() {
@@ -69,7 +72,7 @@ export default function NotificationBell() {
   }
 
   return <div className={styles.root} ref={rootRef}>
-    <button type="button" className={styles.bellButton} onClick={() => setOpen((value) => !value)} aria-label={`Notificaciones${unread ? `, ${unread} sin leer` : ""}`}>
+    <button type="button" className={styles.bellButton} onClick={() => setOpen((value) => { const siguiente = !value; if (siguiente) void refresh(); return siguiente; })} aria-label={`Notificaciones${unread ? `, ${unread} sin leer` : ""}`}>
       {unread ? <BellRing /> : <Bell />}{unread > 0 ? <span>{unread > 99 ? "99+" : unread}</span> : null}
     </button>
     {open ? <section className={styles.panel} aria-label="Bandeja de notificaciones">

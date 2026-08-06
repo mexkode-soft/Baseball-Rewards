@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Facebook,
   Instagram,
@@ -32,6 +33,8 @@ export default function PublicFooter() {
           © 2026 Home Run Rewards.
           Todos los derechos reservados.
         </p>
+
+        <nav className={styles.legalLinks} aria-label="Información legal"><Link href="/aviso-de-privacidad">Aviso de privacidad</Link><Link href="/politica-de-cookies">Cookies</Link><Link href="/terminos-y-condiciones">Términos</Link></nav>
 
         <div className={styles.socials}>
           <a

@@ -20,6 +20,7 @@ import {
 } from "react";
 
 import { getCurrentProfile, supabase } from "@/lib/supabase";
+import { obtenerRolActual } from "@/lib/roles";
 import { readRanking } from "@/lib/ranking";
 import { prepareProfileAvatar } from "@/lib/image";
 import { getStateCode, LMB_TEAMS, MEXICO_STATES, normalizeStateName } from "@/lib/mexicoCatalog";
@@ -60,6 +61,9 @@ export default function Perfil() {
   const [saved, setSaved] =
     useState(false);
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
   const [municipalities, setMunicipalities] = useState<string[]>([]);
   const [municipalitiesLoading, setMunicipalitiesLoading] = useState(false);
   const [municipalitiesError, setMunicipalitiesError] = useState("");
@@ -74,7 +78,8 @@ export default function Perfil() {
     async function loadProfile() {
       const profile = await getCurrentProfile();
       if (!active || !profile) return;
-      setRole(profile.role);
+      const rolActual = await obtenerRolActual(supabase);
+      setRole(rolActual);
       setPhoto(profile.avatar_url ?? "");
       setName(profile.full_name ?? "");
       setEmail(profile.email ?? "");
@@ -82,7 +87,7 @@ export default function Perfil() {
       setState(normalizeStateName(profile.state));
       setMunicipality(profile.municipality ?? "");
       setFavoriteTeam(profile.favorite_team ?? "");
-      if (profile.role !== "admin") {
+      if (rolActual !== "admin") {
         const ranking = await readRanking(1000);
         const position = ranking.findIndex((player) => player.id === profile.id);
         setRankingPosition(position >= 0 ? position + 1 : null);
@@ -139,7 +144,10 @@ export default function Perfil() {
     if (!file) return;
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) return;
+    if (userError || !userData.user) {
+      setPhotoMessage("No se encontró una sesión activa.");
+      return;
+    }
 
     setPhotoLoading(true);
     setPhotoMessage("");
@@ -173,8 +181,15 @@ export default function Perfil() {
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSaving(true);
+    setSaved(false);
+    setSaveError("");
     const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) return;
+    if (userError || !userData.user) {
+      setSaveError("No se encontró una sesión activa.");
+      setSaving(false);
+      return;
+    }
 
     const { error } = await supabase.from("profiles").update({
       full_name: name.trim(),
@@ -188,16 +203,19 @@ export default function Perfil() {
 
     if (error) {
       console.error(error);
+      setSaveError(`No se pudieron guardar los cambios: ${error.message}`);
+      setSaving(false);
       return;
     }
 
     setSaved(true);
     window.dispatchEvent(new Event("hrr-profile-updated"));
-    window.setTimeout(() => setSaved(false), 2500);
+    setSaving(false);
+    window.setTimeout(() => setSaved(false), 4500);
   }
 
-  const isAdmin =
-    role === "admin";
+  const isAdmin = role === "admin";
+  const isSponsor = role === "sponsor";
 
   return (
     <>
@@ -261,48 +279,26 @@ export default function Perfil() {
 
           {photoMessage && <p className={styles.photoMessage} role="status">{photoMessage}</p>}
 
-          {isAdmin ? (
-            <div
-              className={`${styles.statusCard} ${styles.adminStatus}`}
-            >
-              <div
-                className={
-                  styles.statusIcon
-                }
-              >
+          {isAdmin || isSponsor ? (
+            <div className={`${styles.statusCard} ${styles.adminStatus}`}>
+              <div className={styles.statusIcon}>
                 <ShieldCheck />
               </div>
 
               <div>
-                <span>
-                  Tipo de cuenta
-                </span>
-
-                <strong>
-                  Administrador
-                </strong>
+                <span>Tipo de cuenta</span>
+                <strong>{isSponsor ? "Patrocinador" : "Administrador"}</strong>
               </div>
             </div>
           ) : (
-            <div
-              className={styles.statusCard}
-            >
-              <div
-                className={
-                  styles.statusIcon
-                }
-              >
+            <div className={styles.statusCard}>
+              <div className={styles.statusIcon}>
                 <Trophy />
               </div>
 
               <div>
-                <span>
-                  Ranking
-                </span>
-
-                <strong>
-                  {rankingPosition ? `#${rankingPosition}` : "Sin posición"}
-                </strong>
+                <span>Ranking</span>
+                <strong>{rankingPosition ? `#${rankingPosition}` : "Sin posición"}</strong>
               </div>
             </div>
           )}
@@ -491,6 +487,10 @@ export default function Perfil() {
           <div
             className={styles.formActions}
           >
+            {saveError && (
+              <span className={styles.errorMessage} role="alert">{saveError}</span>
+            )}
+
             {saved && (
               <span
                 className={
@@ -502,10 +502,10 @@ export default function Perfil() {
               </span>
             )}
 
-            <button type="submit">
+            <button type="submit" disabled={saving}>
               <Save />
 
-              Guardar cambios
+              {saving ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
         </form>

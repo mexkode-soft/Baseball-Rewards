@@ -167,14 +167,19 @@ export async function saveAnnouncements(items: Announcement[]): Promise<Announce
 }
 
 export async function readTickerEnabled(): Promise<boolean> {
-  const { data, error } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "ticker_enabled").maybeSingle();
-  if (error) return true;
-  return data?.setting_value !== false;
+  const { data, error } = await supabase.rpc("obtener_estado_cinta");
+  if (error) {
+    throw new Error(`No se pudo consultar el estado de la cinta: ${error.message}`);
+  }
+  return data !== false;
 }
 
 export async function saveTickerEnabled(enabled: boolean): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase.from("app_settings").upsert({ setting_key: "ticker_enabled", setting_value: enabled, updated_at: new Date().toISOString(), updated_by: user?.id ?? null });
-  if (error) throw error;
+  const { error } = await supabase.rpc("establecer_estado_cinta", {
+    p_habilitada: enabled,
+  });
+  if (error) {
+    throw new Error(`No se pudo actualizar la cinta: ${error.message}`);
+  }
   window.dispatchEvent(new CustomEvent(ANNOUNCEMENTS_UPDATED_EVENT));
 }

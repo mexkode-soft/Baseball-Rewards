@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { compressPromotionImage } from "@/lib/image";
 
 export type PromotionStatus = "Activa" | "Borrador";
 export interface Promotion {
@@ -37,12 +38,16 @@ export async function readPromotions(includeInactive = false): Promise<Promotion
 }
 
 export async function uploadPromotionImage(file: File, folder: string): Promise<string> {
-  const safeName = file.name.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
+  const optimizedFile = await compressPromotionImage(
+    file,
+    folder === "brands" ? "marca" : "producto"
+  );
+  const safeName = optimizedFile.name.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
   const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from("promotion-images").upload(path, file, {
+  const { error } = await supabase.storage.from("promotion-images").upload(path, optimizedFile, {
     upsert: false,
-    contentType: file.type,
-    cacheControl: "3600",
+    contentType: optimizedFile.type,
+    cacheControl: "31536000",
   });
   if (error) throw error;
   return supabase.storage.from("promotion-images").getPublicUrl(path).data.publicUrl;
@@ -62,6 +67,22 @@ export async function createPromotion(promotion: Omit<Promotion, "id">): Promise
     created_by: userData.user?.id ?? null,
     metadata: { brandImage: promotion.brandImage, productImages: promotion.productImages },
   }).select("*").single();
+  if (error) throw error;
+  return mapRow(data as Record<string, unknown>);
+}
+
+export async function updatePromotion(id: string, promotion: Omit<Promotion, "id">): Promise<Promotion> {
+  const { data, error } = await supabase.from("promotions").update({
+    title: promotion.title,
+    description: promotion.description || null,
+    brand: promotion.brandName,
+    code: promotion.code || null,
+    image_url: promotion.brandImage || null,
+    ends_at: promotion.expiration ? `${promotion.expiration}T23:59:59` : null,
+    is_active: promotion.status === "Activa",
+    metadata: { brandImage: promotion.brandImage, productImages: promotion.productImages },
+    updated_at: new Date().toISOString(),
+  }).eq("id", id).select("*").single();
   if (error) throw error;
   return mapRow(data as Record<string, unknown>);
 }

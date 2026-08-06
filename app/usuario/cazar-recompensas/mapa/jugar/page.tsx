@@ -131,7 +131,6 @@ export default function MapPlayPage() {
   const watchRef =
     useRef<number | null>(null);
 
-  const trackingStartedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -203,11 +202,6 @@ export default function MapPlayPage() {
   }, [campaign, location]);
 
 
-  useEffect(() => {
-    if (!campaign || !location || phase !== "location" || trackingStartedRef.current) return;
-    trackingStartedRef.current = true;
-    void locate();
-  }, [campaign, location, phase, demoConfig.simulatedLocationEnabled]);
   if (
     !campaign ||
     !location
@@ -356,6 +350,58 @@ export default function MapPlayPage() {
           maximumAge: 3000,
         }
       );
+  }
+
+  async function iniciarDinamica() {
+    if (remaining > 0) {
+      return;
+    }
+
+    const configuracionDemo = await readDemoConfig();
+
+    // En modo demo no se valida geolocalización: la trivia inicia de inmediato.
+    if (configuracionDemo.simulatedLocationEnabled) {
+      setDistance(0);
+      setWatching(false);
+      await begin();
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setDistance(-1);
+      return;
+    }
+
+    setWatching(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const metros = Math.round(
+          distanceMeters(
+            position.coords.latitude,
+            position.coords.longitude,
+            activeLocation.latitude,
+            activeLocation.longitude
+          )
+        );
+
+        setDistance(metros);
+        setWatching(false);
+
+        if (metros <= activeLocation.radius) {
+          await begin();
+        }
+      },
+      () => {
+        setDistance(-1);
+        setWatching(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 3000,
+      }
+    );
   }
 
   async function camera() {
@@ -714,7 +760,7 @@ export default function MapPlayPage() {
               className={
                 styles.cameraButton
               }
-              onClick={() => { void locate(); window.open(mapsUrl, "_blank", "noopener,noreferrer"); }}
+              onClick={() => { void iniciarDinamica(); }}
               disabled={
                 watching
               }
@@ -722,8 +768,10 @@ export default function MapPlayPage() {
               <MapPin />
 
               {watching
-                ? "Siguiendo tu recorrido..."
-                : "Ir al objetivo"}
+                ? "Validando ubicación..."
+                : demoConfig.simulatedLocationEnabled
+                  ? "Iniciar trivia demo"
+                  : "Iniciar dinámica"}
             </button>
           )}
 
@@ -736,11 +784,7 @@ export default function MapPlayPage() {
                   styles.noticeBox
                 }
               >
-                Sigue
-                acercándote. La
-                barra se
-                actualizará con
-                tu ubicación.
+                Aún estás fuera del radio permitido. Acércate al objetivo y vuelve a presionar “Iniciar dinámica”.
               </div>
             )}
 

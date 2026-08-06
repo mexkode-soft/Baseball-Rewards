@@ -1113,3 +1113,73 @@
     height: 36px;
   }
 }
+
+.primaryButton:disabled{opacity:.58;cursor:wait;transform:none}.historyFilter{display:flex;gap:10px;align-items:center;color:#bfc2ca;font-size:12px}.historyFilter input{min-height:40px;border:1px solid #30333a;border-radius:10px;background:#111318;color:#fff;padding:0 12px}.fullField>div label{background:rgba(255,255,255,.025);transition:border-color .2s,background .2s}.fullField>div label:has(input:checked){border-color:rgba(242,189,69,.55)!important;background:rgba(242,189,69,.08)}
+
+/* Fechas visibles sobre fondos oscuros */
+.panel input[type="date"],
+.historyFilter input[type="date"] {
+  color-scheme: dark;
+}
+.panel input[type="date"]::-webkit-calendar-picker-indicator,
+.historyFilter input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(2);
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* Selector compacto y visual de destinatarios */
+.recipientSelector{display:grid;gap:12px;padding:16px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012))}
+.recipientHeader{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.recipientHeader>div{display:grid;gap:3px}.recipientHeader strong{font-size:16px;color:#f7f7f8}.recipientHeader small{font-size:12px;color:#8f939d}
+.recipientCounter{display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:30px;border:1px solid rgba(242,189,69,.35);border-radius:999px;background:rgba(242,189,69,.09);color:#f2bd45;font-weight:800;font-size:12px}
+.recipientSearch{display:flex!important;align-items:center!important;gap:10px!important;min-height:46px!important;padding:0 14px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:13px!important;background:#0d0f13!important;transition:border-color .2s,box-shadow .2s!important}
+.recipientSearch:focus-within{border-color:rgba(242,189,69,.58)!important;box-shadow:0 0 0 3px rgba(242,189,69,.08)!important}.recipientSearch svg{width:18px;color:#f2bd45;flex:none}
+.recipientSearch input{width:100%;min-height:auto!important;padding:0!important;border:0!important;outline:0!important;background:transparent!important;color:#fff!important;font-size:14px!important}
+.recipientList{display:grid;gap:8px;max-height:260px;overflow:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:rgba(242,189,69,.5) transparent}
+.recipientOption{width:100%;display:grid;grid-template-columns:38px minmax(0,1fr) auto 28px;align-items:center;gap:11px;padding:10px 12px;border:1px solid rgba(255,255,255,.085);border-radius:13px;background:rgba(5,7,10,.48);color:#fff;text-align:left;cursor:pointer;transition:transform .18s,border-color .18s,background .18s}
+.recipientOption:hover:not(:disabled){transform:translateY(-1px);border-color:rgba(242,189,69,.35);background:rgba(242,189,69,.045)}.recipientOption:disabled{opacity:.45;cursor:not-allowed}
+.recipientSelected{border-color:rgba(242,189,69,.62);background:linear-gradient(90deg,rgba(242,189,69,.12),rgba(242,189,69,.035))}
+.recipientAvatar{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:linear-gradient(145deg,#5b4930,#1b1813);border:1px solid rgba(242,189,69,.36);color:#ffd86c;font-weight:900;font-size:12px}
+.recipientIdentity{display:grid;min-width:0;gap:2px}.recipientIdentity strong,.recipientIdentity small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipientIdentity strong{font-size:13px}.recipientIdentity small{font-size:11px;color:#8f939d}
+.recipientRole{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.055);color:#aeb2bc;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.recipientCheck{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#15120a;background:rgba(255,255,255,.025)}.recipientSelected .recipientCheck{border-color:#f2bd45;background:#f2bd45}
+@media(max-width:680px){.recipientOption{grid-template-columns:36px minmax(0,1fr) 26px}.recipientRole{display:none}}
+
+.customFilters label > span small {
+  color: #8f949f;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.customFilters label > small {
+  color: #ff9b9b;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.noticeMessage {
+  margin: 1rem 0 0;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.noticeSuccess {
+  color: #78f2ad;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.32);
+}
+
+.noticeError {
+  color: #ff9d9d;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+}
+
+.noticeInfo {
+  color: #f5c84c;
+  background: rgba(245, 200, 76, 0.08);
+  border: 1px solid rgba(245, 200, 76, 0.25);
+}

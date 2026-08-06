@@ -1,3 +1,4 @@
+import CampaignSection from "@/components/CampaignSection";
 import AboutSection from "@/components/AboutSection";
 import HeroExperience from "@/components/HeroExperience";
 import PromoTicker from "@/components/PromoTicker";
@@ -12,6 +13,7 @@ export default function Home() {
 
       <main>
         <HeroExperience />
+        <CampaignSection />
         <AboutSection />
       </main>
 

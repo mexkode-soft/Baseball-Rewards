@@ -1178,3 +1178,24 @@
 .googleButton svg { width: 20px; height: 20px; flex: 0 0 auto; }
 
 .googleButton{background:#090a0d!important;color:#fff!important;border:1px solid rgba(242,189,69,.72)!important;box-shadow:0 0 0 1px rgba(242,189,69,.08) inset!important}.googleButton:hover{background:rgba(242,189,69,.08)!important;border-color:#f2bd45!important}
+
+/* Corrección de recortes en navegador y PWA. */
+@media (max-width:1200px){.loginPage{height:auto!important;min-height:100dvh!important;overflow-y:auto!important;grid-template-rows:auto minmax(180px,auto)!important}.loginFormSection,.loginVisual,.visualInner{overflow:visible!important}.loginCard{min-height:0!important}.formContainer{max-height:none!important}.googleButton:disabled{opacity:.62;cursor:wait}}
+
+
+/* Registro completo y controles legales */
+.registerPage { height: auto; min-height: 100svh; overflow: auto; }
+.registerPage .loginFormSection { padding-block: 32px; }
+.registerPage .formContainer { max-height: none; width: min(720px, 100%); }
+.registerPage .loginCard { padding: 26px; }
+.registrationGrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.fullWidth { grid-column: 1 / -1; }
+.inputWrap select { width: 100%; min-width: 0; min-height: 48px; border: 0; outline: 0; background: transparent; color: #fff; font: inherit; }
+.inputWrap select option { background: #111318; color: #fff; }
+.passwordToggle { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; border: 0; background: transparent; color: #aeb2bc; cursor: pointer; }
+.passwordToggle svg { width: 18px; height: 18px; }
+.legalChecks { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid rgba(242,189,69,.2); border-radius: 14px; background: rgba(242,189,69,.035); }
+.legalChecks label { display: flex; align-items: flex-start; gap: 9px; color: #c9ccd3; font-size: 11px; line-height: 1.45; }
+.legalChecks input { margin-top: 2px; accent-color: #f2bd45; }
+.legalChecks a { color: #f2bd45; text-decoration: underline; }
+@media (max-width: 720px) { .registrationGrid { grid-template-columns: 1fr; } .fullWidth { grid-column: auto; } .registerPage .loginFormSection { padding: 12px; } }

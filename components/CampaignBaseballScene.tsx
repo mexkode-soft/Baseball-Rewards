@@ -10,6 +10,7 @@ export default function CampaignBaseballScene() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
+  const [showHint, setShowHint] = useState(true);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -117,13 +118,14 @@ export default function CampaignBaseballScene() {
   return (
     <div className={styles.sceneWrapper}>
       <div className={styles.glow} />
-      <div ref={containerRef} className={styles.scene}>
+      <div ref={containerRef} className={styles.scene} onPointerDown={() => setShowHint(false)} onWheel={() => setShowHint(false)} onTouchStart={() => setShowHint(false)}>
         {!failed ? <canvas ref={canvasRef} aria-label="Pelota de béisbol interactiva" /> : (
           <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center" }}>
             <img src="/images/logo-home-run.png" alt="Home Run Rewards" style={{ width: "min(58%, 260px)", height: "auto", objectFit: "contain" }} />
           </div>
         )}
       </div>
+      {showHint && !failed ? <div className={styles.instructions} role="status"><div className={styles.mouseIcon}>↕</div><div><strong>Interactúa con la pelota</strong><p>Arrastra para girar y usa pinza o rueda para aumentar su tamaño.</p></div></div> : null}
     </div>
   );
 }

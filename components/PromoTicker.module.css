@@ -8,3 +8,7 @@
 @media(prefers-reduced-motion:reduce){.tickerTrack{animation-duration:120s}}
 @media(max-width:900px){.promotionItem{padding-inline:18px;font-size:11px}.tickerTrack{animation-duration:50s}}
 @media(max-width:540px){.ticker{top:76px;height:50px}.promotionItem{gap:7px;padding-inline:14px;font-size:10px;letter-spacing:.04em}.promotionItem svg{width:16px;height:16px}.separator{margin-left:9px;font-size:13px}.tickerTrack{animation-duration:44s}}
+
+/* Cinta estable en móviles y PWA: texto completo, sin parpadeo ni corte. */
+.tickerViewport{contain:paint}.tickerTrack{animation-name:tickerMovement;animation-timing-function:linear;animation-iteration-count:infinite}.promotionItem span{visibility:visible!important;opacity:1!important}
+@media(max-width:540px){.tickerViewport{mask-image:none;-webkit-mask-image:none}.promotionItem{padding-inline:18px;max-width:none}.tickerTrack{animation-duration:42s}}

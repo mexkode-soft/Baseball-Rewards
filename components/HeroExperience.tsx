@@ -169,6 +169,7 @@ export default function HeroExperience() {
         ref={videoRef}
         className={styles.heroVideo}
         muted={muted}
+        poster="/media/video-poster.jpg"
         playsInline
         preload={deviceMode === "mobile" ? "metadata" : "auto"}
         disablePictureInPicture

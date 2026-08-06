@@ -4,8 +4,20 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publicKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !publicKey || !serviceKey) return NextResponse.json({ error: "Falta configuración segura de Supabase en Vercel." }, { status: 500 });
+  const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !publicKey || !serviceKey) {
+    return NextResponse.json(
+      { error: "Falta configuración segura de Supabase en Vercel." },
+      { status: 500 },
+    );
+  }
+
+  if (serviceKey === publicKey || serviceKey.startsWith("sb_publishable_")) {
+    return NextResponse.json(
+      { error: "SUPABASE_SECRET_KEY contiene una clave pública. Usa la Secret key que inicia con sb_secret_." },
+      { status: 500 },
+    );
+  }
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return NextResponse.json({ error: "Sesión requerida." }, { status: 401 });
   const viewer = createClient(url, publicKey, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
@@ -19,15 +31,84 @@ export async function POST(request: NextRequest) {
   const organizationName = String(body.organizationName ?? "").trim();
   const planCode = ["basic", "intermediate", "premium"].includes(body.planCode) ? body.planCode : "basic";
   if (!email || !organizationName) return NextResponse.json({ error: "Correo y marca son obligatorios." }, { status: 400 });
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient(url, serviceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
   const slugBase = organizationName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "patrocinador";
   const slug = `${slugBase}-${Date.now().toString(36)}`;
-  const { data: org, error: orgError } = await admin.from("sponsor_organizations").insert({ name: organizationName, slug, plan_code: planCode }).select("id").single();
-  if (orgError) return NextResponse.json({ error: orgError.message }, { status: 400 });
+  const { data: org, error: orgError } = await admin
+    .from("sponsor_organizations")
+    .insert({ name: organizationName, slug, plan_code: planCode })
+    .select("id")
+    .single();
+
+  if (orgError) {
+    return NextResponse.json({ error: orgError.message }, { status: 400 });
+  }
+
   const redirectTo = `${request.nextUrl.origin}/actualizar-contrasena`;
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo, data: { full_name: name, role: "sponsor" } });
-  if (inviteError || !invited.user) { await admin.from("sponsor_organizations").delete().eq("id", org.id); return NextResponse.json({ error: inviteError?.message ?? "No se pudo invitar." }, { status: 400 }); }
-  await admin.from("profiles").upsert({ id: invited.user.id, email, full_name: name || organizationName, role: "sponsor" });
-  await admin.from("sponsor_members").insert({ organization_id: org.id, user_id: invited.user.id, member_role: "owner" });
-  return NextResponse.json({ ok: true, message: "Patrocinador creado. Supabase envió una invitación para definir su contraseña." });
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+    data: { full_name: name || organizationName, role: "sponsor" },
+  });
+
+  if (inviteError || !invited.user) {
+    await admin.from("sponsor_organizations").delete().eq("id", org.id);
+    return NextResponse.json(
+      { error: inviteError?.message ?? "No se pudo invitar al patrocinador." },
+      { status: 400 },
+    );
+  }
+
+  const userId = invited.user.id;
+
+  const { error: metadataError } = await admin.auth.admin.updateUserById(userId, {
+    user_metadata: {
+      ...invited.user.user_metadata,
+      full_name: name || organizationName,
+      role: "sponsor",
+    },
+  });
+
+  if (metadataError) {
+    await admin.auth.admin.deleteUser(userId);
+    await admin.from("sponsor_organizations").delete().eq("id", org.id);
+    return NextResponse.json({ error: metadataError.message }, { status: 400 });
+  }
+
+  const { error: profileError } = await admin.from("profiles").upsert(
+    {
+      id: userId,
+      email,
+      full_name: name || organizationName,
+      role: "sponsor",
+    },
+    { onConflict: "id" },
+  );
+
+  if (profileError) {
+    await admin.auth.admin.deleteUser(userId);
+    await admin.from("sponsor_organizations").delete().eq("id", org.id);
+    return NextResponse.json({ error: profileError.message }, { status: 400 });
+  }
+
+  const { error: memberError } = await admin.from("sponsor_members").upsert(
+    { organization_id: org.id, user_id: userId, member_role: "owner" },
+    { onConflict: "organization_id,user_id" },
+  );
+
+  if (memberError) {
+    await admin.auth.admin.deleteUser(userId);
+    await admin.from("sponsor_organizations").delete().eq("id", org.id);
+    return NextResponse.json({ error: memberError.message }, { status: 400 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    message: "Patrocinador creado. La invitación abrirá el portal de métricas y campañas.",
+  });
 }

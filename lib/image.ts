@@ -61,3 +61,27 @@ export async function prepareProfileAvatar(file: File): Promise<File> {
   const baseName = file.name.replace(/\.[^/.]+$/, "") || "avatar";
   return new File([blob], `${baseName}.webp`, { type: "image/webp", lastModified: Date.now() });
 }
+
+export async function compressPromotionImage(
+  file: File,
+  kind: "marca" | "producto"
+): Promise<File> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Selecciona una imagen válida.");
+  }
+
+  const compressed = await imageCompression(file, {
+    maxSizeMB: kind === "marca" ? 0.16 : 0.12,
+    maxWidthOrHeight: kind === "marca" ? 1200 : 900,
+    useWebWorker: true,
+    fileType: "image/webp",
+    initialQuality: kind === "marca" ? 0.66 : 0.6,
+    preserveExif: false,
+  });
+
+  const originalName = file.name.replace(/\.[^/.]+$/, "") || kind;
+  return new File([compressed], `${originalName}.webp`, {
+    type: "image/webp",
+    lastModified: Date.now(),
+  });
+}

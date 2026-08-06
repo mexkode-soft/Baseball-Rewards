@@ -15,6 +15,8 @@ import {
   Megaphone,
   MoreHorizontal,
   Send,
+  Search,
+  Check,
   Sparkles,
   Target,
   Trophy,
@@ -30,6 +32,7 @@ import {
 import styles from "./CanalDifusion.module.css";
 import { readBroadcasts, sendBroadcast, type BroadcastRecord } from "@/lib/broadcasts";
 import { supabase } from "@/lib/supabase";
+import { getStateCode, MEXICO_STATES } from "@/lib/mexicoCatalog";
 
 type AudienceType =
   | "all"
@@ -119,6 +122,20 @@ const messageTypes = [
   },
 ];
 
+function obtenerClaveFechaLocal(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export default function Page() {
   const [
     audienceType,
@@ -161,7 +178,12 @@ export default function Page() {
   const [
     state,
     setState,
-  ] = useState("Veracruz");
+  ] = useState("Veracruz de Ignacio de la Llave");
+
+  const [municipality, setMunicipality] = useState("");
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [municipalitiesLoading, setMunicipalitiesLoading] = useState(false);
+  const [municipalitiesError, setMunicipalitiesError] = useState("");
 
   const [
     randomAmount,
@@ -174,24 +196,80 @@ export default function Page() {
 
   const [historyItems, setHistoryItems] = useState<BroadcastRecord[]>([]);
   const [notice, setNotice] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const obtenerFechaLocal = () => {
+    const ahora = new Date();
+    const desfase = ahora.getTimezoneOffset() * 60_000;
+    return new Date(ahora.getTime() - desfase).toISOString().slice(0, 10);
+  };
+
+  const [vigencia, setVigencia] = useState(obtenerFechaLocal);
+  const [historyDate, setHistoryDate] = useState(obtenerFechaLocal);
 
   useEffect(() => {
     void readBroadcasts().then(setHistoryItems).catch(() => setHistoryItems([]));
     void supabase.from("profiles").select("id,email,full_name,role").in("role", ["usuario","sponsor"]).order("full_name").then(({data}) => setDirectory((data ?? []) as Array<{id:string;email:string;full_name:string|null;role:string}>));
   }, []);
 
+  useEffect(() => {
+    const stateCode = getStateCode(state);
+
+    if (!stateCode) {
+      setMunicipalities([]);
+      setMunicipality("");
+      setMunicipalitiesError("");
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    async function loadMunicipalities() {
+      setMunicipalitiesLoading(true);
+      setMunicipalitiesError("");
+
+      try {
+        const response = await fetch(`/api/geo/municipalities?state=${stateCode}`, {
+          signal: controller.signal,
+        });
+        const payload = await response.json() as { municipalities?: string[]; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? "No fue posible cargar los municipios.");
+        if (!active) return;
+
+        const options = payload.municipalities ?? [];
+        setMunicipalities(options);
+        setMunicipality((current) => current && options.includes(current) ? current : "");
+      } catch (error) {
+        if (controller.signal.aborted || !active) return;
+        setMunicipalities([]);
+        setMunicipalitiesError(error instanceof Error ? error.message : "No fue posible cargar los municipios.");
+      } finally {
+        if (active) setMunicipalitiesLoading(false);
+      }
+    }
+
+    void loadMunicipalities();
+    return () => { active = false; controller.abort(); };
+  }, [state]);
+
   async function prepareSend() {
+    if (isSending) return;
     if (!title.trim() || !message.trim()) { setNotice("Escribe el título y el mensaje."); return; }
     if (audienceType === "specific" && selectedUserIds.length === 0) { setNotice("Selecciona al menos un usuario."); return; }
+    setIsSending(true);
+    setNotice("Procesando y evitando envíos duplicados...");
     try {
-      const recipients = await sendBroadcast({
+      const idempotencyKey = crypto.randomUUID();
+      const result = await sendBroadcast({
         title: title.trim(), body: message.trim(), messageType, priority, audienceType,
-        level, state, randomAmount: Number(randomAmount) || 1, userIds: selectedUserIds,
+        level, state, municipality, randomAmount: Number(randomAmount) || 1, userIds: selectedUserIds,
         actionUrl: audienceType === "sponsors" ? "/patrocinador" : "/usuario",
+        idempotencyKey,
       });
-      setNotice(`Comunicado enviado a ${recipients} usuarios.`);
+      const pushDetail = result.pushMessage ? ` ${result.pushMessage}` : "";
+      setNotice(`Comunicado enviado a ${result.recipients} usuario(s).${pushDetail}`);
       setHistoryItems(await readBroadcasts());
-    } catch (error) { setNotice(error instanceof Error ? error.message : "No se pudo enviar el comunicado."); }
+    } catch (error) { setNotice(error instanceof Error ? error.message : "No se pudo enviar el comunicado."); } finally { setIsSending(false); }
   }
 
   const selectedType =
@@ -437,7 +515,9 @@ export default function Page() {
 
                 <input
                   type="date"
-                  defaultValue="2026-07-31"
+                  value={vigencia}
+                  min={obtenerFechaLocal()}
+                  onChange={(evento) => setVigencia(evento.target.value)}
                 />
               </label>
             </div>
@@ -587,52 +667,107 @@ export default function Page() {
                 </label>
               )}
 
-              {audienceType ===
-                "location" && (
-                <label>
-                  <span>
-                    Estado
-                  </span>
+              {audienceType === "location" && (
+                <div className={styles.customFilters}>
+                  <label>
+                    <span>Estado</span>
+                    <select
+                      value={state}
+                      onChange={(event) => {
+                        setState(event.target.value);
+                        setMunicipality("");
+                      }}
+                    >
+                      <option value="">Selecciona un estado</option>
+                      {MEXICO_STATES.map((stateOption) => (
+                        <option key={stateOption.code} value={stateOption.name}>
+                          {stateOption.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                  <select
-                    value={state}
-                    onChange={(
-                      event
-                    ) =>
-                      setState(
-                        event.target
-                          .value
-                      )
-                    }
-                  >
-                    <option>
-                      Veracruz
-                    </option>
-
-                    <option>
-                      Sinaloa
-                    </option>
-
-                    <option>
-                      Sonora
-                    </option>
-
-                    <option>
-                      Jalisco
-                    </option>
-                  </select>
-                </label>
+                  <label>
+                    <span>Municipio <small>(opcional)</small></span>
+                    <select
+                      value={municipality}
+                      onChange={(event) => setMunicipality(event.target.value)}
+                      disabled={!state || municipalitiesLoading}
+                    >
+                      <option value="">
+                        {!state
+                          ? "Primero selecciona un estado"
+                          : municipalitiesLoading
+                            ? "Cargando municipios..."
+                            : "Todo el estado"}
+                      </option>
+                      {municipalities.map((municipalityOption) => (
+                        <option key={municipalityOption} value={municipalityOption}>
+                          {municipalityOption}
+                        </option>
+                      ))}
+                    </select>
+                    {municipalitiesError ? <small>{municipalitiesError}</small> : null}
+                  </label>
+                </div>
               )}
 
               {audienceType === "specific" && (
-                <div className={styles.fullField}>
-                  <span>Destinatarios ({selectedUserIds.length}/10)</span>
-                  <input value={userSearch} onChange={(event)=>setUserSearch(event.target.value)} placeholder="Buscar por nombre o correo" />
-                  <div style={{display:"grid",gap:8,maxHeight:260,overflow:"auto",marginTop:10}}>
-                    {directory.filter((user)=>`${user.full_name ?? ""} ${user.email}`.toLowerCase().includes(userSearch.toLowerCase())).map((user)=>{
-                      const checked=selectedUserIds.includes(user.id);
-                      return <label key={user.id} style={{display:"flex",alignItems:"center",gap:10,padding:10,border:"1px solid #30333a",borderRadius:10}}><input type="checkbox" checked={checked} disabled={!checked && selectedUserIds.length>=10} onChange={()=>setSelectedUserIds((current)=>checked?current.filter((id)=>id!==user.id):[...current,user.id].slice(0,10))}/><span>{user.full_name || user.email}<small style={{display:"block",opacity:.65}}>{user.email} · {user.role}</small></span></label>
-                    })}
+                <div className={`${styles.fullField} ${styles.recipientSelector}`}>
+                  <div className={styles.recipientHeader}>
+                    <div>
+                      <strong>Destinatarios</strong>
+                      <small>Selecciona hasta 10 personas.</small>
+                    </div>
+                    <span className={styles.recipientCounter}>{selectedUserIds.length}/10</span>
+                  </div>
+
+                  <label className={styles.recipientSearch}>
+                    <Search aria-hidden="true" />
+                    <input
+                      value={userSearch}
+                      onChange={(event) => setUserSearch(event.target.value)}
+                      placeholder="Buscar por nombre o correo"
+                    />
+                  </label>
+
+                  <div className={styles.recipientList}>
+                    {directory
+                      .filter((user) => `${user.full_name ?? ""} ${user.email}`.toLowerCase().includes(userSearch.toLowerCase()))
+                      .map((user) => {
+                        const checked = selectedUserIds.includes(user.id);
+                        const initials = (user.full_name || user.email || "U")
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((part) => part.charAt(0).toUpperCase())
+                          .join("");
+
+                        return (
+                          <button
+                            type="button"
+                            key={user.id}
+                            className={`${styles.recipientOption} ${checked ? styles.recipientSelected : ""}`}
+                            disabled={!checked && selectedUserIds.length >= 10}
+                            onClick={() =>
+                              setSelectedUserIds((current) =>
+                                checked
+                                  ? current.filter((id) => id !== user.id)
+                                  : [...current, user.id].slice(0, 10)
+                              )
+                            }
+                          >
+                            <span className={styles.recipientAvatar}>{initials}</span>
+                            <span className={styles.recipientIdentity}>
+                              <strong>{user.full_name || "Usuario"}</strong>
+                              <small>{user.email}</small>
+                            </span>
+                            <span className={styles.recipientRole}>{user.role}</span>
+                            <span className={styles.recipientCheck} aria-hidden="true">
+                              {checked ? <Check size={17} /> : null}
+                            </span>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -662,51 +797,56 @@ export default function Page() {
                 </label>
               )}
 
-              {audienceType ===
-                "custom" && (
-                <div
-                  className={
-                    styles.customFilters
-                  }
-                >
+              {audienceType === "custom" && (
+                <div className={styles.customFilters}>
                   <label>
-                    <span>
-                      Nivel
-                    </span>
-
-                    <select>
-                      <option>
-                        All Star
-                      </option>
-
-                      <option>
-                        Novato
-                      </option>
-
-                      <option>
-                        Leyenda
-                      </option>
+                    <span>Nivel</span>
+                    <select value={level} onChange={(event) => setLevel(event.target.value)}>
+                      <option>Novato</option>
+                      <option>All Star</option>
+                      <option>Leyenda</option>
                     </select>
                   </label>
 
                   <label>
-                    <span>
-                      Estado
-                    </span>
-
-                    <select>
-                      <option>
-                        Veracruz
-                      </option>
-
-                      <option>
-                        Sinaloa
-                      </option>
-
-                      <option>
-                        Sonora
-                      </option>
+                    <span>Estado</span>
+                    <select
+                      value={state}
+                      onChange={(event) => {
+                        setState(event.target.value);
+                        setMunicipality("");
+                      }}
+                    >
+                      <option value="">Selecciona un estado</option>
+                      {MEXICO_STATES.map((stateOption) => (
+                        <option key={stateOption.code} value={stateOption.name}>
+                          {stateOption.name}
+                        </option>
+                      ))}
                     </select>
+                  </label>
+
+                  <label>
+                    <span>Municipio <small>(opcional)</small></span>
+                    <select
+                      value={municipality}
+                      onChange={(event) => setMunicipality(event.target.value)}
+                      disabled={!state || municipalitiesLoading}
+                    >
+                      <option value="">
+                        {!state
+                          ? "Primero selecciona un estado"
+                          : municipalitiesLoading
+                            ? "Cargando municipios..."
+                            : "Todo el estado"}
+                      </option>
+                      {municipalities.map((municipalityOption) => (
+                        <option key={municipalityOption} value={municipalityOption}>
+                          {municipalityOption}
+                        </option>
+                      ))}
+                    </select>
+                    {municipalitiesError ? <small>{municipalitiesError}</small> : null}
                   </label>
                 </div>
               )}
@@ -803,10 +943,12 @@ export default function Page() {
                 type="button"
                 className={styles.primaryButton}
                 onClick={() => { void prepareSend(); }}
+                disabled={isSending}
+                aria-busy={isSending}
               >
                 <Send />
 
-                Preparar envío
+                {isSending ? "Procesando..." : "Preparar envío"}
               </button>
             </div>
             {notice && <p>{notice}</p>}
@@ -997,11 +1139,8 @@ export default function Page() {
               Comunicaciones recientes
             </h2>
 
-            <p>
-              Vista de ejemplo de los
-              mensajes enviados,
-              programados y guardados.
-            </p>
+            <p>Por defecto se muestra el día actual. Cambia la fecha para consultar días anteriores.</p>
+            <label className={styles.historyFilter}>Fecha del historial<input type="date" value={historyDate} onChange={(evento)=>setHistoryDate(evento.target.value)} /></label>
           </div>
         </div>
 
@@ -1010,7 +1149,7 @@ export default function Page() {
             styles.historyList
           }
         >
-          {historyItems.map(
+          {historyItems.filter((item) => obtenerClaveFechaLocal(item.date) === historyDate).map(
             (item) => (
               <article
                 key={item.id}

@@ -10,7 +10,7 @@ export default function AdminLayout({
 }: AdminLayoutProps) {
   return (
     <AdminGuard requiredRole="admin">
-      <AdminShell>
+      <AdminShell rolDelPanel="admin">
         {children}
       </AdminShell>
     </AdminGuard>

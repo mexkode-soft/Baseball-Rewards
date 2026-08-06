@@ -19,8 +19,11 @@ import {
   Percent,
   Radio,
   ReceiptText,
+  BarChart3,
   Settings2,
   Trophy,
+  Gamepad2,
+  Scale,
   UserRound,
   UserRoundCog,
   X,
@@ -78,6 +81,11 @@ const adminItems:
       "Validar tickets",
       ReceiptText,
     ],
+    [
+      "/admin/metricas-campanas",
+      "Métricas por campaña",
+      BarChart3,
+    ],
     ["/admin/patrocinadores", "Patrocinadores", Building2],
     [
       "/admin/temporadas",
@@ -119,6 +127,7 @@ const adminItems:
       "Demo",
       Settings2,
     ],
+    ["/admin/legal", "Legal y consentimientos", Scale],
   ];
 
 const userItems:
@@ -144,15 +153,24 @@ const userItems:
       "Promociones",
       Percent,
     ],
+    ["/usuario/baseball-fantasy", "Baseball Fantasy", Gamepad2],
+  ];
+
+const sponsorItems:
+  readonly MenuItem[] = [
+    ["/patrocinador", "Métricas", BarChart3],
+    ["/patrocinador/campanas/nueva", "Crear campaña", Trophy],
+    ["/patrocinador/campanas", "Mis campañas", ListChecks],
   ];
 
 interface AdminShellProps {
-  children:
-    React.ReactNode;
+  children: React.ReactNode;
+  rolDelPanel: Role;
 }
 
 export default function AdminShell({
   children,
+  rolDelPanel,
 }: AdminShellProps) {
   const pathname =
     usePathname();
@@ -171,13 +189,6 @@ export default function AdminShell({
   ] = useState(false);
 
   const [
-    role,
-    setRole,
-  ] = useState<Role>(
-    "usuario"
-  );
-
-  const [
     photo,
     setPhoto,
   ] = useState("");
@@ -188,7 +199,6 @@ export default function AdminShell({
     async function loadProfile() {
       const profile = await getCurrentProfile();
       if (!active || !profile) return;
-      setRole(profile.role);
       setPhoto(profile.avatar_url ?? "");
     }
 
@@ -216,14 +226,18 @@ export default function AdminShell({
   }
 
   const menuItems =
-    role === "admin"
+    rolDelPanel === "admin"
       ? adminItems
-      : userItems;
+      : rolDelPanel === "sponsor"
+        ? sponsorItems
+        : userItems;
 
   const roleLabel =
-    role === "admin"
+    rolDelPanel === "admin"
       ? "Administrador"
-      : "Usuario";
+      : rolDelPanel === "sponsor"
+        ? "Patrocinador"
+        : "Usuario";
 
   return (
     <div
@@ -322,7 +336,7 @@ export default function AdminShell({
         </button>
 
         <Link
-          href={role === "admin" ? "/admin/perfil" : "/usuario/perfil"}
+          href={rolDelPanel === "admin" ? "/admin/perfil" : rolDelPanel === "sponsor" ? "/patrocinador/perfil" : "/usuario/perfil"}
           className={
             styles.profileHead
           }
@@ -364,11 +378,11 @@ export default function AdminShell({
         </Link>
 
         <nav className={styles.navigation}>
-          {role === "admin" ? (
+          {rolDelPanel === "admin" ? (
             <>
               <Link href="/admin" className={pathname === "/admin" ? styles.active : ""}><UserRound /><span>Inicio</span></Link>
               {[
-                { label: "Campañas", icon: Trophy, paths: ["/admin/crear-campana","/admin/campanas","/admin/campanas-patrocinadores"], items: [["/admin/crear-campana","Crear campaña",Trophy],["/admin/campanas","Mis campañas",ListChecks],["/admin/campanas-patrocinadores","Aprobar campañas",ClipboardCheck]] },
+                { label: "Campañas", icon: Trophy, paths: ["/admin/crear-campana","/admin/campanas","/admin/campanas-patrocinadores","/admin/metricas-campanas"], items: [["/admin/crear-campana","Crear campaña",Trophy],["/admin/campanas","Mis campañas",ListChecks],["/admin/campanas-patrocinadores","Aprobar campañas",ClipboardCheck],["/admin/metricas-campanas","Métricas por campaña",BarChart3]] },
                 { label: "Patrocinadores", icon: Building2, paths: ["/admin/patrocinadores"], items: [["/admin/patrocinadores","Marcas y planes",Building2]] },
                 { label: "Configuración", icon: Settings2, paths: ["/admin/temporadas","/admin/preguntas","/admin/niveles","/admin/ranking","/admin/demo"], items: [["/admin/temporadas","Temporadas",CalendarRange],["/admin/preguntas","Preguntas",CircleHelp],["/admin/niveles","Niveles",ChartNoAxesColumnIncreasing],["/admin/ranking","Ranking",Trophy],["/admin/demo","Demo",Settings2]] },
                 { label: "Anuncios", icon: Megaphone, paths: ["/admin/promociones","/admin/anuncios","/admin/canal-difusion"], items: [["/admin/promociones","Promociones",Percent],["/admin/anuncios","Cinta y anuncios",Megaphone],["/admin/canal-difusion","Canal de difusión",Radio]] },

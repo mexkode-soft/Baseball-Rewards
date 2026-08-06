@@ -26,30 +26,17 @@ export default function AboutSection() {
           </span>
 
           <span className={styles.whiteTitle}>
-            que convierten clientes
+            para verdaderos fans
             <br />
-            en nuevos fans.
+            del baseball.
           </span>
         </h2>
 
         <div className={styles.goldDivider} />
 
         <div className={styles.description}>
-          <p>
-            <strong>Home Run Rewards</strong>{" "}
-            conecta marcas y audiencias mediante
-            experiencias digitales, mapas,
-            recompensas y dinámicas inspiradas
-            en el béisbol.
-          </p>
-
-          <p>
-            Cada campaña invita a descubrir,
-            participar y ganar, generando
-            experiencias memorables que fortalecen
-            la conexión entre las marcas y sus
-            nuevos fans.
-          </p>
+          <p><strong>Home Run Rewards</strong> es una plataforma de fidelización para ligas, equipos deportivos, patrocinadores y marcas.</p>
+          <p>Integra campañas interactivas, promociones, recompensas, rankings, experiencias en tiempo real y próximamente Baseball Fantasy dentro de un mismo ecosistema digital.</p>
         </div>
 
         <div className={styles.logoArea}>

@@ -1906,3 +1906,5 @@
 @media(max-width:760px){.selectorIntro{text-align:center}.campaignCarousel{align-content:center}.mapCampaignCard{grid-template-columns:44px minmax(0,1fr);text-align:left}}
 
 .ticketField{display:block;margin-top:14px;color:#e4e5e8;font-size:12px;font-weight:800}.ticketField input,.ticketField select{display:block;width:100%;box-sizing:border-box;margin-top:7px;padding:12px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:#090b0e;color:#fff;font:inherit}.ticketField select{appearance:auto}.ticketResult small{display:block;margin-top:5px;color:var(--muted)}
+
+@media(max-width:700px){.campaignBody>span{font-size:10px}.campaignBody h2{font-size:20px;line-height:1.2}.campaignBody p{font-size:12px;line-height:1.55;-webkit-line-clamp:3}.campaignMeta div{font-size:9px}.campaignCard{min-height:150px}}

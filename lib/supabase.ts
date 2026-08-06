@@ -21,12 +21,30 @@ export const supabase: SupabaseClient = createSupabaseBrowserClient();
 export type AppRole = "admin" | "usuario" | "sponsor";
 export interface CurrentProfile { id:string; email:string; full_name:string; avatar_url:string; role:AppRole; phone?:string|null; state?:string|null; municipality?:string|null; favorite_team?:string|null; total_points?:number|null; }
 export async function getCurrentRole(): Promise<AppRole> {
-  if (!hasSupabaseConfig) throw new Error("Supabase no está configurado.");
-  const { data:{user}, error:userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error("No hay una sesión activa.");
-  const { data, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (error) throw error;
-  return data?.role === "admin" ? "admin" : data?.role === "sponsor" ? "sponsor" : "usuario";
+  if (!hasSupabaseConfig) {
+    throw new Error("Supabase no está configurado.");
+  }
+
+  const { data: authData, error: userError } = await supabase.auth.getUser();
+  if (userError || !authData.user) {
+    throw new Error("No hay una sesión activa.");
+  }
+
+  const { data: role, error: roleError } = await supabase.rpc(
+    "obtener_rol_actual",
+  );
+
+  if (roleError) {
+    throw new Error(`No fue posible consultar el rol: ${roleError.message}`);
+  }
+
+  if (role === "admin" || role === "sponsor" || role === "usuario") {
+    return role;
+  }
+
+  throw new Error(
+    `El usuario ${authData.user.email ?? authData.user.id} no tiene un rol válido.`,
+  );
 }
 export async function getCurrentProfile(): Promise<CurrentProfile|null> {
   if (!hasSupabaseConfig) return null;

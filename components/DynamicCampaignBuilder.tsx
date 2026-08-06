@@ -7,19 +7,23 @@ import {
   Save,
   Store,
   Trash2,
+  ImagePlus,
+  Upload,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { readQuestions, type TriviaQuestion } from "@/lib/questions";
 import {
   makeId,
   readDynamicCampaigns,
   saveDynamicCampaign,
+  uploadDynamicCampaignCover,
   type BrandCampaign,
   type CampaignLocation,
   type DynamicCampaignStatus,
   type MapCampaign,
 } from "@/lib/campaignDynamics";
 import dynamic from "next/dynamic";
+import { supabase } from "@/lib/supabase";
 
 const MapLocationPicker = dynamic(() => import("./MapLocationPicker"), {
   ssr: false,
@@ -43,9 +47,9 @@ function newLocation(index: number): CampaignLocation {
 }
 
 export default function DynamicCampaignBuilder({
-  type, campaignId = "",
+  type, campaignId = "", sponsorMode = false, organizationId = "",
 }: {
-  type: "map" | "brand"; campaignId?: string;
+  type: "map" | "brand"; campaignId?: string; sponsorMode?: boolean; organizationId?: string;
 }) {
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
   const [editingId, setEditingId] = useState(campaignId);
@@ -74,6 +78,8 @@ export default function DynamicCampaignBuilder({
   const [minimumTotal, setMinimumTotal] = useState(150);
   const [products, setProducts] = useState("");
   const [confidence, setConfidence] = useState(0.75);
+  const [coverUrl, setCoverUrl] = useState("");
+  const [uploadingCover, setUploadingCover] = useState(false);
 
 
   useEffect(() => {
@@ -85,7 +91,7 @@ export default function DynamicCampaignBuilder({
       setEditingId(campaign.id); setName(campaign.name); setSponsor(campaign.sponsor); setDescription(campaign.description);
       setReward(campaign.reward); setRewardCode(campaign.rewardCode); setPoints(campaign.points); setStartDate(campaign.startDate);
       setEndDate(campaign.endDate); setStatus(campaign.status); setSelected(campaign.selectedQuestionIds); setQuestionCount(campaign.questionCount);
-      setPassing(campaign.passingPercentage); setLocations(campaign.locations); setActiveLocationId(campaign.locations[0]?.id ?? "");
+      setPassing(campaign.passingPercentage); setLocations(campaign.locations); setActiveLocationId(campaign.locations[0]?.id ?? ""); setCoverUrl(campaign.coverUrl ?? "");
       if (campaign.type === "brand") { setMinimumTotal(campaign.minimumTotal); setProducts(campaign.requiredProducts.join(", ")); setConfidence(campaign.minimumConfidence); }
     }).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudo cargar la campaña."));
     return () => { active = false; };
@@ -162,16 +168,40 @@ export default function DynamicCampaignBuilder({
     }
   }
 
+  async function selectCover(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploadingCover(true);
+    setNotice("");
+    try {
+      setCoverUrl(await uploadDynamicCampaignCover(file));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo cargar la portada.");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
   async function save() {
     if (!name.trim() || selected.length === 0) { setSaved(false); setNotice("Completa el nombre y selecciona al menos una pregunta."); return; }
     if (!locations.length || locations.some((item) => !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude))) { setSaved(false); setNotice("Configura al menos una ubicación válida."); return; }
     setSaving(true); setSaved(false); setNotice("");
     try {
-      const base = { id: editingId || makeId(type), name:name.trim(), sponsor:sponsor.trim(), description:description.trim(), reward:reward.trim(), rewardCode:rewardCode.trim(), points, startDate, endDate, status, selectedQuestionIds:selected, questionCount:Math.min(questionCount,selected.length), passingPercentage:passing, questionSeconds:5 as const, cooldownHours:24 as const, createdAt:new Date().toISOString() };
+      const base = { id: editingId || makeId(type), name:name.trim(), sponsor:sponsor.trim(), description:description.trim(), coverUrl, reward:reward.trim(), rewardCode:rewardCode.trim(), points, startDate, endDate, status: sponsorMode ? "draft" as const : status, selectedQuestionIds:selected, questionCount:Math.min(questionCount,selected.length), passingPercentage:passing, questionSeconds:5 as const, cooldownHours:24 as const, createdAt:new Date().toISOString() };
       const savedId = type === "map"
         ? await saveDynamicCampaign({ ...base, type:"map", locations } as MapCampaign)
         : await saveDynamicCampaign({ ...base, type:"brand", brandName:sponsor.trim(), locations, minimumTotal, requiredProducts:products.split(",").map(v=>v.trim()).filter(Boolean), minimumConfidence:confidence, maxTicketImages:3 } as BrandCampaign);
-      setEditingId(savedId); setSaved(true); setNotice(`Campaña guardada correctamente con ${locations.length} ${locations.length===1?"ubicación":"ubicaciones"}.`);
+      if (sponsorMode) {
+        if (!organizationId) throw new Error("No se encontró la organización del patrocinador.");
+        const { data: existing, error: readError } = await supabase.from("campaign_sponsors").select("campaign_id").eq("campaign_id", savedId).eq("organization_id", organizationId).maybeSingle();
+        if (readError) throw readError;
+        const { error: linkError } = existing
+          ? await supabase.from("campaign_sponsors").update({ approval_status: "in_review" }).eq("campaign_id", savedId).eq("organization_id", organizationId)
+          : await supabase.from("campaign_sponsors").insert({ campaign_id: savedId, organization_id: organizationId, approval_status: "in_review" });
+        if (linkError) throw linkError;
+      }
+      setEditingId(savedId); setSaved(true); setNotice(sponsorMode ? "Campaña enviada a aprobación correctamente." : `Campaña guardada correctamente con ${locations.length} ${locations.length===1?"ubicación":"ubicaciones"}.`);
       window.setTimeout(()=>{setNotice("");setSaved(false)},3800);
     } catch(error) { console.error("Error guardando campaña:",error); setSaved(false); setNotice(error instanceof Error ? error.message : "No se pudo guardar la campaña."); }
     finally { setSaving(false); }
@@ -206,6 +236,14 @@ export default function DynamicCampaignBuilder({
               onChange={(event) => setSponsor(event.target.value)}
             />
           </label>
+
+          <div className={`${styles.full} ${styles.coverUploader}`}>
+            <div className={styles.coverUploaderHeading}>
+              <div><strong>Portada de la campaña</strong><span>Se mostrará en las tarjetas del administrador y del usuario.</span></div>
+              <label className={styles.coverUploadButton}><Upload />{uploadingCover ? "Comprimiendo…" : coverUrl ? "Cambiar portada" : "Subir portada"}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={selectCover} disabled={uploadingCover} /></label>
+            </div>
+            {coverUrl ? <div className={styles.coverPreview}><img src={coverUrl} alt="Portada de la campaña"/><button type="button" onClick={()=>setCoverUrl("")}><Trash2/>Eliminar</button></div> : <div className={styles.coverEmpty}><ImagePlus/><span>La imagen se comprime automáticamente a WebP.</span></div>}
+          </div>
 
           <label className={styles.full}>
             Descripción
@@ -245,7 +283,8 @@ export default function DynamicCampaignBuilder({
           <label>
             Estado
             <select
-              value={status}
+              value={sponsorMode ? "draft" : status}
+              disabled={sponsorMode}
               onChange={(event) =>
                 setStatus(event.target.value as DynamicCampaignStatus)
               }

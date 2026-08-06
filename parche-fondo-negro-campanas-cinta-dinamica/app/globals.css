@@ -1,0 +1,236 @@
+@import "leaflet/dist/leaflet.css";
+:root {
+  --red: #e64b3c;
+  --red2: #a91f1f;
+  --gold: #f2bd45;
+
+  --ink: #0d0d10;
+  --panel: #17181d;
+  --paper: #f5f3ee;
+
+  --muted: #a7a9b2;
+  --line: rgba(255, 255, 255, 0.12);
+
+  --header-height: 86px;
+  --ticker-height: 0px;
+  --fixed-top-height: var(--header-height);
+}
+
+html.hrr-ticker-visible {
+  --ticker-height: 52px;
+  --fixed-top-height: calc(var(--header-height) + var(--ticker-height));
+}
+
+html.hrr-ticker-hidden {
+  --ticker-height: 0px;
+  --fixed-top-height: var(--header-height);
+}
+
+/* Reinicio general */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--fixed-top-height);
+
+  background: #0c0d10;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100svh;
+
+  margin: 0;
+
+  overflow-x: hidden;
+
+  background: #0c0d10;
+  color: #fff;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Elementos de texto */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  overflow-wrap: break-word;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Imágenes y contenido multimedia */
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+img,
+video {
+  display: block;
+}
+
+img {
+  height: auto;
+}
+
+/* Formularios */
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  min-width: 0;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* Evita que elementos ocultos ocupen espacio */
+[hidden] {
+  display: none !important;
+}
+
+/* Contenedor público general */
+.container {
+  width: min(
+    1180px,
+    calc(100% - 32px)
+  );
+
+  margin-inline: auto;
+}
+
+/* Mejora el enfoque por teclado */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* Selección de texto */
+::selection {
+  background: rgba(242, 189, 69, 0.28);
+  color: #fff;
+}
+
+/* Barra de desplazamiento */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090a0d;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid #090a0d;
+  border-radius: 999px;
+
+  background: rgba(242, 189, 69, 0.34);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(242, 189, 69, 0.56);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(242, 189, 69, 0.42)
+    #090a0d;
+}
+
+/* Dispositivos móviles */
+@media (max-width: 540px) {
+  :root {
+    --header-height: 76px;
+    --ticker-height: 0px;
+    --fixed-top-height: var(--header-height);
+  }
+
+  html.hrr-ticker-visible {
+    --ticker-height: 50px;
+    --fixed-top-height: calc(var(--header-height) + var(--ticker-height));
+  }
+
+  html.hrr-ticker-hidden {
+    --ticker-height: 0px;
+    --fixed-top-height: var(--header-height);
+  }
+
+  html {
+    scroll-padding-top:
+      var(--fixed-top-height);
+  }
+
+  .container {
+    width: min(
+      100% - 24px,
+      1180px
+    );
+  }
+}
+
+/* Usuarios que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration:
+      0.01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+
+    scroll-behavior:
+      auto !important;
+
+    transition-duration:
+      0.01ms !important;
+  }
+}

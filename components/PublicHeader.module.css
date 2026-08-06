@@ -222,3 +222,7 @@
     padding-top: 34px;
   }
 }
+
+/* Menú móvil desplazable: evita bloquear categorías en pantallas bajas. */
+.mobileMenuLayer{overflow:hidden}
+.mobileMenuPanel{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;max-height:calc(100dvh - 92px);padding-bottom:max(28px,env(safe-area-inset-bottom))}

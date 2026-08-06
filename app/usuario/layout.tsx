@@ -10,7 +10,7 @@ export default function UserLayout({
 }: UserLayoutProps) {
   return (
     <AdminGuard requiredRole="usuario">
-      <AdminShell>
+      <AdminShell rolDelPanel="usuario">
         {children}
       </AdminShell>
     </AdminGuard>

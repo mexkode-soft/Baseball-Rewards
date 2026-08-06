@@ -1354,3 +1354,230 @@
 
 /* Galerías centradas y experiencia de usuario sin desbordes */
 .productUploads,.productGallery{display:flex!important;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px}.productUpload,.productGallery img{flex:0 1 220px}.userPromotionsSection{min-height:calc(100svh - 190px);display:flex;flex-direction:column;overflow:hidden}.userPromotionsGrid{display:flex!important;gap:18px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;padding:4px 4px 14px;align-items:stretch}.userPromotionsGrid .savedCardWrap{flex:0 0 min(390px,calc(100vw - 64px));scroll-snap-align:center}.userPromotionsGrid .promotionCard{height:100%;max-height:calc(100svh - 285px);overflow-y:auto}.promotionCard{max-width:100%}@media(max-width:700px){.userPromotionsSection{min-height:calc(100svh - 155px)}.userPromotionsGrid .savedCardWrap{flex-basis:calc(100vw - 42px)}.userPromotionsGrid .promotionCard{max-height:calc(100svh - 245px)}.productGallery img{flex-basis:min(42%,180px)}}
+
+/* Identidad visual verde translúcida para promociones disponibles. */
+.promotionCard,.card,.promoCard,.promotionItem{background:linear-gradient(145deg,rgba(29,112,65,.30),rgba(7,24,16,.82))!important;border-color:rgba(91,217,134,.34)!important;box-shadow:0 18px 42px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.04)!important}
+
+/* v1.7: miniaturas compactas y carrusel horizontal sin deformar imágenes. */
+.productUploads {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 10px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.productUpload {
+  flex: 0 0 132px !important;
+  width: 132px;
+  height: 96px;
+  aspect-ratio: auto;
+  scroll-snap-align: start;
+}
+
+.productUpload img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.productGallery {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.productGallery img,
+.productGallery img:only-child {
+  flex: 0 0 132px !important;
+  width: 132px !important;
+  height: 96px !important;
+  max-height: 96px !important;
+  margin-inline: 0 !important;
+  aspect-ratio: auto !important;
+  object-fit: cover;
+  scroll-snap-align: center;
+}
+
+.previewCard .productGallery img,
+.previewCard .productGallery img:only-child {
+  flex-basis: 116px !important;
+  width: 116px !important;
+  height: 88px !important;
+}
+
+.userPromotionsGrid .productGallery img,
+.userPromotionsGrid .productGallery img:only-child {
+  flex-basis: 104px !important;
+  width: 104px !important;
+  height: 76px !important;
+  max-height: 76px !important;
+}
+
+@media (max-width: 700px) {
+  .productUpload {
+    flex-basis: 112px !important;
+    width: 112px;
+    height: 82px;
+  }
+
+  .productGallery img,
+  .productGallery img:only-child {
+    flex-basis: 104px !important;
+    width: 104px !important;
+    height: 76px !important;
+  }
+}
+
+
+.userPromotionHeader{margin-bottom:22px}.userPromotionHeader>span{color:var(--gold);font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.userPromotionHeader h1{margin:8px 0 10px;color:#fff;font-size:clamp(34px,5vw,56px)}.userPromotionHeader p{max-width:720px;margin:0;color:var(--muted);font-size:15px;line-height:1.6}
+.productImageButton{position:relative;min-width:0;padding:0;border:0;border-radius:12px;overflow:hidden;background:transparent;cursor:zoom-in}.productImageButton img{display:block}.productImageButton span{position:absolute;inset:auto 7px 7px;padding:5px 8px;border-radius:999px;background:rgba(0,0,0,.72);color:#fff;font-size:8px;font-weight:800;opacity:0;transition:opacity .2s}.productImageButton:hover span,.productImageButton:focus-visible span{opacity:1}
+.lightboxBackdrop{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:22px;background:rgba(0,0,0,.88);backdrop-filter:blur(8px)}.lightboxContent{position:relative;width:min(920px,95vw);height:min(760px,86vh);display:grid;place-items:center;border:1px solid rgba(242,189,69,.3);border-radius:22px;background:#090a0d;box-shadow:0 30px 100px rgba(0,0,0,.65)}.lightboxContent>img{width:100%;height:100%;padding:36px;object-fit:contain}.lightboxContent>span{position:absolute;bottom:14px;padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.68);color:#fff;font-size:11px}.lightboxClose,.lightboxNav{position:absolute;z-index:3;width:44px;height:44px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(10,10,12,.82);color:#fff;cursor:pointer}.lightboxClose{top:14px;right:14px}.lightboxPrev{left:14px}.lightboxNext{right:14px}.lightboxNav svg,.lightboxClose svg{width:22px}
+.promotionAdminActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.promotionAdminActions button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;font-weight:800;cursor:pointer}.editPromotion{border:1px solid rgba(242,189,69,.32);background:rgba(242,189,69,.08);color:var(--gold)}.editPromotion svg,.deletePromotion svg{width:16px}.cancelEditButton{border:1px solid rgba(255,255,255,.13)!important;background:rgba(255,255,255,.04)!important;color:#fff!important}
+@media(max-width:700px){.userPromotionHeader h1{font-size:36px}.userPromotionHeader p{font-size:14px}.lightboxBackdrop{padding:10px}.lightboxContent{height:78vh}.lightboxContent>img{padding:24px 8px}.lightboxNav{width:38px;height:38px}.promotionContent h3{font-size:24px}.promotionContent>p{font-size:14px}.expiration{font-size:11px}.brandArea strong{font-size:14px}}
+
+/* v2.1: la envoltura de promociones termina cerca de las cards, sin espacio vacío inferior. */
+.userPromotionsSection{min-height:0!important;max-height:none!important;height:auto!important;padding:18px 18px 8px!important;margin-bottom:0!important;overflow:visible!important}
+.userPromotionsGrid{height:auto!important;min-height:0!important;align-items:flex-start!important;padding-bottom:2px!important}
+.userPromotionsGrid .savedCardWrap{height:auto!important}
+.userPromotionsGrid .promotionCard{height:auto!important;max-height:none!important;min-height:520px;overflow:visible!important}
+@media(max-width:620px){.userPromotionsSection{padding:0 0 6px!important}.userPromotionsGrid .promotionCard{min-height:510px}}
+
+
+/* =========================================================
+   Controles visibles del carrusel de promociones (escritorio)
+   ========================================================= */
+.carouselControls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin: 0 2px 12px;
+}
+
+.carouselArrow {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(242, 189, 69, 0.38);
+  border-radius: 50%;
+  background: rgba(242, 189, 69, 0.08);
+  color: var(--gold);
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.carouselArrow:hover {
+  transform: translateY(-2px);
+  background: rgba(242, 189, 69, 0.16);
+  border-color: rgba(242, 189, 69, 0.72);
+}
+
+.carouselArrow:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.carouselArrow svg {
+  width: 21px;
+  height: 21px;
+}
+
+@media (max-width: 700px) {
+  .carouselControls {
+    display: none;
+  }
+
+  .userPromotionsGrid .savedCardWrap {
+    flex-basis: 88%;
+    min-width: 88%;
+  }
+}
+
+
+/* =========================================================
+   v2.3: carrusel funcional con flechas en escritorio
+   ========================================================= */
+@media (min-width: 701px) {
+  .userPromotionsSection {
+    position: relative;
+    overflow: hidden !important;
+  }
+
+  .userPromotionsGrid {
+    display: flex !important;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .userPromotionsGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .userPromotionsGrid .savedCardWrap {
+    flex: 0 0 clamp(430px, 54%, 540px) !important;
+    width: clamp(430px, 54%, 540px) !important;
+    min-width: clamp(430px, 54%, 540px) !important;
+    scroll-snap-align: start;
+  }
+
+  .carouselControls {
+    position: relative;
+    z-index: 4;
+  }
+}
+
+@media (max-width: 700px) {
+  .userPromotionsGrid .savedCardWrap {
+    flex: 0 0 88% !important;
+    width: 88% !important;
+    min-width: 88% !important;
+    scroll-snap-align: start;
+  }
+}
+
+
+/* v2.5: carrusel desplazable con mouse, touch y flechas en cualquier ancho. */
+.userPromotionsGrid {
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  scroll-behavior: smooth;
+}
+.carouselDragging {
+  cursor: grabbing !important;
+  scroll-snap-type: none !important;
+  scroll-behavior: auto !important;
+}
+@media (max-width: 700px) {
+  .carouselControls {
+    display: flex !important;
+    position: sticky;
+    top: 74px;
+    z-index: 8;
+    justify-content: flex-end;
+    padding-right: 8px;
+    margin-bottom: 8px;
+  }
+  .carouselArrow { width: 38px; height: 38px; background: rgba(10,11,14,.92); }
+  .userPromotionsGrid { overflow-x: scroll !important; -webkit-overflow-scrolling: touch; padding-right: 14% !important; }
+  .userPromotionsGrid .savedCardWrap { flex: 0 0 88% !important; min-width: 88% !important; }
+}

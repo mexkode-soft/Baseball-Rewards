@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import PwaRegister from "@/components/PwaRegister";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 
 import "./globals.css";
 
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body>
         <PwaRegister />
         {children}
+        <CookieConsentBanner />
       </body>
     </html>
   );

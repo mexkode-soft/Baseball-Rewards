@@ -1,14 +1,104 @@
 "use client";
+
 import { type ReactNode, useEffect, useState } from "react";
-import { createSupabaseBrowserClient, hasSupabaseConfig } from "@/lib/supabase";
+import {
+  createSupabaseBrowserClient,
+  hasSupabaseConfig,
+} from "@/lib/supabase";
+import {
+  obtenerRolActual,
+  obtenerRutaInicialPorRol,
+  type RolAplicacion,
+} from "@/lib/roles";
 import styles from "./AdminGuard.module.css";
-type AppRole="admin"|"usuario";
-export default function AdminGuard({children,requiredRole}:{children:ReactNode;requiredRole:AppRole}){
- const [authorized,setAuthorized]=useState(false); const [message,setMessage]=useState("Validando acceso...");
- useEffect(()=>{let mounted=true;if(!hasSupabaseConfig){window.location.replace("/login");return}
- const supabase=createSupabaseBrowserClient();
- async function validate(){try{let {data:{session},error}=await supabase.auth.getSession();if(error)throw error;if(!session){await new Promise(r=>setTimeout(r,700));const result=await supabase.auth.getSession();session=result.data.session;if(result.error)throw result.error}if(!session?.user){window.location.replace("/login");return}
- const {data:profile,error:profileError}=await supabase.from("profiles").select("role").eq("id",session.user.id).maybeSingle();if(profileError)console.warn(profileError.message);const role:AppRole=profile?.role==="admin"?"admin":"usuario";if(role!==requiredRole){window.location.replace(role==="admin"?"/admin":"/usuario");return}if(mounted)setAuthorized(true)}catch(e){console.error(e);if(mounted)setMessage(e instanceof Error?e.message:"No fue posible validar la sesión.")}}
- void validate();const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"||!session)window.location.replace("/login")});return()=>{mounted=false;subscription.unsubscribe()};},[requiredRole]);
- if(!authorized)return <main className={styles.loading}><div className={styles.spinner}/><p>{message}</p></main>;return children;
+
+type RolProtegido = Exclude<RolAplicacion, "sponsor">;
+
+export default function AdminGuard({
+  children,
+  requiredRole,
+}: {
+  children: ReactNode;
+  requiredRole: RolProtegido;
+}) {
+  const [autorizado, setAutorizado] = useState(false);
+  const [mensaje, setMensaje] = useState("Validando acceso...");
+
+  useEffect(() => {
+    let montado = true;
+
+    if (!hasSupabaseConfig) {
+      window.location.replace("/login");
+      return;
+    }
+
+    const supabase = createSupabaseBrowserClient();
+
+    async function validarAcceso() {
+      try {
+        let {
+          data: { session: sesion },
+          error: errorSesion,
+        } = await supabase.auth.getSession();
+
+        if (errorSesion) throw errorSesion;
+
+        if (!sesion) {
+          await new Promise((resolver) => window.setTimeout(resolver, 700));
+          const resultado = await supabase.auth.getSession();
+          sesion = resultado.data.session;
+          if (resultado.error) throw resultado.error;
+        }
+
+        if (!sesion?.user) {
+          window.location.replace("/login");
+          return;
+        }
+
+        const rol = await obtenerRolActual(supabase);
+
+        if (rol !== requiredRole) {
+          window.location.replace(obtenerRutaInicialPorRol(rol));
+          return;
+        }
+
+        if (montado) setAutorizado(true);
+      } catch (error) {
+        console.error("No fue posible validar el rol:", error);
+        if (montado) {
+          setMensaje(
+            error instanceof Error
+              ? error.message
+              : "No fue posible validar la sesión.",
+          );
+        }
+      }
+    }
+
+    void validarAcceso();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((evento, sesion) => {
+      if (evento === "SIGNED_OUT" || !sesion) {
+        window.location.replace("/login");
+      }
+    });
+
+    return () => {
+      montado = false;
+      subscription.unsubscribe();
+    };
+  }, [requiredRole]);
+
+  if (!autorizado) {
+    return (
+      <main className={styles.loading}>
+        <div className={styles.spinner} />
+        <p>{mensaje}</p>
+      </main>
+    );
+  }
+
+  return children;
 }

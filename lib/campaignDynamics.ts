@@ -1,5 +1,6 @@
 import type { TriviaQuestion } from "@/lib/questions";
 import { supabase } from "@/lib/supabase";
+import { compressPublicationImage } from "@/lib/image";
 
 export type DynamicCampaignStatus = "draft" | "scheduled" | "active";
 export type DynamicCampaignType = "map" | "brand";
@@ -35,6 +36,7 @@ interface BaseCampaign {
   questionSeconds: 5;
   cooldownHours: 24;
   createdAt: string;
+  coverUrl: string;
 }
 
 export interface MapCampaign extends BaseCampaign { type: "map"; locations: CampaignLocation[]; }
@@ -125,6 +127,7 @@ async function mapCampaignRows(rows: Array<Record<string, unknown>>): Promise<Dy
       questionSeconds: 5 as const,
       cooldownHours: 24 as const,
       createdAt: String(row.created_at ?? new Date().toISOString()),
+      coverUrl: String(row.cover_url ?? metadata.coverUrl ?? ""),
     };
     if (row.type === "brand") {
       return {
@@ -156,7 +159,7 @@ export async function readActiveDynamicCampaigns(type?: DynamicCampaignType): Pr
 
   const now = new Date().toISOString();
   const query = supabase.from("campaigns")
-    .select("id,type,name,sponsor,description,status,starts_at,ends_at,points_on_success,passing_percentage,created_at,metadata")
+    .select("id,type,name,sponsor,description,cover_url,status,starts_at,ends_at,points_on_success,passing_percentage,created_at,metadata")
     .eq("status", "active")
     .in("type", type ? [type] : ["map", "brand"])
     .or(`starts_at.is.null,starts_at.lte.${now}`)
@@ -171,12 +174,13 @@ export async function readActiveDynamicCampaigns(type?: DynamicCampaignType): Pr
 
 export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<string> {
   const { data: userData } = await supabase.auth.getUser();
-  const metadata = { questionCount: campaign.questionCount, questionSeconds: 5, reward: campaign.reward, rewardCode: campaign.rewardCode };
+  const metadata = { questionCount: campaign.questionCount, questionSeconds: 5, reward: campaign.reward, rewardCode: campaign.rewardCode, coverUrl: campaign.coverUrl };
   const campaignPayload = {
     type: campaign.type,
     name: campaign.name,
     sponsor: campaign.sponsor,
     description: campaign.description,
+    cover_url: campaign.coverUrl || null,
     status: campaign.status,
     starts_at: campaign.startDate ? `${campaign.startDate}T00:00:00` : null,
     ends_at: campaign.endDate ? `${campaign.endDate}T23:59:59` : null,
@@ -239,6 +243,20 @@ export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<st
   activeDynamicCache.clear();
   window.dispatchEvent(new CustomEvent(DYNAMIC_CAMPAIGNS_EVENT));
   return id;
+}
+
+
+export async function uploadDynamicCampaignCover(file: File): Promise<string> {
+  const optimized = await compressPublicationImage(file, "portada");
+  const safeName = optimized.name.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
+  const path = `dynamic/${crypto.randomUUID()}-${safeName}`;
+  const { error } = await supabase.storage.from("campaign-images").upload(path, optimized, {
+    upsert: false,
+    contentType: optimized.type,
+    cacheControl: "31536000",
+  });
+  if (error) throw error;
+  return supabase.storage.from("campaign-images").getPublicUrl(path).data.publicUrl;
 }
 
 export function selectCampaignQuestions(campaign: DynamicCampaign, bank: TriviaQuestion[]) {

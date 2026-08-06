@@ -1,0 +1,14 @@
+AJUSTE: fondo negro completo al navegar a Campañas
+
+Reemplaza estos archivos manteniendo las rutas:
+- components/PromoTicker.tsx
+- app/globals.css
+- app/campanas/Campanas.module.css
+
+Qué corrige:
+1. Cuando la cinta está apagada, el desplazamiento por ancla usa solo la altura del navbar.
+2. Cuando la cinta está encendida, usa navbar + altura real de la cinta.
+3. Evita que quede visible una franja del video anterior al entrar a #campanas.
+4. El fondo de Campañas es negro uniforme, sin resplandor rojo.
+
+No requiere migración de Supabase.

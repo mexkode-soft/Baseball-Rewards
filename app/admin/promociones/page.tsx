@@ -11,6 +11,8 @@ import {
   Tag,
   Trash2,
   Upload,
+  Pencil,
+  X,
 } from "lucide-react";
 import {
   ChangeEvent,
@@ -19,9 +21,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import { getCurrentProfile } from "@/lib/supabase";
 import {
   createPromotion as createPromotionRecord,
+  updatePromotion as updatePromotionRecord,
   deletePromotion as deletePromotionRecord,
   readPromotions,
   uploadPromotionImage,
@@ -29,8 +31,7 @@ import {
   type PromotionStatus,
 } from "@/lib/promotions";
 import styles from "./Promociones.module.css";
-
-type Role = "admin" | "usuario" | "sponsor";
+import PromotionCard from "@/components/PromotionCard";
 
 function formatDate(value: string) {
   if (!value) {
@@ -45,12 +46,13 @@ function formatDate(value: string) {
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
-export default function PromocionesPage() {
+interface PromocionesViewProps {
+  modo?: "admin" | "usuario";
+}
+
+function PromocionesView({ modo = "admin" }: PromocionesViewProps) {
   const [promotions, setPromotions] =
     useState<Promotion[]>([]);
-  const [role, setRole] = useState<Role>("usuario");
-  const [roleLoaded, setRoleLoaded] = useState(false);
-
   const [brandName, setBrandName] = useState("");
   const [brandImage, setBrandImage] = useState("");
   const [title, setTitle] = useState("");
@@ -61,26 +63,33 @@ export default function PromocionesPage() {
   const [status, setStatus] =
     useState<PromotionStatus>("Borrador");
   const [savedMessage, setSavedMessage] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    async function load() {
+
+    async function cargarPromocionesAdministrativas() {
       try {
-        const profile = await getCurrentProfile();
-        if (!mounted || !profile) return;
-        setRole(profile.role);
-        setPromotions(await readPromotions(profile.role === "admin"));
+        const promociones = await readPromotions(modo === "admin");
+        if (mounted) setPromotions(promociones);
       } catch (error) {
-        setSavedMessage(error instanceof Error ? error.message : "No se pudieron cargar las promociones.");
-      } finally {
-        if (mounted) setRoleLoaded(true);
+        if (mounted) {
+          setSavedMessage(
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar las promociones."
+          );
+        }
       }
     }
-    void load();
-    return () => { mounted = false; };
-  }, []);
 
-  const isAdmin = role === "admin";
+    void cargarPromocionesAdministrativas();
+    return () => {
+      mounted = false;
+    };
+  }, [modo]);
+
+  const isAdmin = modo === "admin";
 
   const activePromotions = useMemo(
     () =>
@@ -114,6 +123,20 @@ export default function PromocionesPage() {
     );
   }
 
+  function editPromotion(promotion: Promotion) {
+    setEditingId(promotion.id);
+    setBrandName(promotion.brandName);
+    setBrandImage(promotion.brandImage);
+    setTitle(promotion.title);
+    setDescription(promotion.description);
+    setCode(promotion.code);
+    setExpiration(promotion.expiration);
+    setProductImages(promotion.productImages);
+    setStatus(promotion.status);
+    setSavedMessage("Editando promoción. Guarda los cambios cuando termines.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function resetForm() {
     setBrandName("");
     setBrandImage("");
@@ -123,6 +146,7 @@ export default function PromocionesPage() {
     setExpiration("");
     setProductImages([]);
     setStatus("Borrador");
+    setEditingId(null);
   }
 
   async function createPromotion(event: FormEvent<HTMLFormElement>) {
@@ -132,7 +156,7 @@ export default function PromocionesPage() {
       return;
     }
     try {
-      const saved = await createPromotionRecord({
+      const payload = {
         brandName: brandName.trim(),
         brandImage: brandImage || "/images/logo-home-run.png",
         title: title.trim(),
@@ -141,10 +165,16 @@ export default function PromocionesPage() {
         expiration,
         productImages,
         status,
-      });
-      setPromotions((current) => [saved, ...current]);
+      };
+      const saved = editingId
+        ? await updatePromotionRecord(editingId, payload)
+        : await createPromotionRecord(payload);
+      setPromotions((current) => editingId
+        ? current.map((item) => item.id === editingId ? saved : item)
+        : [saved, ...current]);
+      const wasEditing = Boolean(editingId);
       resetForm();
-      setSavedMessage("Promoción creada correctamente en Supabase.");
+      setSavedMessage(wasEditing ? "Promoción actualizada correctamente." : "Promoción creada correctamente en Supabase.");
     } catch (error) { setSavedMessage(error instanceof Error ? error.message : "No se pudo guardar la promoción."); }
   }
 
@@ -169,14 +199,6 @@ export default function PromocionesPage() {
     productImages,
     status,
   };
-
-  if (!roleLoaded) {
-    return (
-      <div className={styles.loading}>
-        Cargando promociones...
-      </div>
-    );
-  }
 
   return (
     <>
@@ -415,9 +437,12 @@ export default function PromocionesPage() {
                   </span>
                 )}
 
+                {editingId ? (
+                  <button type="button" className={styles.cancelEditButton} onClick={resetForm}><X />Cancelar edición</button>
+                ) : null}
                 <button type="submit">
                   <Save />
-                  Guardar promoción
+                  {editingId ? "Guardar cambios" : "Guardar promoción"}
                 </button>
               </div>
             </form>
@@ -490,14 +515,10 @@ export default function PromocionesPage() {
                   <PromotionCard promotion={promotion} />
 
                   {isAdmin && (
-                    <button
-                      type="button"
-                      className={styles.deletePromotion}
-                      onClick={() => { void deletePromotion(promotion.id); }}
-                    >
-                      <Trash2 />
-                      Eliminar
-                    </button>
+                    <div className={styles.promotionAdminActions}>
+                      <button type="button" className={styles.editPromotion} onClick={() => editPromotion(promotion)}><Pencil />Editar</button>
+                      <button type="button" className={styles.deletePromotion} onClick={() => { void deletePromotion(promotion.id); }}><Trash2 />Eliminar</button>
+                    </div>
                   )}
                 </div>
               )
@@ -518,80 +539,6 @@ export default function PromocionesPage() {
   );
 }
 
-interface PromotionCardProps {
-  promotion: Promotion;
-  preview?: boolean;
-}
-
-function PromotionCard({
-  promotion,
-  preview = false,
-}: PromotionCardProps) {
-  return (
-    <article
-      className={`${styles.promotionCard} ${
-        preview ? styles.previewCard : ""
-      }`}
-    >
-      <div className={styles.promotionStatus}>
-        <span
-          className={
-            promotion.status === "Activa"
-              ? styles.activeStatus
-              : styles.draftStatus
-          }
-        >
-          {promotion.status}
-        </span>
-      </div>
-
-      <div className={styles.brandArea}>
-        <img
-          src={promotion.brandImage}
-          alt={`Marca ${promotion.brandName}`}
-        />
-        <strong>{promotion.brandName}</strong>
-      </div>
-
-      <div className={styles.promotionContent}>
-        <span>Promoción especial</span>
-        <h3>{promotion.title}</h3>
-        <p>{promotion.description}</p>
-
-        <div className={styles.promotionCode}>
-          <Tag />
-          <div>
-            <span>Código</span>
-            <strong>{promotion.code}</strong>
-          </div>
-        </div>
-
-        <div className={styles.expiration}>
-          <CalendarDays />
-          Vigente hasta {formatDate(promotion.expiration)}
-        </div>
-      </div>
-
-      <div className={styles.productsArea}>
-        <span>Productos y premios</span>
-
-        {promotion.productImages.length > 0 ? (
-          <div className={styles.productGallery}>
-            {promotion.productImages.map((image, index) => (
-              <img
-                key={`${image}-${index}`}
-                src={image}
-                alt={`Producto promocional ${index + 1}`}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className={styles.emptyProducts}>
-            <Gift />
-            <span>Sin fotografías de productos.</span>
-          </div>
-        )}
-      </div>
-    </article>
-  );
+export default function PromocionesPage() {
+  return <PromocionesView modo="admin" />;
 }

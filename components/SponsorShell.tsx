@@ -1,17 +1,16 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, LogOut, Menu, PlusCircle, UserRound, X } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, LogOut, Menu, PlusCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import styles from "./SponsorShell.module.css";
 import NotificationBell from "@/components/NotificationBell";
 
 const items = [
-  ["/patrocinador", "Dashboard", BarChart3],
-  ["/patrocinador/campanas", "Mis campañas", BriefcaseBusiness],
+  ["/patrocinador", "Métricas", BarChart3],
   ["/patrocinador/campanas/nueva", "Crear campaña", PlusCircle],
-  ["/patrocinador/perfil", "Mi perfil", UserRound],
+  ["/patrocinador/campanas", "Mis campañas", BriefcaseBusiness],
 ] as const;
 
 export default function SponsorShell({children}:{children:React.ReactNode}){

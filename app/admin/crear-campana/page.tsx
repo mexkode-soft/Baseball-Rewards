@@ -17,7 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import styles from "./CrearCampana.module.css";
 import DynamicCampaignBuilder from "@/components/DynamicCampaignBuilder";
 import {
@@ -55,6 +55,9 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export default function CrearCampanaPage() {
   const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const sponsorMode = pathname.startsWith("/patrocinador");
   const editId = params.get("id") ?? "";
   const requestedType = params.get("type") as CampaignType | null;
   const [campaignType, setCampaignType] = useState<CampaignType>("qr");
@@ -77,7 +80,33 @@ export default function CrearCampanaPage() {
   const [coverPreview, setCoverPreview] = useState("");
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState("");
+  const [sponsorOrganizationId, setSponsorOrganizationId] = useState("");
+  const [sponsorPlan, setSponsorPlan] = useState<{ allows_ticket:boolean; allows_qr:boolean; allows_map:boolean } | null>(null);
 
+
+  useEffect(() => {
+    if (!sponsorMode) return;
+    void (async () => {
+      const { data, error } = await supabase
+        .from("sponsor_members")
+        .select("organization_id,sponsor_organizations(name,plan_code,subscription_plans(allows_ticket,allows_qr,allows_map))")
+        .limit(1)
+        .maybeSingle();
+      if (error || !data?.organization_id) {
+        setNotice(error?.message ?? "No se encontró la organización del patrocinador.");
+        return;
+      }
+      const organization = Array.isArray(data.sponsor_organizations) ? data.sponsor_organizations[0] : data.sponsor_organizations;
+      const planData = Array.isArray(organization?.subscription_plans) ? organization?.subscription_plans[0] : organization?.subscription_plans;
+      setSponsorOrganizationId(String(data.organization_id));
+      setSponsor(String(organization?.name ?? ""));
+      setSponsorPlan(planData ? {
+        allows_ticket: Boolean(planData.allows_ticket),
+        allows_qr: Boolean(planData.allows_qr),
+        allows_map: Boolean(planData.allows_map),
+      } : null);
+    })();
+  }, [sponsorMode]);
 
   useEffect(() => {
     if (requestedType && campaignTypes.some((item) => item.id === requestedType)) setCampaignType(requestedType);
@@ -116,6 +145,35 @@ export default function CrearCampanaPage() {
     return () => { active = false; };
   }, [editId, requestedType]);
 
+  const allowedCampaignTypes = useMemo(() => ({
+    qr: !sponsorMode || sponsorPlan?.allows_qr !== false,
+    brand: !sponsorMode || sponsorPlan?.allows_ticket !== false,
+    map: !sponsorMode || sponsorPlan?.allows_map !== false,
+  }), [sponsorMode, sponsorPlan]);
+
+  async function sendCampaignForApproval(campaignId: string) {
+    if (!sponsorMode) return;
+    if (!sponsorOrganizationId) throw new Error("No se encontró la organización del patrocinador.");
+
+    const { data: existing, error: readError } = await supabase
+      .from("campaign_sponsors")
+      .select("campaign_id")
+      .eq("campaign_id", campaignId)
+      .eq("organization_id", sponsorOrganizationId)
+      .maybeSingle();
+    if (readError) throw readError;
+
+    const payload = {
+      campaign_id: campaignId,
+      organization_id: sponsorOrganizationId,
+      approval_status: "in_review",
+    };
+    const { error } = existing
+      ? await supabase.from("campaign_sponsors").update({ approval_status: "in_review" }).eq("campaign_id", campaignId).eq("organization_id", sponsorOrganizationId)
+      : await supabase.from("campaign_sponsors").insert(payload);
+    if (error) throw error;
+  }
+
   const selectedType = useMemo(
     () => campaignTypes.find((item) => item.id === campaignType) ?? campaignTypes[0],
     [campaignType]
@@ -148,7 +206,7 @@ export default function CrearCampanaPage() {
       coverUrl: existingCoverUrl,
       startDate,
       endDate,
-      status,
+      status: sponsorMode ? "draft" : status,
       attemptsPerUser: Math.max(1, attemptsPerUser),
       participationPoints: Math.max(0, participationPoints),
       winnerPoints: Math.max(0, winnerPoints),
@@ -199,9 +257,11 @@ export default function CrearCampanaPage() {
         setExistingCoverUrl(coverUrl);
       }
       const savedId = await saveQrCampaign({ ...buildCampaign(), coverUrl });
+      await sendCampaignForApproval(savedId);
       setCampaignId(savedId);
       setCodes((current) => current.map((code) => ({ ...code, payload: createQrPayload(savedId, code.token) })));
-      setNotice("Campaña guardada correctamente. Ya puedes probarla en el escáner QR.");
+      setNotice(sponsorMode ? "Campaña enviada a aprobación correctamente." : "Campaña guardada correctamente. Ya puedes probarla en el escáner QR.");
+      if (sponsorMode) window.setTimeout(() => router.push("/patrocinador/campanas"), 900);
       window.setTimeout(() => setNotice(""), 3800);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo guardar la campaña.");
@@ -281,9 +341,9 @@ export default function CrearCampanaPage() {
     <>
       <header className={styles.pageHeader}>
         <div>
-          <span>Administración</span>
+          <span>{sponsorMode ? "Portal del patrocinador" : "Administración"}</span>
           <h1>Crear campaña</h1>
-          <p>Configura la dinámica completa y genera los materiales que usarás en el estadio.</p>
+          <p>{sponsorMode ? "Configura la dinámica completa. Al terminar se enviará al administrador para su aprobación." : "Configura la dinámica completa y genera los materiales que usarás en el estadio."}</p>
         </div>
         <div className={styles.headerSummary}><Trophy /><div><strong>3</strong><span>modalidades</span></div></div>
       </header>
@@ -294,7 +354,7 @@ export default function CrearCampanaPage() {
           {campaignTypes.map((item) => {
             const Icon = item.icon;
             return (
-              <button key={item.id} type="button" className={`${styles.typeCard} ${campaignType === item.id ? styles.typeCardActive : ""}`} onClick={() => setCampaignType(item.id)}>
+              <button key={item.id} type="button" disabled={!allowedCampaignTypes[item.id]} className={`${styles.typeCard} ${campaignType === item.id ? styles.typeCardActive : ""}`} onClick={() => allowedCampaignTypes[item.id] && setCampaignType(item.id)}>
                 <div className={`${styles.typeIcon} ${styles[`typeIcon_${item.id}`]}`}><Icon /></div>
                 <div><strong>{item.title}</strong><p>{item.description}</p></div>
               </button>
@@ -304,7 +364,7 @@ export default function CrearCampanaPage() {
       </section>
 
       {campaignType !== "qr" ? (
-        <DynamicCampaignBuilder type={campaignType} campaignId={editId} />
+        <DynamicCampaignBuilder type={campaignType} campaignId={editId} sponsorMode={sponsorMode} organizationId={sponsorOrganizationId} />
       ) : (
         <div className={styles.workspace}>
           <main className={styles.mainColumn}>
@@ -312,7 +372,7 @@ export default function CrearCampanaPage() {
               <div className={styles.sectionHeading}><div><span>Paso 2</span><h2>Información general</h2><p>Datos visibles para el usuario.</p></div><div className={styles.modeBadge}><QrCode /> Búsqueda QR</div></div>
               <div className={styles.formGrid}>
                 <label><span>Nombre</span><input value={campaignName} onChange={(event) => setCampaignName(event.target.value)} placeholder="Ej. Tesoro del estadio" /></label>
-                <label><span>Patrocinador</span><input value={sponsor} onChange={(event) => setSponsor(event.target.value)} placeholder="Ej. Home Run Rewards" /></label>
+                <label><span>Patrocinador</span><input value={sponsor} readOnly={sponsorMode} onChange={(event) => setSponsor(event.target.value)} placeholder="Ej. Home Run Rewards" /></label>
                 <label><span>Fecha de inicio</span><input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
                 <label><span>Fecha de cierre</span><input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
                 <label className={styles.fullField}><span>Descripción</span><textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe la dinámica que verá el usuario." /></label>
@@ -358,13 +418,13 @@ export default function CrearCampanaPage() {
             )}
 
             <section className={styles.panel}>
-              <div className={styles.sectionHeading}><div><span>Paso 5</span><h2>Publicación</h2><p>Guarda la campaña para probarla con el escáner.</p></div></div>
+              <div className={styles.sectionHeading}><div><span>Paso 5</span><h2>Publicación</h2><p>{sponsorMode ? "Envía la campaña al administrador para su revisión." : "Guarda la campaña para probarla con el escáner."}</p></div></div>
               <div className={styles.formGrid}>
-                <label><span>Estado</span><select value={status} onChange={(event) => setStatus(event.target.value as QrCampaignStatus)}><option value="draft">Borrador</option><option value="scheduled">Programada</option><option value="active">Activa</option></select></label>
+                <label><span>Estado</span><select value={sponsorMode ? "draft" : status} disabled={sponsorMode} onChange={(event) => setStatus(event.target.value as QrCampaignStatus)}><option value="draft">{sponsorMode ? "Se enviará a revisión" : "Borrador"}</option>{!sponsorMode && <option value="scheduled">Programada</option>}{!sponsorMode && <option value="active">Activa</option>}</select></label>
                 <div className={styles.summaryCard}><Gift /><div><strong>{reward}</strong><span>{winnerCodes} ganadores · {totalCodes - winnerCodes} sin premio</span></div></div>
               </div>
               {notice && <div className={`${styles.notice} ${notice.toLowerCase().includes("guardada") ? styles.successToast : ""}`}><CheckCircle2 /><span>{notice}</span></div>}
-              <div className={styles.footerActions}><a href="/usuario/cazar-recompensas/qr"><QrCode /> Abrir escáner</a><button type="button" className={styles.primaryButton} disabled={working || codes.length === 0} onClick={() => void saveCampaign()}><Save /> Guardar campaña</button></div>
+              <div className={styles.footerActions}><a href="/usuario/cazar-recompensas/qr"><QrCode /> Abrir escáner</a><button type="button" className={styles.primaryButton} disabled={working || codes.length === 0} onClick={() => void saveCampaign()}><Save /> {sponsorMode ? "Enviar a aprobación" : "Guardar campaña"}</button></div>
             </section>
           </main>
 
