@@ -175,7 +175,13 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
     } catch (error) {
       console.error("No fue posible guardar la recompensa:", error);
       saveStartedRef.current = false;
-      setSaveError(error instanceof Error ? error.message : "No se pudo guardar la recompensa.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null && "message" in error
+            ? String((error as { message?: unknown }).message ?? "No se pudo guardar la recompensa.")
+            : "No se pudo guardar la recompensa.";
+      setSaveError(message);
     } finally {
       setSaving(false);
     }
