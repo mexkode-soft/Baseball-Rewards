@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { compressPublicationImage } from "@/lib/image";
 import { campaignMatchesLocation, getCurrentCampaignLocation } from "@/lib/campaignTargeting";
 
-export type DynamicCampaignStatus = "draft" | "scheduled" | "active";
+export type DynamicCampaignStatus = "draft" | "scheduled" | "active" | "paused" | "finished";
 export type DynamicCampaignType = "map" | "brand";
 
 export interface CampaignLocation {
@@ -80,7 +80,7 @@ function dateOnly(value: unknown): string {
   return new Date(String(value)).toISOString().slice(0, 10);
 }
 
-async function mapCampaignRows(rows: Array<Record<string, unknown>>): Promise<DynamicCampaign[]> {
+async function mapCampaignRows(rows: Array<Record<string, unknown>>, onlyAvailableLocations = false): Promise<DynamicCampaign[]> {
   if (!rows.length) return [];
   const ids = rows.map((row) => String(row.id));
   const [{ data: locations, error: locationsError }, { data: links, error: linksError }, { data: rules, error: rulesError }] = await Promise.all([
@@ -96,6 +96,7 @@ async function mapCampaignRows(rows: Array<Record<string, unknown>>): Promise<Dy
     const campaignId = String(row.id);
     const campaignLocations: CampaignLocation[] = (locations ?? [])
       .filter((item) => String(item.campaign_id) === campaignId)
+      .filter((item) => !onlyAvailableLocations || Number(item.reward_units ?? 0) > 0)
       .map((item) => ({
         id: String(item.id),
         name: String(item.name),
@@ -175,7 +176,7 @@ export async function readActiveDynamicCampaigns(type?: DynamicCampaignType): Pr
   const [{ data, error }, location] = await Promise.all([query, getCurrentCampaignLocation()]);
   if (error) throw error;
   const filteredRows = ((data ?? []) as Array<Record<string, unknown>>).filter((row) => campaignMatchesLocation(row as { target_state?: string | null; target_municipality?: string | null }, location));
-  const value = await mapCampaignRows(filteredRows);
+  const value = (await mapCampaignRows(filteredRows, true)).filter((campaign) => campaign.locations.length > 0);
   activeDynamicCache.set(cacheKey, { expiresAt: Date.now() + ACTIVE_DYNAMIC_CACHE_TTL, value });
   return value;
 }
@@ -212,7 +213,6 @@ export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<st
 
   await Promise.all([
     supabase.from("campaign_questions").delete().eq("campaign_id", id),
-    supabase.from("campaign_locations").delete().eq("campaign_id", id),
     supabase.from("brand_rules").delete().eq("campaign_id", id),
   ]);
 
@@ -222,21 +222,41 @@ export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<st
     );
     if (linkError) throw linkError;
   }
-  if (campaign.locations.length) {
-    const { error: locationError } = await supabase.from("campaign_locations").insert(campaign.locations.map((location) => ({
-      campaign_id: id,
-      name: location.name,
-      address: location.address,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      radius_meters: location.radius,
-      reward_name: location.reward,
-      reward_code: location.rewardCode,
-      reward_units: location.availableUnits,
-      points: location.points,
-      is_active: true,
-    })));
+  // Sincroniza ubicaciones por ID. No las borra y recrea al editar, evitando duplicados.
+  const { data: existingLocations, error: existingLocationsError } = await supabase
+    .from("campaign_locations")
+    .select("id")
+    .eq("campaign_id", id);
+  if (existingLocationsError) throw existingLocationsError;
+
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const locationRows = campaign.locations.map((location) => ({
+    ...(uuidPattern.test(location.id) ? { id: location.id } : {}),
+    campaign_id: id,
+    name: location.name,
+    address: location.address,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    radius_meters: location.radius,
+    reward_name: location.reward,
+    reward_code: location.rewardCode,
+    reward_units: Math.max(0, Math.floor(location.availableUnits || 0)),
+    points: location.points,
+    is_active: true,
+  }));
+
+  if (locationRows.length) {
+    const { error: locationError } = await supabase
+      .from("campaign_locations")
+      .upsert(locationRows, { onConflict: "id" });
     if (locationError) throw locationError;
+  }
+
+  const keepIds = new Set(campaign.locations.filter((location) => uuidPattern.test(location.id)).map((location) => location.id));
+  const removedIds = (existingLocations ?? []).map((row) => String(row.id)).filter((locationId) => !keepIds.has(locationId));
+  if (removedIds.length) {
+    const { error: deleteLocationsError } = await supabase.from("campaign_locations").delete().in("id", removedIds);
+    if (deleteLocationsError) throw deleteLocationsError;
   }
   if (campaign.type === "brand") {
     const { error: ruleError } = await supabase.from("brand_rules").insert({
@@ -305,7 +325,9 @@ export async function completeDynamicReward(options: { campaignId: string; locat
     p_metadata: options.metadata ?? {},
   });
   if (error) throw error;
-  return data as { ok: boolean; status: string; pointsAwarded?: number; reward?: string; rewardCode?: string; message?: string };
+  activeDynamicCache.clear();
+  window.dispatchEvent(new CustomEvent(DYNAMIC_CAMPAIGNS_EVENT));
+  return data as { ok: boolean; status: string; pointsAwarded?: number; reward?: string; rewardCode?: string; message?: string; campaignFinished?: boolean };
 }
 
 export async function awardDynamicReward(campaign: DynamicCampaign, location?: CampaignLocation) {

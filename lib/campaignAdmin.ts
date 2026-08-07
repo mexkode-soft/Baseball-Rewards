@@ -27,6 +27,6 @@ export async function deleteCampaign(id: string): Promise<void> {
 }
 
 export async function updateCampaignStatus(id: string, status: CampaignAdminItem["status"]): Promise<void> {
-  const { error } = await supabase.from("campaigns").update({ status }).eq("id", id);
+  const { error } = await supabase.from("campaigns").update({ status, ...(status !== "finished" ? { finished_reason: null } : {}) }).eq("id", id);
   if (error) throw error;
 }

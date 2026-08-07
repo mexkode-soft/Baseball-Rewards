@@ -34,7 +34,7 @@ import styles from "./DynamicCampaignBuilder.module.css";
 
 function newLocation(index: number): CampaignLocation {
   return {
-    id: makeId("location"),
+    id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : makeId("location"),
     name: `Premio ${index + 1}`,
     address: "",
     latitude: 19.432608,
@@ -163,22 +163,6 @@ export default function DynamicCampaignBuilder({
     );
   }
 
-  function setPrizeCount(value: number) {
-    const count = Math.max(1, Math.min(30, Math.floor(value || 1)));
-
-    setLocations((current) => {
-      if (current.length === count) return current;
-      if (current.length > count) return current.slice(0, count);
-
-      return [
-        ...current,
-        ...Array.from(
-          { length: count - current.length },
-          (_, index) => newLocation(current.length + index)
-        ),
-      ];
-    });
-  }
 
   function addLocation() {
     const location = newLocation(locations.length);
@@ -350,6 +334,7 @@ export default function DynamicCampaignBuilder({
               <option value="draft">Borrador</option>
               <option value="scheduled">Programada</option>
               <option value="active">Activa</option>
+              <option value="finished">Finalizada</option>
             </select>
           </label>
 
@@ -392,19 +377,6 @@ export default function DynamicCampaignBuilder({
               onChange={(event) => setPassing(Number(event.target.value))}
             />
           </label>
-
-          {type === "map" && (
-            <label>
-              Cantidad de premios
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={locations.length}
-                onChange={(event) => setPrizeCount(Number(event.target.value))}
-              />
-            </label>
-          )}
 
           {type === "brand" && (
             <>
