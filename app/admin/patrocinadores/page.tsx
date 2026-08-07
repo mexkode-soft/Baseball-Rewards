@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Building2, Check, Pencil, Plus, RefreshCw, X } from "lucide-react";
+import { Building2, Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { MEXICO_STATES } from "@/lib/mexicoCatalog";
 import styles from "./Patrocinadores.module.css";
 
 type SponsorRow = {
@@ -11,7 +12,11 @@ type SponsorRow = {
   plan_code: string;
   membership_status: string;
   membership_ends_at: string | null;
+  is_active: boolean;
+  state: string | null;
 };
+
+type EditState = { name: string; planCode: string; state: string; isActive: boolean };
 
 const PLAN_LABELS: Record<string, string> = {
   basic: "Básico · Ticket",
@@ -24,13 +29,13 @@ export default function SponsorsPage() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingPlan, setEditingPlan] = useState("basic");
-  const [form, setForm] = useState({ organizationName: "", name: "", email: "", planCode: "premium" });
+  const [edit, setEdit] = useState<EditState>({ name: "", planCode: "basic", state: "", isActive: true });
+  const [form, setForm] = useState({ organizationName: "", name: "", email: "", planCode: "premium", state: "" });
 
   async function load() {
     const { data, error } = await supabase
       .from("sponsor_organizations")
-      .select("id,name,plan_code,membership_status,membership_ends_at")
+      .select("id,name,plan_code,membership_status,membership_ends_at,is_active,state")
       .order("created_at", { ascending: false });
     if (error) setNotice(error.message);
     else setItems((data ?? []) as SponsorRow[]);
@@ -38,88 +43,95 @@ export default function SponsorsPage() {
 
   useEffect(() => { void load(); }, []);
 
+  async function authFetch(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>) {
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch("/api/admin/sponsors", {
+      method,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+      body: JSON.stringify(body),
+    });
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
-    setLoading(true);
-    setNotice("");
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch("/api/admin/sponsors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
-      body: JSON.stringify(form),
-    });
-    const result = await response.json();
-    setNotice(result.message ?? result.error ?? "Resultado desconocido");
-    if (response.ok) {
-      setForm({ organizationName: "", name: "", email: "", planCode: "premium" });
-      await load();
-    }
-    setLoading(false);
+    setLoading(true); setNotice("");
+    try {
+      const response = await authFetch("POST", form);
+      const result = await response.json();
+      setNotice(result.message ?? result.error ?? "Resultado desconocido");
+      if (response.ok) {
+        setForm({ organizationName: "", name: "", email: "", planCode: "premium", state: "" });
+        await load();
+      }
+    } finally { setLoading(false); }
   }
 
   function startEditing(item: SponsorRow) {
     setEditingId(item.id);
-    setEditingPlan(item.plan_code ?? "basic");
+    setEdit({ name: item.name, planCode: item.plan_code ?? "basic", state: item.state ?? "", isActive: item.is_active });
     setNotice("");
   }
 
-  async function savePlan(id: string) {
-    const { error } = await supabase.from("sponsor_organizations").update({ plan_code: editingPlan }).eq("id", id);
-    if (error) setNotice(error.message);
-    else {
-      setNotice("Plan actualizado correctamente.");
-      setEditingId(null);
-      await load();
-    }
+  async function save(id: string) {
+    setLoading(true); setNotice("");
+    try {
+      const response = await authFetch("PATCH", { id, ...edit });
+      const result = await response.json();
+      setNotice(result.message ?? result.error ?? "Resultado desconocido");
+      if (response.ok) { setEditingId(null); await load(); }
+    } finally { setLoading(false); }
   }
 
-  return (
-    <div className={styles.page}>
-      <header>
-        <div><span>ADMINISTRACIÓN</span><h1>Patrocinadores</h1><p>Crea marcas, invita a su usuario responsable y administra su plan.</p></div>
-        <button onClick={() => void load()}><RefreshCw />Actualizar</button>
-      </header>
+  async function remove(id: string, name: string) {
+    if (!window.confirm(`¿Eliminar la marca ${name}? También se eliminará el vínculo de sus usuarios patrocinadores.`)) return;
+    setLoading(true); setNotice("");
+    try {
+      const response = await authFetch("DELETE", { id });
+      const result = await response.json();
+      setNotice(result.message ?? result.error ?? "Resultado desconocido");
+      if (response.ok) await load();
+    } finally { setLoading(false); }
+  }
 
-      <div className={styles.grid}>
-        <form onSubmit={submit} className={styles.card}>
-          <h2><Plus />Nuevo patrocinador</h2>
-          <label>Marca<input value={form.organizationName} onChange={(event) => setForm({ ...form, organizationName: event.target.value })} required /></label>
-          <label>Nombre del responsable<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-          <label>Correo<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></label>
-          <label>Plan<select value={form.planCode} onChange={(event) => setForm({ ...form, planCode: event.target.value })}><option value="basic">Básico · Ticket</option><option value="intermediate">Intermedio · Ticket + QR</option><option value="premium">Premium · Ticket + QR + Mapa</option></select></label>
-          <button disabled={loading}>{loading ? "Creando…" : "Crear y enviar invitación"}</button>
-          {notice && <p className={styles.notice} role="status">{notice}</p>}
-        </form>
+  return <div className={styles.page}>
+    <header>
+      <div><span>ADMINISTRACIÓN</span><h1>Patrocinadores</h1><p>Crea marcas, define su estado operativo, invita al responsable y administra su plan.</p></div>
+      <button onClick={() => void load()}><RefreshCw />Actualizar</button>
+    </header>
 
-        <section className={styles.card}>
-          <h2><Building2 />Marcas registradas</h2>
-          <div className={styles.list}>
+    <form onSubmit={submit} className={`${styles.card} ${styles.fullForm}`}>
+      <h2><Plus />Nuevo patrocinador</h2>
+      <div className={styles.formGrid}>
+        <label>Marca<input value={form.organizationName} onChange={(event) => setForm({ ...form, organizationName: event.target.value })} placeholder="Ej. ClickGo" required /></label>
+        <label>Nombre del responsable<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Ej. Gerardo Pedraza" /></label>
+        <label>Correo<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="responsable@marca.com" required /></label>
+        <label>Estado<select value={form.state} onChange={(event) => setForm({ ...form, state: event.target.value })} required><option value="">Selecciona un estado</option>{MEXICO_STATES.map((state) => <option key={state.code} value={state.name}>{state.name}</option>)}</select></label>
+        <label>Plan<select value={form.planCode} onChange={(event) => setForm({ ...form, planCode: event.target.value })}><option value="basic">Básico · Ticket</option><option value="intermediate">Intermedio · Ticket + QR</option><option value="premium">Premium · Ticket + QR + Mapa</option></select></label>
+        <div className={styles.submitCell}><button disabled={loading}>{loading ? "Procesando…" : "Crear y enviar invitación"}</button></div>
+      </div>
+      {notice && <p className={styles.notice} role="status">{notice}</p>}
+    </form>
+
+    <section className={`${styles.card} ${styles.tableCard}`}>
+      <h2><Building2 />Marcas registradas</h2>
+      <div className={styles.tableWrap}>
+        <table>
+          <thead><tr><th>Marca</th><th>Estado</th><th>Plan</th><th>Activo</th><th>Acciones</th></tr></thead>
+          <tbody>
             {items.map((item) => {
               const editing = editingId === item.id;
-              return (
-                <article key={item.id}>
-                  <div className={styles.sponsorIdentity}><strong>{item.name}</strong><small>{item.membership_status}</small></div>
-                  <div className={styles.planEditor}>
-                    {editing ? (
-                      <>
-                        <select value={editingPlan} onChange={(event) => setEditingPlan(event.target.value)} autoFocus><option value="basic">Básico</option><option value="intermediate">Intermedio</option><option value="premium">Premium</option></select>
-                        <button type="button" className={styles.iconButton} onClick={() => void savePlan(item.id)} aria-label="Guardar plan"><Check /></button>
-                        <button type="button" className={styles.iconButton} onClick={() => setEditingId(null)} aria-label="Cancelar"><X /></button>
-                      </>
-                    ) : (
-                      <>
-                        <span className={styles.planBadge}>{PLAN_LABELS[item.plan_code] ?? item.plan_code}</span>
-                        <button type="button" className={styles.editButton} onClick={() => startEditing(item)}><Pencil />Editar</button>
-                      </>
-                    )}
-                  </div>
-                </article>
-              );
+              return <tr key={item.id}>
+                <td>{editing ? <input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /> : <strong>{item.name}</strong>}</td>
+                <td>{editing ? <select value={edit.state} onChange={(e) => setEdit({ ...edit, state: e.target.value })}><option value="">Sin estado</option>{MEXICO_STATES.map((state) => <option key={state.code} value={state.name}>{state.name}</option>)}</select> : (item.state || "Sin definir")}</td>
+                <td>{editing ? <select value={edit.planCode} onChange={(e) => setEdit({ ...edit, planCode: e.target.value })}><option value="basic">Básico</option><option value="intermediate">Intermedio</option><option value="premium">Premium</option></select> : <span className={styles.planBadge}>{PLAN_LABELS[item.plan_code] ?? item.plan_code}</span>}</td>
+                <td>{editing ? <label className={styles.switchLabel}><input type="checkbox" checked={edit.isActive} onChange={(e) => setEdit({ ...edit, isActive: e.target.checked })} />{edit.isActive ? "Activo" : "Inactivo"}</label> : <span className={item.is_active ? styles.activeBadge : styles.inactiveBadge}>{item.is_active ? "Activo" : "Inactivo"}</span>}</td>
+                <td><div className={styles.actions}>{editing ? <><button type="button" onClick={() => void save(item.id)} title="Guardar"><Check /></button><button type="button" onClick={() => setEditingId(null)} title="Cancelar"><X /></button></> : <><button type="button" onClick={() => startEditing(item)} title="Editar"><Pencil /></button><button type="button" className={styles.deleteButton} onClick={() => void remove(item.id, item.name)} title="Eliminar"><Trash2 /></button></>}</div></td>
+              </tr>;
             })}
-            {!items.length && <p>No hay patrocinadores todavía.</p>}
-          </div>
-        </section>
+            {!items.length && <tr><td colSpan={5} className={styles.empty}>No hay patrocinadores todavía.</td></tr>}
+          </tbody>
+        </table>
       </div>
-    </div>
-  );
+    </section>
+  </div>;
 }

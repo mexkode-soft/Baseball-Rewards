@@ -11,8 +11,8 @@ Deno.serve(async (request) => {
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY")!;
-    const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY")!;
+    const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") || Deno.env.get("NEXT_PUBLIC_VAPID_PUBLIC_KEY") || "";
+    const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") || "";
     const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
     if (!url || !serviceKey || !vapidPublic || !vapidPrivate) throw new Error("Faltan secretos de configuración push.");
 

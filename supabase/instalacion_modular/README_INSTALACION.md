@@ -123,3 +123,7 @@ Ejecuta `290_corregir_notificaciones_y_patrocinadores.sql` después de la 280. C
 ### Reparación posterior
 
 Ejecutar `320_reparacion_patrocinadores_y_carrusel.sql` para corregir permisos de patrocinadores y campañas patrocinadas en instalaciones existentes.
+
+
+### Ajuste operativo 370
+Ejecutar `370_ajustes_operativos_geografia_push_metricas.sql` después de `362_reparacion_upsert_user_consents.sql`. Incluye segmentación geográfica de campañas/patrocinadores, notificaciones propias en Realtime y simulación de métricas demo.

@@ -297,10 +297,10 @@ export default function AdminShell({
           )}
         </button>
 
-        <div
-          className={
-            styles.sidebarBrand
-          }
+        <Link
+          href={rolDelPanel === "admin" ? "/admin" : rolDelPanel === "sponsor" ? "/patrocinador" : "/usuario"}
+          className={styles.sidebarBrand}
+          aria-label="Ir al inicio"
         >
           <img
             src="/images/logo-home-run.png"
@@ -320,7 +320,7 @@ export default function AdminShell({
               Panel {roleLabel}
             </span>
           </div>
-        </div>
+        </Link>
 
         <button
           type="button"
@@ -464,10 +464,9 @@ export default function AdminShell({
 
           <div className={styles.mobileHeaderActions}>
             <NotificationBell />
-            <img
-              src="/images/logo-home-run.png"
-              alt="Home Run Rewards"
-            />
+            <Link href={rolDelPanel === "admin" ? "/admin" : rolDelPanel === "sponsor" ? "/patrocinador" : "/usuario"} aria-label="Ir al inicio">
+              <img src="/images/logo-home-run.png" alt="Home Run Rewards" />
+            </Link>
           </div>
         </header>
 

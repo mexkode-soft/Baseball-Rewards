@@ -1,6 +1,7 @@
 import type { TriviaQuestion } from "@/lib/questions";
 import { supabase } from "@/lib/supabase";
 import { compressPublicationImage } from "@/lib/image";
+import { campaignMatchesLocation, getCurrentCampaignLocation } from "@/lib/campaignTargeting";
 
 export type DynamicCampaignStatus = "draft" | "scheduled" | "active";
 export type DynamicCampaignType = "map" | "brand";
@@ -37,6 +38,8 @@ interface BaseCampaign {
   cooldownHours: 24;
   createdAt: string;
   coverUrl: string;
+  targetState?: string;
+  targetMunicipality?: string;
 }
 
 export interface MapCampaign extends BaseCampaign { type: "map"; locations: CampaignLocation[]; }
@@ -128,6 +131,8 @@ async function mapCampaignRows(rows: Array<Record<string, unknown>>): Promise<Dy
       cooldownHours: 24 as const,
       createdAt: String(row.created_at ?? new Date().toISOString()),
       coverUrl: String(row.cover_url ?? metadata.coverUrl ?? ""),
+      targetState: String(row.target_state ?? ""),
+      targetMunicipality: String(row.target_municipality ?? ""),
     };
     if (row.type === "brand") {
       return {
@@ -159,15 +164,16 @@ export async function readActiveDynamicCampaigns(type?: DynamicCampaignType): Pr
 
   const now = new Date().toISOString();
   const query = supabase.from("campaigns")
-    .select("id,type,name,sponsor,description,cover_url,status,starts_at,ends_at,points_on_success,passing_percentage,created_at,metadata")
+    .select("id,type,name,sponsor,description,cover_url,status,starts_at,ends_at,points_on_success,passing_percentage,created_at,metadata,target_state,target_municipality")
     .eq("status", "active")
     .in("type", type ? [type] : ["map", "brand"])
     .or(`starts_at.is.null,starts_at.lte.${now}`)
     .or(`ends_at.is.null,ends_at.gte.${now}`)
     .order("created_at", { ascending: false });
-  const { data, error } = await query;
+  const [{ data, error }, location] = await Promise.all([query, getCurrentCampaignLocation()]);
   if (error) throw error;
-  const value = await mapCampaignRows((data ?? []) as Array<Record<string, unknown>>);
+  const filteredRows = ((data ?? []) as Array<Record<string, unknown>>).filter((row) => campaignMatchesLocation(row as { target_state?: string | null; target_municipality?: string | null }, location));
+  const value = await mapCampaignRows(filteredRows);
   activeDynamicCache.set(cacheKey, { expiresAt: Date.now() + ACTIVE_DYNAMIC_CACHE_TTL, value });
   return value;
 }
@@ -190,6 +196,8 @@ export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<st
     passing_percentage: campaign.passingPercentage,
     cooldown_hours: campaign.cooldownHours,
     created_by: userData.user?.id ?? null,
+    target_state: campaign.targetState || null,
+    target_municipality: campaign.targetMunicipality || null,
     metadata,
   };
   const isUuid = /^[0-9a-f-]{36}$/i.test(campaign.id);

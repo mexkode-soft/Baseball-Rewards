@@ -1581,3 +1581,15 @@
   .userPromotionsGrid { overflow-x: scroll !important; -webkit-overflow-scrolling: touch; padding-right: 14% !important; }
   .userPromotionsGrid .savedCardWrap { flex: 0 0 88% !important; min-width: 88% !important; }
 }
+
+/* 370: carrusel de promociones centrado sin perder desplazamiento horizontal */
+.userPromotionsSection{width:min(1180px,100%);margin-inline:auto!important}
+.userPromotionsGrid{width:100%;margin-inline:auto;scroll-padding-inline:18px}
+@media(min-width:901px){
+  .userPromotionsGrid{justify-content:flex-start;padding-inline:max(18px,calc((100% - 800px)/2))!important}
+  .userPromotionsGrid .savedCardWrap{flex:0 0 min(390px,42vw)!important}
+}
+@media(max-width:900px){
+  .userPromotionsSection{width:100%}
+  .userPromotionsGrid{padding-left:14px!important;padding-right:14%!important}
+}

@@ -24,6 +24,7 @@ import {
 } from "@/lib/campaignDynamics";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
+import { getStateCode, MEXICO_STATES } from "@/lib/mexicoCatalog";
 
 const MapLocationPicker = dynamic(() => import("./MapLocationPicker"), {
   ssr: false,
@@ -60,6 +61,9 @@ export default function DynamicCampaignBuilder({
   const [name, setName] = useState("");
   const [sponsor, setSponsor] = useState("");
   const [description, setDescription] = useState("");
+  const [targetState, setTargetState] = useState("");
+  const [targetMunicipality, setTargetMunicipality] = useState("");
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
   const [reward, setReward] = useState("");
   const [rewardCode, setRewardCode] = useState("");
   const [points, setPoints] = useState(150);
@@ -88,7 +92,7 @@ export default function DynamicCampaignBuilder({
     void readDynamicCampaigns(type).then((items) => {
       const campaign = items.find((item) => item.id === campaignId);
       if (!active || !campaign) return;
-      setEditingId(campaign.id); setName(campaign.name); setSponsor(campaign.sponsor); setDescription(campaign.description);
+      setEditingId(campaign.id); setName(campaign.name); setSponsor(campaign.sponsor); setDescription(campaign.description); setTargetState(campaign.targetState ?? ""); setTargetMunicipality(campaign.targetMunicipality ?? "");
       setReward(campaign.reward); setRewardCode(campaign.rewardCode); setPoints(campaign.points); setStartDate(campaign.startDate);
       setEndDate(campaign.endDate); setStatus(campaign.status); setSelected(campaign.selectedQuestionIds); setQuestionCount(campaign.questionCount);
       setPassing(campaign.passingPercentage); setLocations(campaign.locations); setActiveLocationId(campaign.locations[0]?.id ?? ""); setCoverUrl(campaign.coverUrl ?? "");
@@ -96,6 +100,30 @@ export default function DynamicCampaignBuilder({
     }).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudo cargar la campaña."));
     return () => { active = false; };
   }, [campaignId, type]);
+
+  useEffect(() => {
+    if (!sponsorMode || !organizationId) return;
+    void supabase.from("sponsor_organizations").select("name,state").eq("id", organizationId).maybeSingle().then(({ data }) => {
+      if (!data) return;
+      setSponsor(String(data.name ?? ""));
+      setTargetState(String(data.state ?? ""));
+      setTargetMunicipality("");
+    });
+  }, [sponsorMode, organizationId]);
+
+  useEffect(() => {
+    const code = getStateCode(targetState);
+    if (!code) { setMunicipalities([]); setTargetMunicipality(""); return; }
+    const controller = new AbortController();
+    void fetch(`/api/geo/municipalities?state=${code}`, { signal: controller.signal })
+      .then((response) => response.json())
+      .then((payload: { municipalities?: string[] }) => {
+        const options = payload.municipalities ?? [];
+        setMunicipalities(options);
+        setTargetMunicipality((current) => current && options.includes(current) ? current : "");
+      }).catch(() => undefined);
+    return () => controller.abort();
+  }, [targetState]);
 
   useEffect(() => { void readQuestions().then(setQuestions).catch((error) => setNotice(error instanceof Error ? error.message : "No se pudieron cargar las preguntas.")); }, []);
 
@@ -185,10 +213,11 @@ export default function DynamicCampaignBuilder({
 
   async function save() {
     if (!name.trim() || selected.length === 0) { setSaved(false); setNotice("Completa el nombre y selecciona al menos una pregunta."); return; }
+    if (!targetState) { setSaved(false); setNotice("Selecciona el estado al que corresponde la campaña."); return; }
     if (!locations.length || locations.some((item) => !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude))) { setSaved(false); setNotice("Configura al menos una ubicación válida."); return; }
     setSaving(true); setSaved(false); setNotice("");
     try {
-      const base = { id: editingId || makeId(type), name:name.trim(), sponsor:sponsor.trim(), description:description.trim(), coverUrl, reward:reward.trim(), rewardCode:rewardCode.trim(), points, startDate, endDate, status: sponsorMode ? "draft" as const : status, selectedQuestionIds:selected, questionCount:Math.min(questionCount,selected.length), passingPercentage:passing, questionSeconds:5 as const, cooldownHours:24 as const, createdAt:new Date().toISOString() };
+      const base = { id: editingId || makeId(type), name:name.trim(), sponsor:sponsor.trim(), description:description.trim(), coverUrl, targetState, targetMunicipality, reward:reward.trim(), rewardCode:rewardCode.trim(), points, startDate, endDate, status: sponsorMode ? "draft" as const : status, selectedQuestionIds:selected, questionCount:Math.min(questionCount,selected.length), passingPercentage:passing, questionSeconds:5 as const, cooldownHours:24 as const, createdAt:new Date().toISOString() };
       const savedId = type === "map"
         ? await saveDynamicCampaign({ ...base, type:"map", locations } as MapCampaign)
         : await saveDynamicCampaign({ ...base, type:"brand", brandName:sponsor.trim(), locations, minimumTotal, requiredProducts:products.split(",").map(v=>v.trim()).filter(Boolean), minimumConfidence:confidence, maxTicketImages:3 } as BrandCampaign);
@@ -232,9 +261,26 @@ export default function DynamicCampaignBuilder({
             Patrocinador / marca
             <input
               value={sponsor}
+              readOnly={sponsorMode}
               placeholder="Marca o patrocinador"
               onChange={(event) => setSponsor(event.target.value)}
             />
+          </label>
+
+          <label>
+            Estado de la dinámica
+            <select value={targetState} disabled={sponsorMode} onChange={(event) => setTargetState(event.target.value)}>
+              <option value="">Selecciona un estado</option>
+              {MEXICO_STATES.map((item) => <option key={item.code} value={item.name}>{item.name}</option>)}
+            </select>
+          </label>
+
+          <label>
+            Municipio (opcional)
+            <select value={targetMunicipality} disabled={!targetState} onChange={(event) => setTargetMunicipality(event.target.value)}>
+              <option value="">Todo el estado</option>
+              {municipalities.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
           </label>
 
           <div className={`${styles.full} ${styles.coverUploader}`}>

@@ -31,6 +31,7 @@ import {
   type QrCodeRecord,
 } from "@/lib/qrCampaigns";
 import { supabase } from "@/lib/supabase";
+import { getStateCode, MEXICO_STATES } from "@/lib/mexicoCatalog";
 
 type CampaignType = "qr" | "brand" | "map";
 
@@ -65,6 +66,9 @@ export default function CrearCampanaPage() {
   const [campaignName, setCampaignName] = useState("");
   const [sponsor, setSponsor] = useState("");
   const [description, setDescription] = useState("");
+  const [targetState, setTargetState] = useState("");
+  const [targetMunicipality, setTargetMunicipality] = useState("");
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState<QrCampaignStatus>("active");
@@ -89,7 +93,7 @@ export default function CrearCampanaPage() {
     void (async () => {
       const { data, error } = await supabase
         .from("sponsor_members")
-        .select("organization_id,sponsor_organizations(name,plan_code,subscription_plans(allows_ticket,allows_qr,allows_map))")
+        .select("organization_id,sponsor_organizations(name,state,plan_code,subscription_plans(allows_ticket,allows_qr,allows_map))")
         .limit(1)
         .maybeSingle();
       if (error || !data?.organization_id) {
@@ -100,6 +104,8 @@ export default function CrearCampanaPage() {
       const planData = Array.isArray(organization?.subscription_plans) ? organization?.subscription_plans[0] : organization?.subscription_plans;
       setSponsorOrganizationId(String(data.organization_id));
       setSponsor(String(organization?.name ?? ""));
+      setTargetState(String(organization?.state ?? ""));
+      setTargetMunicipality("");
       setSponsorPlan(planData ? {
         allows_ticket: Boolean(planData.allows_ticket),
         allows_qr: Boolean(planData.allows_qr),
@@ -107,6 +113,21 @@ export default function CrearCampanaPage() {
       } : null);
     })();
   }, [sponsorMode]);
+
+  useEffect(() => {
+    const code = getStateCode(targetState);
+    if (!code) { setMunicipalities([]); setTargetMunicipality(""); return; }
+    const controller = new AbortController();
+    void fetch(`/api/geo/municipalities?state=${code}`, { signal: controller.signal })
+      .then((response) => response.json())
+      .then((payload: { municipalities?: string[] }) => {
+        const options = payload.municipalities ?? [];
+        setMunicipalities(options);
+        setTargetMunicipality((current) => current && options.includes(current) ? current : "");
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [targetState]);
 
   useEffect(() => {
     if (requestedType && campaignTypes.some((item) => item.id === requestedType)) setCampaignType(requestedType);
@@ -118,7 +139,7 @@ export default function CrearCampanaPage() {
     void readQrCampaigns().then((items) => {
       const item = items.find((campaign) => campaign.id === editId);
       if (!active || !item) return;
-      setCampaignId(item.id); setCampaignName(item.name); setSponsor(item.sponsor); setDescription(item.description);
+      setCampaignId(item.id); setCampaignName(item.name); setSponsor(item.sponsor); setDescription(item.description); setTargetState(item.targetState ?? ""); setTargetMunicipality(item.targetMunicipality ?? "");
       setStartDate(item.startDate); setEndDate(item.endDate); setStatus(item.status); setAttemptsPerUser(item.attemptsPerUser);
       setParticipationPoints(item.participationPoints); setWinnerPoints(item.winnerPoints); setReward(item.reward);
       setTotalCodes(item.codes.length || 15); setWinnerCodes(item.codes.filter((code) => code.isWinner).length || 0);
@@ -204,6 +225,7 @@ export default function CrearCampanaPage() {
       sponsor: sponsor.trim(),
       description: description.trim(),
       coverUrl: existingCoverUrl,
+      targetState, targetMunicipality,
       startDate,
       endDate,
       status: sponsorMode ? "draft" : status,
@@ -238,6 +260,10 @@ export default function CrearCampanaPage() {
   async function saveCampaign() {
     if (!campaignName.trim()) {
       setNotice("Escribe un nombre para la campaña.");
+      return;
+    }
+    if (!targetState) {
+      setNotice("Selecciona el estado al que corresponde la campaña.");
       return;
     }
     if (codes.length === 0) {
@@ -373,6 +399,8 @@ export default function CrearCampanaPage() {
               <div className={styles.formGrid}>
                 <label><span>Nombre</span><input value={campaignName} onChange={(event) => setCampaignName(event.target.value)} placeholder="Ej. Tesoro del estadio" /></label>
                 <label><span>Patrocinador</span><input value={sponsor} readOnly={sponsorMode} onChange={(event) => setSponsor(event.target.value)} placeholder="Ej. Home Run Rewards" /></label>
+                <label><span>Estado de la dinámica</span><select value={targetState} disabled={sponsorMode} onChange={(event) => setTargetState(event.target.value)}><option value="">Selecciona un estado</option>{MEXICO_STATES.map((item) => <option key={item.code} value={item.name}>{item.name}</option>)}</select></label>
+                <label><span>Municipio (opcional)</span><select value={targetMunicipality} onChange={(event) => setTargetMunicipality(event.target.value)} disabled={!targetState}><option value="">Todo el estado</option>{municipalities.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
                 <label><span>Fecha de inicio</span><input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
                 <label><span>Fecha de cierre</span><input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
                 <label className={styles.fullField}><span>Descripción</span><textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe la dinámica que verá el usuario." /></label>

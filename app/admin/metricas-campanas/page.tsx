@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { readDemoConfig } from "@/lib/demoConfig";
 import styles from "@/app/patrocinador/SponsorDashboard.module.css";
 
 type Campaign = { id: string; name: string; status: string; sponsor: string | null; starts_at: string | null; ends_at: string | null };
@@ -17,8 +18,10 @@ export default function AdminCampaignMetricsPage() {
   const [budget, setBudget] = useState<Budget | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [simulating, setSimulating] = useState(false);
 
-  useEffect(() => { void loadCampaigns(); }, []);
+  useEffect(() => { void loadCampaigns(); void readDemoConfig().then((config) => setDemoEnabled(config.simulatedLocationEnabled)).catch(() => setDemoEnabled(false)); }, []);
   useEffect(() => { if (selected) void loadMetrics(selected); }, [selected]);
 
   async function loadCampaigns() {
@@ -28,6 +31,19 @@ export default function AdminCampaignMetricsPage() {
     const list = (data ?? []) as Campaign[];
     setCampaigns(list);
     if (list[0]) setSelected(list[0].id); else setLoading(false);
+  }
+
+  async function simulateMetrics() {
+    if (!selected || simulating) return;
+    setSimulating(true); setMessage("");
+    try {
+      const { error } = await supabase.rpc("simular_metricas_campana", { p_campaign_id: selected });
+      if (error) throw error;
+      setMessage("Métricas demo generadas para los últimos 30 días.");
+      await loadMetrics(selected);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudieron simular las métricas.");
+    } finally { setSimulating(false); }
   }
 
   async function loadMetrics(id: string) {
@@ -76,9 +92,12 @@ export default function AdminCampaignMetricsPage() {
   return <div className={styles.page}>
     <div className={styles.heading}>
       <div><h1>Métricas por campaña</h1><p>Consulta ventas atribuidas, participación, inversión y retorno de cualquier campaña.</p></div>
-      <select className={styles.select} value={selected} onChange={(event) => setSelected(event.target.value)}>
-        {campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}{campaign.sponsor ? ` · ${campaign.sponsor}` : ""}</option>)}
-      </select>
+      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
+        <select className={styles.select} value={selected} onChange={(event) => setSelected(event.target.value)}>
+          {campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}{campaign.sponsor ? ` · ${campaign.sponsor}` : ""}</option>)}
+        </select>
+        {demoEnabled && selected ? <button type="button" onClick={() => void simulateMetrics()} disabled={simulating} style={{border:"1px solid rgba(227,185,86,.45)",borderRadius:12,background:"rgba(227,185,86,.12)",color:"#f1c85e",padding:"12px 15px",fontWeight:800,cursor:"pointer"}}>{simulating ? "Simulando…" : "Simular métricas (30 días)"}</button> : null}
+      </div>
     </div>
     {message ? <p style={{ color: "#ff9d9d" }}>{message}</p> : null}
     {!campaigns.length && !loading ? <div className={styles.panel}><div className={styles.empty}>Aún no existen campañas para analizar.</div></div> : <>

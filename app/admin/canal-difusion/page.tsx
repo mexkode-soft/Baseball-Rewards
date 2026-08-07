@@ -155,14 +155,14 @@ export default function Page() {
     title,
     setTitle,
   ] = useState(
-    "Promoción exclusiva"
+    ""
   );
 
   const [
     message,
     setMessage,
   ] = useState(
-    "Disfruta una recompensa especial disponible por tiempo limitado."
+    ""
   );
 
   const [
@@ -266,8 +266,14 @@ export default function Page() {
         actionUrl: audienceType === "sponsors" ? "/patrocinador" : "/usuario",
         idempotencyKey,
       });
-      const pushDetail = result.pushMessage ? ` ${result.pushMessage}` : "";
-      setNotice(`Comunicado enviado a ${result.recipients} usuario(s).${pushDetail}`);
+      setNotice(result.pushMessage ?? `Notificación enviada a ${result.recipients} ${result.recipients === 1 ? "usuario" : "usuarios"}.`);
+      setTitle("");
+      setMessage("");
+      setSelectedUserIds([]);
+      setAudienceType("all");
+      setMessageType("promotion");
+      setPriority("normal");
+      setVigencia(obtenerFechaLocal());
       setHistoryItems(await readBroadcasts());
     } catch (error) { setNotice(error instanceof Error ? error.message : "No se pudo enviar el comunicado."); } finally { setIsSending(false); }
   }
@@ -439,7 +445,7 @@ export default function Page() {
                         .value
                     )
                   }
-                  placeholder="Ej. Partido cancelado"
+                  placeholder="Ej. Promoción exclusiva por tiempo limitado"
                 />
               </label>
 
@@ -462,7 +468,7 @@ export default function Page() {
                         .value
                     )
                   }
-                  placeholder="Escribe el contenido del comunicado"
+                  placeholder="Ej. Disfruta una recompensa especial disponible por tiempo limitado."
                   rows={5}
                 />
 
@@ -948,10 +954,10 @@ export default function Page() {
               >
                 <Send />
 
-                {isSending ? "Procesando..." : "Preparar envío"}
+                {isSending ? "Enviando..." : "Enviar anuncio"}
               </button>
             </div>
-            {notice && <p>{notice}</p>}
+            {notice && <p className={`${styles.noticeMessage} ${notice.startsWith("Notificación enviada") ? styles.noticeSuccess : notice.startsWith("Procesando") ? styles.noticeInfo : styles.noticeError}`}>{notice}</p>}
           </section>
         </main>
 

@@ -121,6 +121,7 @@ export default function MapPlayPage() {
     );
 
   const [remaining, setRemaining] = useState(0);
+  const [cameraError, setCameraError] = useState("");
 
   const videoRef =
     useRef<HTMLVideoElement>(null);
@@ -200,6 +201,20 @@ export default function MapPlayPage() {
     if (!campaign || !location) return;
     void cooldownRemaining(campaign.id, location.id).then(setRemaining).catch(() => setRemaining(0));
   }, [campaign, location]);
+
+  useEffect(() => {
+    if (!campaign || !location || phase !== "location") return;
+    void locate();
+    return () => {
+      if (watchRef.current !== null) {
+        navigator.geolocation.clearWatch(watchRef.current);
+        watchRef.current = null;
+      }
+      setWatching(false);
+    };
+    // locate depende de la campaña/ubicación activas y se reinicia al volver a la pantalla de ubicación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?.id, location?.id, phase]);
 
 
   if (
@@ -288,26 +303,7 @@ export default function MapPlayPage() {
       Math.round(meters)
     );
 
-    if (
-      meters <=
-      activeLocation.radius
-    ) {
-      if (
-        watchRef.current !== null
-      ) {
-        navigator.geolocation.clearWatch(
-          watchRef.current
-        );
 
-        watchRef.current = null;
-      }
-
-      setWatching(false);
-
-      setPhase(
-        "permission"
-      );
-    }
   }
 
   async function locate() {
@@ -405,36 +401,35 @@ export default function MapPlayPage() {
   }
 
   async function camera() {
+    setCameraError("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Este navegador no permite acceso a la cámara.");
+      return;
+    }
     try {
-      const stream =
-        await navigator.mediaDevices
-          .getUserMedia({
-            video: {
-              facingMode:
-                "environment",
-            },
-            audio: false,
-          });
-
-      streamRef.current =
-        stream;
-
-      if (
-        videoRef.current
-      ) {
-        videoRef.current.srcObject =
-          stream;
-
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+      } catch {
+        // En equipos sin cámara trasera (por ejemplo laptops), usamos cualquier cámara disponible.
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.muted = true;
+        videoRef.current.playsInline = true;
         await videoRef.current.play();
       }
+      setPhase("ready");
     } catch (error) {
-      console.warn(
-        "La cámara no quedó disponible:",
-        error
-      );
+      console.warn("La cámara no quedó disponible:", error);
+      setCameraError("No fue posible activar la cámara. Revisa el permiso del navegador e inténtalo nuevamente.");
     }
-
-    setPhase("ready");
   }
 
   async function begin() {
@@ -832,17 +827,13 @@ export default function MapPlayPage() {
 
           <button
             type="button"
-            className={
-              styles.cameraButton
-            }
-            onClick={
-              camera
-            }
+            className={styles.cameraButton}
+            onClick={camera}
           >
             <Camera />
-
             Dar permiso
           </button>
+          {cameraError ? <div className={styles.noticeBox}>{cameraError}</div> : null}
         </section>
       )}
 

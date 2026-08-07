@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { campaignMatchesLocation, getCurrentCampaignLocation } from "@/lib/campaignTargeting";
 
 export type QrCampaignStatus = "draft" | "scheduled" | "active";
 export interface QrCodeRecord {
@@ -20,6 +21,8 @@ export interface QrCampaign {
   sponsor: string;
   description: string;
   coverUrl?: string;
+  targetState?: string;
+  targetMunicipality?: string;
   startDate: string;
   endDate: string;
   status: QrCampaignStatus;
@@ -98,6 +101,7 @@ export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
     participation_limit: Math.min(Math.max(1, campaign.attemptsPerUser), campaign.codes.length),
     points_on_success: campaign.winnerPoints, points_on_failure: campaign.participationPoints,
     passing_percentage: 100, cooldown_hours: 0, created_by: userData.user?.id ?? null,
+    target_state: campaign.targetState || null, target_municipality: campaign.targetMunicipality || null,
     metadata: { reward: campaign.reward },
   };
   const { data: saved, error } = isUuid
@@ -136,7 +140,7 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
     : { data: [], error: null };
   if (codeError) throw codeError;
   return (campaigns ?? []).map((campaign) => ({
-    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""), coverUrl: String(campaign.cover_url ?? ""),
+    id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""), coverUrl: String(campaign.cover_url ?? ""), targetState: String(campaign.target_state ?? ""), targetMunicipality: String(campaign.target_municipality ?? ""),
     startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: campaign.status as QrCampaignStatus,
     attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
     reward: String((campaign.metadata as { reward?: string } | null)?.reward ?? "Premio"), createdAt: String(campaign.created_at),
@@ -153,20 +157,24 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
 export async function readActiveQrCampaigns(): Promise<QrCampaign[]> {
   if (activeQrCache && activeQrCache.expiresAt > Date.now()) return activeQrCache.value;
   const now = new Date().toISOString();
-  const { data, error } = await supabase.from("active_qr_campaign_summary")
-    .select("id,name,sponsor,description,cover_url,status,starts_at,ends_at,participation_limit,points_on_failure,points_on_success,created_at,code_count")
-    .eq("status", "active")
-    .or(`starts_at.is.null,starts_at.lte.${now}`)
-    .or(`ends_at.is.null,ends_at.gte.${now}`)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  const value: QrCampaign[] = (data ?? []).map((campaign) => ({
+  const [location, response] = await Promise.all([
+    getCurrentCampaignLocation(),
+    supabase.from("campaigns")
+      .select("id,name,sponsor,description,cover_url,status,starts_at,ends_at,participation_limit,points_on_failure,points_on_success,created_at,metadata,target_state,target_municipality")
+      .eq("type", "qr")
+      .eq("status", "active")
+      .or(`starts_at.is.null,starts_at.lte.${now}`)
+      .or(`ends_at.is.null,ends_at.gte.${now}`)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (response.error) throw response.error;
+  const filtered = (response.data ?? []).filter((campaign) => campaignMatchesLocation(campaign, location));
+  const value: QrCampaign[] = filtered.map((campaign) => ({
     id: String(campaign.id), type: "qr", name: String(campaign.name), sponsor: String(campaign.sponsor ?? ""), description: String(campaign.description ?? ""), coverUrl: String(campaign.cover_url ?? ""),
+    targetState: String(campaign.target_state ?? ""), targetMunicipality: String(campaign.target_municipality ?? ""),
     startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: "active",
     attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
-    reward: "Premio sorpresa", createdAt: String(campaign.created_at), codes: Array.from({ length: Number(campaign.code_count ?? 0) }, (_, index) => ({
-      id: `summary-${index}`, token: "", payload: "", label: `QR-${index + 1}`, isWinner: false, reward: "", points: 0, scannedBy: [], totalScans: 0,
-    })),
+    reward: String((campaign.metadata as { reward?: string } | null)?.reward ?? "Premio sorpresa"), createdAt: String(campaign.created_at), codes: [],
   }));
   activeQrCache = { expiresAt: Date.now() + ACTIVE_QR_CACHE_TTL, value };
   return value;
