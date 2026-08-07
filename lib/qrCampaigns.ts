@@ -120,7 +120,7 @@ export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
     reward_name: code.reward || null,
     reward_code: code.rewardCode || null,
     points: code.points,
-    max_uses: 1,
+    max_uses: 1000000,
     total_uses: 0,
     is_active: true,
   })));

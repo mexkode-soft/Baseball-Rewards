@@ -995,8 +995,11 @@ export default function MapPlayPage() {
               activeLocation
                 .rewardCode
             }
-            onComplete={() => {
-              void awardDynamicReward(activeCampaign, activeLocation).then(() => setPhase("done"));
+            onComplete={async () => {
+              const award = await awardDynamicReward(activeCampaign, activeLocation);
+              if (!award.ok) {
+                throw new Error(award.message ?? "No se pudo guardar la recompensa.");
+              }
             }}
           />
         </section>

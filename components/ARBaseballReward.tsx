@@ -1,7 +1,7 @@
 "use client";
 
 import { Gift, LoaderCircle } from "lucide-react";
-import { useEffect, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import styles from "./ARBaseballReward.module.css";
@@ -31,6 +31,9 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
   const [saving, setSaving] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [modelFailed, setModelFailed] = useState(false);
+  const [rewardSaved, setRewardSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const saveStartedRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -159,16 +162,37 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
     beginPinch();
   }
 
-  async function goToRewards() {
-    if (saving) return;
+  const persistReward = useCallback(async () => {
+    if (saveStartedRef.current || rewardSaved) return;
+    saveStartedRef.current = true;
     setSaving(true);
+    setSaveError("");
     try {
       await onComplete();
-      window.location.assign("/usuario/recompensas");
+      setRewardSaved(true);
+      window.dispatchEvent(new CustomEvent("hrr-dynamic-captures-updated"));
+      window.dispatchEvent(new CustomEvent("hrr-points-updated"));
     } catch (error) {
       console.error("No fue posible guardar la recompensa:", error);
+      saveStartedRef.current = false;
+      setSaveError(error instanceof Error ? error.message : "No se pudo guardar la recompensa.");
+    } finally {
       setSaving(false);
     }
+  }, [onComplete, rewardSaved]);
+
+  useEffect(() => {
+    if (won && !rewardSaved && !saveStartedRef.current) {
+      void persistReward();
+    }
+  }, [won, rewardSaved, persistReward]);
+
+  async function goToRewards() {
+    if (!rewardSaved) {
+      await persistReward();
+      return;
+    }
+    window.location.assign("/usuario/recompensas");
   }
 
   return (
@@ -227,8 +251,9 @@ export default function ARBaseballReward({ reward, code, onComplete }: Props) {
             <h2>{reward}</h2>
             <small>Código</small>
             <strong>{code}</strong>
+            {saveError ? <small role="alert">{saveError}</small> : null}
             <button type="button" className={styles.rewardsButton} onClick={() => void goToRewards()} disabled={saving}>
-              {saving ? "Guardando recompensa..." : "Ir a mis recompensas"}
+              {saving ? "Guardando recompensa..." : rewardSaved ? "Ir a mis recompensas" : "Reintentar guardado"}
             </button>
           </div>
         </>

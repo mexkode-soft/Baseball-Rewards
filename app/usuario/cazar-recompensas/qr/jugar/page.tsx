@@ -90,6 +90,8 @@ export default function QrPlayPage() {
       import("html5-qrcode").Html5Qrcode | null
     >(null);
 
+  const processingScanRef = useRef(false);
+
   const readerId =
     "hrr-public-qr-reader";
 
@@ -209,12 +211,18 @@ export default function QrPlayPage() {
   async function processPayload(
     payload: string
   ) {
+    if (processingScanRef.current) return;
+    processingScanRef.current = true;
     await stopScanner();
 
     try {
       const scanResult = await validateQrPayload(payload, campaignId);
       setResult(scanResult);
       setPoints(await readDemoPoints());
+      if (scanResult.ok) {
+        window.dispatchEvent(new CustomEvent("hrr-qr-captures-updated"));
+        window.dispatchEvent(new CustomEvent("hrr-points-updated"));
+      }
       setScannerState("result");
     } catch (error) {
       console.error("Error validando QR:", error);
@@ -224,6 +232,8 @@ export default function QrPlayPage() {
         message: error instanceof Error ? error.message : "No fue posible validar este QR.",
       });
       setScannerState("result");
+    } finally {
+      processingScanRef.current = false;
     }
   }
 
@@ -241,40 +251,41 @@ export default function QrPlayPage() {
     try {
       const {
         Html5Qrcode,
-      } = await import(
-        "html5-qrcode"
-      );
+        Html5QrcodeSupportedFormats,
+      } = await import("html5-qrcode");
 
       await stopScanner();
+      processingScanRef.current = false;
 
-      const scanner =
-        new Html5Qrcode(
-          readerId,
-          {
-            verbose: false,
-          }
-        );
+      const scanner = new Html5Qrcode(readerId, {
+        verbose: false,
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      });
 
-      scannerRef.current =
-        scanner;
+      scannerRef.current = scanner;
+
+      const cameras = await Html5Qrcode.getCameras().catch(() => []);
+      const preferredCamera =
+        cameras.find((camera) => /back|rear|environment|trasera/i.test(camera.label)) ??
+        cameras.at(-1);
+
+      const cameraConfig = preferredCamera?.id
+        ? preferredCamera.id
+        : { facingMode: "environment" };
 
       await scanner.start(
+        cameraConfig,
         {
-          facingMode:
-            "environment",
-        },
-        {
-          fps: 12,
-          qrbox: {
-            width: 250,
-            height: 250,
+          fps: 15,
+          disableFlip: false,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const edge = Math.max(180, Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.72));
+            return { width: edge, height: edge };
           },
-          aspectRatio: 1,
         },
         (decodedText) => {
-          void processPayload(
-            decodedText
-          );
+          void processPayload(decodedText);
         },
         () => undefined
       );
@@ -624,16 +635,14 @@ export default function QrPlayPage() {
                   {isAccepted ? (
                     <button
                       type="button"
-                      className={
-                        styles.resultPrimary
-                      }
+                      className={styles.resultPrimary}
                       onClick={() =>
                         router.push(
-                          "/usuario/cazar-recompensas/capturas"
+                          isWinner ? "/usuario/recompensas" : "/usuario/cazar-recompensas/capturas"
                         )
                       }
                     >
-                      Ver mis capturas
+                      {isWinner ? "Ver mi recompensa" : "Ver mis capturas"}
                     </button>
                   ) : (
                     <button
