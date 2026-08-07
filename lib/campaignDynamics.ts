@@ -27,6 +27,7 @@ interface BaseCampaign {
   description: string;
   reward: string;
   rewardCode: string;
+  rewardValidityDays: number;
   points: number;
   startDate: string;
   endDate: string;
@@ -120,6 +121,7 @@ async function mapCampaignRows(rows: Array<Record<string, unknown>>): Promise<Dy
       description: String(row.description ?? ""),
       reward: campaignLocations[0]?.reward ?? String(row.name ?? "Premio"),
       rewardCode: campaignLocations[0]?.rewardCode ?? "",
+      rewardValidityDays: Number(row.reward_validity_days ?? 15),
       points: Number(row.points_on_success ?? 0),
       startDate: dateOnly(row.starts_at),
       endDate: dateOnly(row.ends_at),
@@ -164,7 +166,7 @@ export async function readActiveDynamicCampaigns(type?: DynamicCampaignType): Pr
 
   const now = new Date().toISOString();
   const query = supabase.from("campaigns")
-    .select("id,type,name,sponsor,description,cover_url,status,starts_at,ends_at,points_on_success,passing_percentage,created_at,metadata,target_state,target_municipality")
+    .select("id,type,name,sponsor,description,cover_url,status,starts_at,ends_at,points_on_success,passing_percentage,reward_validity_days,created_at,metadata,target_state,target_municipality")
     .eq("status", "active")
     .in("type", type ? [type] : ["map", "brand"])
     .or(`starts_at.is.null,starts_at.lte.${now}`)
@@ -198,6 +200,7 @@ export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<st
     created_by: userData.user?.id ?? null,
     target_state: campaign.targetState || null,
     target_municipality: campaign.targetMunicipality || null,
+    reward_validity_days: Math.max(1, Math.floor(campaign.rewardValidityDays || 15)),
     metadata,
   };
   const isUuid = /^[0-9a-f-]{36}$/i.test(campaign.id);

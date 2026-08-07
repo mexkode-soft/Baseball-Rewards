@@ -9,6 +9,7 @@ export interface RewardDashboardItem {
   rewardCode: string;
   points: number;
   claimedAt: string;
+  expiresAt: string;
 }
 
 export interface RewardDashboard {
@@ -40,6 +41,7 @@ export async function readMyRewardsDashboard(): Promise<RewardDashboard> {
         rewardCode: String(row.rewardCode ?? ""),
         points: Number(row.points ?? 0),
         claimedAt: String(row.claimedAt ?? new Date().toISOString()),
+        expiresAt: String(row.expiresAt ?? ""),
       };
     }),
   };

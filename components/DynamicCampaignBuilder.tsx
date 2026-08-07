@@ -66,6 +66,7 @@ export default function DynamicCampaignBuilder({
   const [municipalities, setMunicipalities] = useState<string[]>([]);
   const [reward, setReward] = useState("");
   const [rewardCode, setRewardCode] = useState("");
+  const [rewardValidityDays, setRewardValidityDays] = useState(15);
   const [points, setPoints] = useState(150);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -93,7 +94,7 @@ export default function DynamicCampaignBuilder({
       const campaign = items.find((item) => item.id === campaignId);
       if (!active || !campaign) return;
       setEditingId(campaign.id); setName(campaign.name); setSponsor(campaign.sponsor); setDescription(campaign.description); setTargetState(campaign.targetState ?? ""); setTargetMunicipality(campaign.targetMunicipality ?? "");
-      setReward(campaign.reward); setRewardCode(campaign.rewardCode); setPoints(campaign.points); setStartDate(campaign.startDate);
+      setReward(campaign.reward); setRewardCode(campaign.rewardCode); setRewardValidityDays(campaign.rewardValidityDays ?? 15); setPoints(campaign.points); setStartDate(campaign.startDate);
       setEndDate(campaign.endDate); setStatus(campaign.status); setSelected(campaign.selectedQuestionIds); setQuestionCount(campaign.questionCount);
       setPassing(campaign.passingPercentage); setLocations(campaign.locations); setActiveLocationId(campaign.locations[0]?.id ?? ""); setCoverUrl(campaign.coverUrl ?? "");
       if (campaign.type === "brand") { setMinimumTotal(campaign.minimumTotal); setProducts(campaign.requiredProducts.join(", ")); setConfidence(campaign.minimumConfidence); }
@@ -217,7 +218,7 @@ export default function DynamicCampaignBuilder({
     if (!locations.length || locations.some((item) => !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude))) { setSaved(false); setNotice("Configura al menos una ubicación válida."); return; }
     setSaving(true); setSaved(false); setNotice("");
     try {
-      const base = { id: editingId || makeId(type), name:name.trim(), sponsor:sponsor.trim(), description:description.trim(), coverUrl, targetState, targetMunicipality, reward:reward.trim(), rewardCode:rewardCode.trim(), points, startDate, endDate, status: sponsorMode ? "draft" as const : status, selectedQuestionIds:selected, questionCount:Math.min(questionCount,selected.length), passingPercentage:passing, questionSeconds:5 as const, cooldownHours:24 as const, createdAt:new Date().toISOString() };
+      const base = { id: editingId || makeId(type), name:name.trim(), sponsor:sponsor.trim(), description:description.trim(), coverUrl, targetState, targetMunicipality, reward:reward.trim(), rewardCode:rewardCode.trim(), rewardValidityDays, points, startDate, endDate, status: sponsorMode ? "draft" as const : status, selectedQuestionIds:selected, questionCount:Math.min(questionCount,selected.length), passingPercentage:passing, questionSeconds:5 as const, cooldownHours:24 as const, createdAt:new Date().toISOString() };
       const savedId = type === "map"
         ? await saveDynamicCampaign({ ...base, type:"map", locations } as MapCampaign)
         : await saveDynamicCampaign({ ...base, type:"brand", brandName:sponsor.trim(), locations, minimumTotal, requiredProducts:products.split(",").map(v=>v.trim()).filter(Boolean), minimumConfidence:confidence, maxTicketImages:3 } as BrandCampaign);
@@ -314,6 +315,17 @@ export default function DynamicCampaignBuilder({
             <input
               value={rewardCode}
               onChange={(event) => setRewardCode(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Vigencia del premio (días)
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={rewardValidityDays}
+              onChange={(event) => setRewardValidityDays(Math.max(1, Number(event.target.value) || 15))}
             />
           </label>
 

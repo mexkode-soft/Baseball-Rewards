@@ -1025,6 +1025,8 @@ export default function MapPlayPage() {
             }
           </h2>
 
+          <p>Disponible durante {activeCampaign.rewardValidityDays ?? 15} días a partir de hoy.</p>
+
           <Link
             className={
               styles.resultPrimary

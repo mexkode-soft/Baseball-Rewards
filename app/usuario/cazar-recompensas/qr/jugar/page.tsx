@@ -237,6 +237,28 @@ export default function QrPlayPage() {
     }
   }
 
+  async function scanQrImage(file: File) {
+    if (!campaign) return;
+    setResult(null);
+    setScannerState("starting");
+    try {
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+      await stopScanner();
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      const scanner = new Html5Qrcode(readerId, {
+        verbose: false,
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      });
+      scannerRef.current = scanner;
+      const decodedText = await scanner.scanFile(file, true);
+      await processPayload(decodedText);
+    } catch (error) {
+      console.error("No fue posible leer la imagen QR:", error);
+      setResult({ ok: false, status: "invalid", message: "No pudimos detectar un QR válido en esa imagen." });
+      setScannerState("result");
+    }
+  }
+
   async function startScanner() {
     if (!campaign) {
       return;
@@ -277,12 +299,9 @@ export default function QrPlayPage() {
       await scanner.start(
         cameraConfig,
         {
-          fps: 15,
+          fps: 12,
           disableFlip: false,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const edge = Math.max(180, Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.72));
-            return { width: edge, height: edge };
-          },
+          aspectRatio: 1.333333,
         },
         (decodedText) => {
           void processPayload(decodedText);
@@ -433,22 +452,30 @@ export default function QrPlayPage() {
       >
         <button
           type="button"
-          className={
-            styles.cameraButton
-          }
-          onClick={
-            startScanner
-          }
-          disabled={
-            !campaign
-          }
+          className={styles.cameraButton}
+          onClick={startScanner}
+          disabled={!campaign}
         >
           <Camera />
-
           Abrir cámara
         </button>
 
-
+        <label className={styles.cameraButton} style={{ cursor: campaign ? "pointer" : "not-allowed" }}>
+          <QrCode />
+          Leer QR desde imagen
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            disabled={!campaign}
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void scanQrImage(file);
+            }}
+          />
+        </label>
       </section>
 
       {scannerState !== "idle" &&
@@ -583,18 +610,22 @@ export default function QrPlayPage() {
 
                   <span>
                     {isWinner
-                      ? "¡Home run!"
+                      ? "¡Felicidades!"
                       : result.status ===
                           "not_winner"
-                        ? "Sigue participando"
+                        ? "¡Mejor suerte a la siguiente!"
                         : "Código no aceptado"}
                   </span>
 
-                  <h2>
-                    {
-                      result.message
-                    }
-                  </h2>
+                  <h2>{result.message}</h2>
+
+                  {isWinner && campaign && (
+                    <p>Tu premio estará disponible durante {campaign.rewardValidityDays ?? 15} días.</p>
+                  )}
+
+                  {result.status === "not_winner" && (
+                    <p>¡Sigue buscando! Cada QR válido puede acercarte al siguiente premio.</p>
+                  )}
 
                   {result.code
                     ?.reward && (

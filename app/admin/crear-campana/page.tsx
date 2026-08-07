@@ -76,6 +76,7 @@ export default function CrearCampanaPage() {
   const [winnerCodes, setWinnerCodes] = useState(3);
   const [attemptsPerUser, setAttemptsPerUser] = useState(15);
   const [reward, setReward] = useState("");
+  const [rewardValidityDays, setRewardValidityDays] = useState(15);
   const [participationPoints, setParticipationPoints] = useState(10);
   const [winnerPoints, setWinnerPoints] = useState(100);
   const [codes, setCodes] = useState<QrCodeRecord[]>([]);
@@ -141,7 +142,7 @@ export default function CrearCampanaPage() {
       if (!active || !item) return;
       setCampaignId(item.id); setCampaignName(item.name); setSponsor(item.sponsor); setDescription(item.description); setTargetState(item.targetState ?? ""); setTargetMunicipality(item.targetMunicipality ?? "");
       setStartDate(item.startDate); setEndDate(item.endDate); setStatus(item.status); setAttemptsPerUser(item.attemptsPerUser);
-      setParticipationPoints(item.participationPoints); setWinnerPoints(item.winnerPoints); setReward(item.reward);
+      setParticipationPoints(item.participationPoints); setWinnerPoints(item.winnerPoints); setReward(item.reward); setRewardValidityDays(item.rewardValidityDays ?? 15);
       setTotalCodes(item.codes.length || 15); setWinnerCodes(item.codes.filter((code) => code.isWinner).length || 0);
       setExistingCoverUrl(item.coverUrl ?? "");
       setCoverPreview(item.coverUrl ?? "");
@@ -233,6 +234,7 @@ export default function CrearCampanaPage() {
       participationPoints: Math.max(0, participationPoints),
       winnerPoints: Math.max(0, winnerPoints),
       reward: reward.trim(),
+      rewardValidityDays: Math.max(1, rewardValidityDays),
       createdAt: new Date().toISOString(),
       codes,
     };
@@ -418,6 +420,7 @@ export default function CrearCampanaPage() {
                 <label><span>Códigos ganadores</span><input type="number" min={0} max={totalCodes} value={winnerCodes} onChange={(event) => setWinnerCodes(Number(event.target.value))} /></label>
                 <label><span>Intentos por usuario</span><input type="number" min={1} value={attemptsPerUser} onChange={(event) => setAttemptsPerUser(Number(event.target.value))} /></label>
                 <label><span>Premio o descuento</span><input value={reward} onChange={(event) => setReward(event.target.value)} /></label>
+                <label><span>Vigencia del premio (días)</span><input type="number" min={1} max={365} value={rewardValidityDays} onChange={(event) => setRewardValidityDays(Math.max(1, Number(event.target.value) || 15))} /></label>
                 <label><span>Puntos por QR sin premio</span><input type="number" min={0} value={participationPoints} onChange={(event) => setParticipationPoints(Number(event.target.value))} /></label>
                 <label><span>Puntos por QR ganador</span><input type="number" min={0} value={winnerPoints} onChange={(event) => setWinnerPoints(Number(event.target.value))} /></label>
               </div>
