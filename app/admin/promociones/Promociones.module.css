@@ -1598,3 +1598,39 @@
 .singleUserPromotion{justify-content:center!important}
 .singleUserPromotion .savedCardWrap{margin-inline:auto}
 @media(max-width:700px){.singleUserPromotion{justify-content:center!important}.singleUserPromotion .savedCardWrap{flex-basis:min(390px,calc(100vw - 42px));min-width:min(390px,calc(100vw - 42px));margin-inline:auto}}
+
+/* v2.9.1: promociones de usuario a ancho útil completo y controles encima de la card. */
+.userPromotionsSection{
+  width:100%!important;
+  max-width:none!important;
+  padding-left:clamp(14px,3vw,28px)!important;
+  padding-right:clamp(14px,3vw,28px)!important;
+}
+.carouselControls{
+  width:100%!important;
+  justify-content:flex-end!important;
+  margin:0 0 10px!important;
+  padding:0!important;
+}
+.userPromotionsGrid{
+  width:100%!important;
+  padding-left:0!important;
+  padding-right:0!important;
+  scroll-padding-inline:0!important;
+}
+.userPromotionsGrid .savedCardWrap{
+  flex:0 0 100%!important;
+  width:100%!important;
+  min-width:100%!important;
+  max-width:none!important;
+}
+.userPromotionsGrid .promotionCard{
+  width:100%!important;
+  max-width:none!important;
+}
+@media(max-width:700px){
+  .userPromotionsSection{padding-left:12px!important;padding-right:12px!important}
+  .carouselControls{position:static!important;display:flex!important;justify-content:flex-end!important;margin:0 0 10px!important;padding:0!important}
+  .userPromotionsGrid{padding:0!important;overflow-x:auto!important}
+  .userPromotionsGrid .savedCardWrap{flex:0 0 100%!important;width:100%!important;min-width:100%!important}
+}

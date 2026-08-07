@@ -127,3 +127,6 @@ Ejecutar `320_reparacion_patrocinadores_y_carrusel.sql` para corregir permisos d
 
 ### Ajuste operativo 370
 Ejecutar `370_ajustes_operativos_geografia_push_metricas.sql` después de `362_reparacion_upsert_user_consents.sql`. Incluye segmentación geográfica de campañas/patrocinadores, notificaciones propias en Realtime y simulación de métricas demo.
+
+### 381_ajustes_notificacion_promociones_puntos_demo.sql
+Ejecutar después de `380_metricas_demo_patrocinadores_pendientes.sql`. Evita sumar puntos reales mientras `simulatedLocationEnabled` esté activo. Los cambios visuales de notificación y carrusel están en frontend.

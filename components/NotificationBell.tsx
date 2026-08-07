@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { Bell, BellRing, CheckCheck, ExternalLink, LoaderCircle, X } from "lucide-react";
+import { Bell, BellRing, CheckCheck, LoaderCircle, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { markAllNotificationsRead, markNotificationRead, readNotifications, subscribeToPush, type UserNotification } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import styles from "./NotificationBell.module.css";
@@ -101,20 +101,22 @@ export default function NotificationBell() {
       </div>
     </section> : null}
 
-    {selected ? <div className={styles.notificationOverlay} role="dialog" aria-modal="true" aria-label={selected.title} onClick={() => setSelected(null)}>
-      <article className={styles.notificationCard} onClick={(event) => event.stopPropagation()}>
-        <div className={styles.notificationCardHeader}>
-          <div><span>HOME RUN REWARDS</span><h2>{selected.title}</h2></div>
-          <button type="button" onClick={() => setSelected(null)} aria-label="Cerrar notificación"><X /></button>
-        </div>
-        <p>{selected.body}</p>
-        {selected.image_url ? <img src={selected.image_url} alt="" className={styles.notificationImage} /> : null}
-        <time>{formatDate(selected.created_at)}</time>
-        <div className={styles.notificationCardActions}>
-          <button type="button" onClick={() => setSelected(null)}>Cerrar</button>
-          {selected.action_url ? <Link href={selected.action_url} onClick={() => setSelected(null)}>Ver detalle <ExternalLink /></Link> : null}
-        </div>
-      </article>
-    </div> : null}
+    {selected && typeof document !== "undefined" ? createPortal(
+      <div className={styles.notificationOverlay} role="dialog" aria-modal="true" aria-label={selected.title} onClick={() => setSelected(null)}>
+        <article className={styles.notificationCard} onClick={(event) => event.stopPropagation()}>
+          <div className={styles.notificationCardHeader}>
+            <div><span>HOME RUN REWARDS</span><h2>{selected.title}</h2></div>
+            <button type="button" onClick={() => setSelected(null)} aria-label="Cerrar notificación"><X /></button>
+          </div>
+          <p>{selected.body}</p>
+          {selected.image_url ? <img src={selected.image_url} alt="" className={styles.notificationImage} /> : null}
+          <time>{formatDate(selected.created_at)}</time>
+          <div className={styles.notificationCardActions}>
+            <button type="button" onClick={() => setSelected(null)}>Cerrar</button>
+          </div>
+        </article>
+      </div>,
+      document.body,
+    ) : null}
   </div>;
 }
