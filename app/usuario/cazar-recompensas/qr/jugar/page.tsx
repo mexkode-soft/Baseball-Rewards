@@ -213,10 +213,21 @@ export default function QrPlayPage() {
   ) {
     if (processingScanRef.current) return;
     processingScanRef.current = true;
-    await stopScanner();
+
+    // No hacemos await scanner.stop() dentro del callback de lectura. En html5-qrcode
+    // eso puede bloquear el mismo ciclo que acaba de detectar el código y dejar la
+    // cámara abierta sin llegar a validar el payload. Pausar es síncrono y seguro.
+    try {
+      if (scannerRef.current?.isScanning) {
+        scannerRef.current.pause(true);
+      }
+    } catch {
+      // Si el navegador no permite pausar en este instante continuamos con la validación.
+    }
 
     try {
-      const scanResult = await validateQrPayload(payload, campaignId);
+      const normalizedPayload = payload.trim();
+      const scanResult = await validateQrPayload(normalizedPayload, campaignId);
       setResult(scanResult);
       setPoints(await readDemoPoints());
       if (scanResult.ok) {
@@ -234,6 +245,8 @@ export default function QrPlayPage() {
       setScannerState("result");
     } finally {
       processingScanRef.current = false;
+      // Se detiene después de que el callback de decodificación ya devolvió el control.
+      window.setTimeout(() => { void stopScanner(); }, 0);
     }
   }
 
@@ -299,9 +312,14 @@ export default function QrPlayPage() {
       await scanner.start(
         cameraConfig,
         {
-          fps: 12,
+          fps: 15,
           disableFlip: false,
-          aspectRatio: 1.333333,
+          // Una zona de lectura explícita mejora mucho la detección en Chrome/PWA
+          // y evita que el QR tenga que ocupar prácticamente toda la cámara.
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.72);
+            return { width: Math.max(180, edge), height: Math.max(180, edge) };
+          },
         },
         (decodedText) => {
           void processPayload(decodedText);

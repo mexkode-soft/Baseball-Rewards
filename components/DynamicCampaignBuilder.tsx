@@ -635,6 +635,7 @@ export default function DynamicCampaignBuilder({
           </p>
 
           <MapLocationPicker
+            key={activeLocation.id}
             latitude={activeLocation.latitude}
             longitude={activeLocation.longitude}
             onChange={(latitude, longitude, label) =>

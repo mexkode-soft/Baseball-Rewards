@@ -222,40 +222,59 @@ export async function saveDynamicCampaign(campaign: DynamicCampaign): Promise<st
     );
     if (linkError) throw linkError;
   }
-  // Sincroniza ubicaciones por ID. No las borra y recrea al editar, evitando duplicados.
+  // Sincroniza ubicaciones por su ID real. Para una ubicación existente hacemos UPDATE
+  // explícito; para una nueva hacemos INSERT. Así editar coordenadas/dirección nunca
+  // se interpreta como una ubicación adicional ni depende de un índice geográfico.
   const { data: existingLocations, error: existingLocationsError } = await supabase
     .from("campaign_locations")
     .select("id")
     .eq("campaign_id", id);
   if (existingLocationsError) throw existingLocationsError;
 
+  const existingIds = new Set((existingLocations ?? []).map((row) => String(row.id)));
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  const locationRows = campaign.locations.map((location) => ({
-    ...(uuidPattern.test(location.id) ? { id: location.id } : {}),
-    campaign_id: id,
-    name: location.name,
-    address: location.address,
-    latitude: location.latitude,
-    longitude: location.longitude,
-    radius_meters: location.radius,
-    reward_name: location.reward,
-    reward_code: location.rewardCode,
-    reward_units: Math.max(0, Math.floor(location.availableUnits || 0)),
-    points: location.points,
-    is_active: true,
-  }));
+  const keepIds = new Set<string>();
 
-  if (locationRows.length) {
-    const { error: locationError } = await supabase
-      .from("campaign_locations")
-      .upsert(locationRows, { onConflict: "id" });
-    if (locationError) throw locationError;
+  for (const location of campaign.locations) {
+    const locationId = uuidPattern.test(location.id) ? location.id : crypto.randomUUID();
+    keepIds.add(locationId);
+    const locationPayload = {
+      campaign_id: id,
+      name: location.name,
+      address: location.address,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      radius_meters: location.radius,
+      reward_name: location.reward,
+      reward_code: location.rewardCode,
+      reward_units: Math.max(0, Math.floor(location.availableUnits || 0)),
+      points: location.points,
+      is_active: true,
+    };
+
+    if (existingIds.has(locationId)) {
+      const { error: locationError } = await supabase
+        .from("campaign_locations")
+        .update(locationPayload)
+        .eq("id", locationId)
+        .eq("campaign_id", id);
+      if (locationError) throw new Error(`No se pudo actualizar la ubicación ${location.name}: ${locationError.message}`);
+    } else {
+      const { error: locationError } = await supabase
+        .from("campaign_locations")
+        .insert({ id: locationId, ...locationPayload });
+      if (locationError) throw new Error(`No se pudo crear la ubicación ${location.name}: ${locationError.message}`);
+    }
   }
 
-  const keepIds = new Set(campaign.locations.filter((location) => uuidPattern.test(location.id)).map((location) => location.id));
-  const removedIds = (existingLocations ?? []).map((row) => String(row.id)).filter((locationId) => !keepIds.has(locationId));
+  const removedIds = (existingLocations ?? [])
+    .map((row) => String(row.id))
+    .filter((locationId) => !keepIds.has(locationId));
   if (removedIds.length) {
-    const { error: deleteLocationsError } = await supabase.from("campaign_locations").delete().in("id", removedIds);
+    const { error: deleteLocationsError } = await supabase
+      .from("campaign_locations")
+      .delete()
+      .in("id", removedIds);
     if (deleteLocationsError) throw deleteLocationsError;
   }
   if (campaign.type === "brand") {

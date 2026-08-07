@@ -83,7 +83,11 @@ export default function RecompensasPage() {
               <div className={styles.captureContent}>
                 <span>{item.campaignName}</span>
                 <strong>{item.rewardName}</strong>
-                <small>{item.rewardCode ? `${item.rewardCode} · ` : ""}Ganado: {formatCaptureDate(item.claimedAt)}{item.expiresAt ? ` · Vence: ${formatCaptureDate(item.expiresAt)}` : ""}</small>
+                {item.rewardCode ? <small>Código: {item.rewardCode}</small> : null}
+                <div className={styles.rewardDates}>
+                  <small>Obtenido: {formatCaptureDate(item.claimedAt)}</small>
+                  <small>Vigente hasta: {item.expiresAt ? formatCaptureDate(item.expiresAt) : "Sin fecha definida"}</small>
+                </div>
               </div>
               <div className={styles.capturePoints}>+{item.points}</div>
             </article>

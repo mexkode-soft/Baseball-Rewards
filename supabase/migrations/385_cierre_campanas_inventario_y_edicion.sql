@@ -78,41 +78,57 @@ on public.campaign_locations
 for each row execute function public.trg_recalculate_campaign_inventory_status();
 
 -- 4) Limpia duplicados históricos creados por ediciones anteriores.
--- Conserva la ubicación más antigua y mueve las participaciones antes de borrar copias.
-create temporary table if not exists hrr_location_dedup_map on commit drop as
-with ranked as (
-  select id,
-         first_value(id) over (
-           partition by campaign_id, lower(trim(name)), round(latitude::numeric,6), round(longitude::numeric,6)
-           order by created_at, id
-         ) as keep_id,
-         row_number() over (
-           partition by campaign_id, lower(trim(name)), round(latitude::numeric,6), round(longitude::numeric,6)
-           order by created_at, id
-         ) as rn
-  from public.campaign_locations
-)
-select id as duplicate_id, keep_id from ranked where rn > 1;
+-- Evitamos tablas temporales porque el SQL Editor/API de Supabase puede
+-- ejecutar fragmentos en contextos distintos y perder una temp table.
+-- Se procesa cada duplicado en un solo bloque PL/pgSQL.
+do $$
+declare
+  r record;
+  v_keep_units integer;
+  v_dup_units integer;
+begin
+  for r in
+    with ranked as (
+      select
+        id,
+        campaign_id,
+        first_value(id) over (
+          partition by campaign_id, lower(trim(name)), round(latitude::numeric,6), round(longitude::numeric,6)
+          order by created_at, id
+        ) as keep_id,
+        row_number() over (
+          partition by campaign_id, lower(trim(name)), round(latitude::numeric,6), round(longitude::numeric,6)
+          order by created_at, id
+        ) as rn
+      from public.campaign_locations
+    )
+    select id as duplicate_id, keep_id, campaign_id
+    from ranked
+    where rn > 1
+    order by campaign_id, duplicate_id
+  loop
+    -- Mover participaciones de la copia a la ubicación que conservaremos.
+    update public.participations
+    set location_id = r.keep_id
+    where location_id = r.duplicate_id;
 
-update public.participations p
-set location_id = d.keep_id
-from hrr_location_dedup_map d
-where p.location_id = d.duplicate_id;
+    -- Conservar el inventario mayor entre ambas filas.
+    select coalesce(reward_units,0) into v_keep_units
+    from public.campaign_locations
+    where id = r.keep_id;
 
--- Si una copia tenía inventario actualizado, conserva el mayor valor en la ubicación principal.
-update public.campaign_locations keep
-set reward_units = src.max_units
-from (
-  select d.keep_id, max(cl.reward_units) as max_units
-  from hrr_location_dedup_map d
-  join public.campaign_locations cl on cl.id = d.duplicate_id or cl.id = d.keep_id
-  group by d.keep_id
-) src
-where keep.id = src.keep_id;
+    select coalesce(reward_units,0) into v_dup_units
+    from public.campaign_locations
+    where id = r.duplicate_id;
 
-delete from public.campaign_locations cl
-using hrr_location_dedup_map d
-where cl.id = d.duplicate_id;
+    update public.campaign_locations
+    set reward_units = greatest(coalesce(v_keep_units,0), coalesce(v_dup_units,0))
+    where id = r.keep_id;
+
+    delete from public.campaign_locations
+    where id = r.duplicate_id;
+  end loop;
+end $$;
 
 -- 5) Corrige campañas activas cuyo inventario ya estaba agotado.
 do $$
