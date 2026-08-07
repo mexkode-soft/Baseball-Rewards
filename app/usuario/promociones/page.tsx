@@ -96,7 +96,7 @@ export default function PromocionesUsuarioPage() {
 
           <div
             ref={carruselRef}
-            className={`${styles.promotionsGrid} ${styles.userPromotionsGrid}`}
+            className={`${styles.promotionsGrid} ${styles.userPromotionsGrid} ${promociones.length === 1 ? styles.singleUserPromotion : ""}`}
             onPointerDown={iniciarArrastre}
             onPointerMove={moverArrastre}
             onPointerUp={terminarArrastre}

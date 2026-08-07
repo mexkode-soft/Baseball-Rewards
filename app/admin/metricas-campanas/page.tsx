@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { readDemoConfig } from "@/lib/demoConfig";
+import { DEMO_CONFIG_EVENT, readDemoConfig } from "@/lib/demoConfig";
 import styles from "@/app/patrocinador/SponsorDashboard.module.css";
 
 type Campaign = { id: string; name: string; status: string; sponsor: string | null; starts_at: string | null; ends_at: string | null };
@@ -21,8 +21,19 @@ export default function AdminCampaignMetricsPage() {
   const [demoEnabled, setDemoEnabled] = useState(false);
   const [simulating, setSimulating] = useState(false);
 
-  useEffect(() => { void loadCampaigns(); void readDemoConfig().then((config) => setDemoEnabled(config.simulatedLocationEnabled)).catch(() => setDemoEnabled(false)); }, []);
-  useEffect(() => { if (selected) void loadMetrics(selected); }, [selected]);
+  useEffect(() => {
+    let active = true;
+    const refreshDemo = () => {
+      void readDemoConfig()
+        .then((config) => { if (active) setDemoEnabled(config.simulatedLocationEnabled); })
+        .catch(() => { if (active) setDemoEnabled(false); });
+    };
+    void loadCampaigns();
+    refreshDemo();
+    window.addEventListener(DEMO_CONFIG_EVENT, refreshDemo);
+    return () => { active = false; window.removeEventListener(DEMO_CONFIG_EVENT, refreshDemo); };
+  }, []);
+  useEffect(() => { if (selected) void loadMetrics(selected, demoEnabled); }, [selected, demoEnabled]);
 
   async function loadCampaigns() {
     setLoading(true);
@@ -40,16 +51,17 @@ export default function AdminCampaignMetricsPage() {
       const { error } = await supabase.rpc("simular_metricas_campana", { p_campaign_id: selected });
       if (error) throw error;
       setMessage("Métricas demo generadas para los últimos 30 días.");
-      await loadMetrics(selected);
+      await loadMetrics(selected, true);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudieron simular las métricas.");
     } finally { setSimulating(false); }
   }
 
-  async function loadMetrics(id: string) {
+  async function loadMetrics(id: string, useDemo = demoEnabled) {
     setLoading(true); setMessage("");
+    const metricTable = useDemo ? "campaign_metrics_demo_daily" : "campaign_metrics_daily";
     const [{ data: metricRows, error: metricError }, { data: budgetRow, error: budgetError }] = await Promise.all([
-      supabase.from("campaign_metrics_daily").select("*").eq("campaign_id", id).order("metric_date"),
+      supabase.from(metricTable).select("*").eq("campaign_id", id).order("metric_date"),
       supabase.from("campaign_budgets").select("*").eq("campaign_id", id).maybeSingle(),
     ]);
     if (metricError || budgetError) setMessage(metricError?.message ?? budgetError?.message ?? "No se pudieron cargar las métricas.");
@@ -65,10 +77,14 @@ export default function AdminCampaignMetricsPage() {
     const uploads = metrics.reduce((total, row) => total + Number(row.ticket_uploads), 0);
     const participants = metrics.reduce((total, row) => total + Number(row.unique_participants), 0);
     const rewards = metrics.reduce((total, row) => total + Number(row.rewards_won), 0);
-    const cost = Number(budget?.media_budget ?? 0) + Number(budget?.rewards_budget ?? 0) + Number(budget?.other_costs ?? 0);
+    const realCost = Number(budget?.media_budget ?? 0) + Number(budget?.rewards_budget ?? 0) + Number(budget?.other_costs ?? 0);
+    // La simulación usa una inversión de referencia solamente mientras el modo demo está activo.
+    // En operación normal ROAS y ROI se calculan exclusivamente con presupuesto y métricas reales.
+    const cost = realCost > 0 ? realCost : (demoEnabled && metrics.length ? 80000 : 0);
     const ticketAvg = valid ? sales / valid : 0;
     const roas = cost ? sales / cost : 0;
-    const margin = Number(budget?.estimated_margin_percentage ?? 0) / 100;
+    const configuredMargin = Number(budget?.estimated_margin_percentage ?? 0) / 100;
+    const margin = configuredMargin > 0 ? configuredMargin : (demoEnabled ? 0.35 : 0);
     const roi = cost ? ((sales * margin - cost) / cost) * 100 : 0;
     return { sales, valid, uploads, participants, rewards, cost, ticketAvg, roas, roi };
   }, [metrics, budget]);
@@ -101,6 +117,7 @@ export default function AdminCampaignMetricsPage() {
     </div>
     {message ? <p style={{ color: "#ff9d9d" }}>{message}</p> : null}
     {!campaigns.length && !loading ? <div className={styles.panel}><div className={styles.empty}>Aún no existen campañas para analizar.</div></div> : <>
+      {demoEnabled ? <div style={{marginBottom:14,padding:"10px 13px",border:"1px solid rgba(227,185,86,.28)",borderRadius:12,background:"rgba(227,185,86,.07)",color:"#e8c66c",fontWeight:800,fontSize:12}}>Modo demo activo · las cifras mostradas son simuladas y desaparecen al desactivar la ubicación simulada.</div> : null}
       <section className={styles.metrics}>
         <div className={styles.metric}><span>Ventas atribuidas</span><strong>{money(summary.sales)}</strong><small>{selectedCampaign?.name ?? "Campaña"}</small></div>
         <div className={styles.metric}><span>ROAS atribuido</span><strong>{summary.roas.toFixed(2)}x</strong><small>Ventas ÷ inversión</small></div>

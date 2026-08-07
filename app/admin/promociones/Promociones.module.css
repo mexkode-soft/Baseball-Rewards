@@ -1593,3 +1593,8 @@
   .userPromotionsSection{width:100%}
   .userPromotionsGrid{padding-left:14px!important;padding-right:14%!important}
 }
+
+/* v2.9: una sola promoción siempre queda centrada en el área disponible. */
+.singleUserPromotion{justify-content:center!important}
+.singleUserPromotion .savedCardWrap{margin-inline:auto}
+@media(max-width:700px){.singleUserPromotion{justify-content:center!important}.singleUserPromotion .savedCardWrap{flex-basis:min(390px,calc(100vw - 42px));min-width:min(390px,calc(100vw - 42px));margin-inline:auto}}

@@ -14,6 +14,10 @@ type SponsorRow = {
   membership_ends_at: string | null;
   is_active: boolean;
   state: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  invited_at: string | null;
+  activated_at: string | null;
 };
 
 type EditState = { name: string; planCode: string; state: string; isActive: boolean };
@@ -35,7 +39,7 @@ export default function SponsorsPage() {
   async function load() {
     const { data, error } = await supabase
       .from("sponsor_organizations")
-      .select("id,name,plan_code,membership_status,membership_ends_at,is_active,state")
+      .select("id,name,plan_code,membership_status,membership_ends_at,is_active,state,contact_name,contact_email,invited_at,activated_at")
       .order("created_at", { ascending: false });
     if (error) setNotice(error.message);
     else setItems((data ?? []) as SponsorRow[]);
@@ -116,19 +120,21 @@ export default function SponsorsPage() {
       <h2><Building2 />Marcas registradas</h2>
       <div className={styles.tableWrap}>
         <table>
-          <thead><tr><th>Marca</th><th>Estado</th><th>Plan</th><th>Activo</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Marca</th><th>Responsable</th><th>Correo</th><th>Estado</th><th>Plan</th><th>Estatus</th><th>Acciones</th></tr></thead>
           <tbody>
             {items.map((item) => {
               const editing = editingId === item.id;
               return <tr key={item.id}>
                 <td>{editing ? <input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /> : <strong>{item.name}</strong>}</td>
+                <td>{item.contact_name || "—"}</td>
+                <td>{item.contact_email || "—"}</td>
                 <td>{editing ? <select value={edit.state} onChange={(e) => setEdit({ ...edit, state: e.target.value })}><option value="">Sin estado</option>{MEXICO_STATES.map((state) => <option key={state.code} value={state.name}>{state.name}</option>)}</select> : (item.state || "Sin definir")}</td>
                 <td>{editing ? <select value={edit.planCode} onChange={(e) => setEdit({ ...edit, planCode: e.target.value })}><option value="basic">Básico</option><option value="intermediate">Intermedio</option><option value="premium">Premium</option></select> : <span className={styles.planBadge}>{PLAN_LABELS[item.plan_code] ?? item.plan_code}</span>}</td>
-                <td>{editing ? <label className={styles.switchLabel}><input type="checkbox" checked={edit.isActive} onChange={(e) => setEdit({ ...edit, isActive: e.target.checked })} />{edit.isActive ? "Activo" : "Inactivo"}</label> : <span className={item.is_active ? styles.activeBadge : styles.inactiveBadge}>{item.is_active ? "Activo" : "Inactivo"}</span>}</td>
+                <td>{editing ? <label className={styles.switchLabel}><input type="checkbox" checked={edit.isActive} disabled={!item.activated_at} onChange={(e) => setEdit({ ...edit, isActive: e.target.checked })} />{!item.activated_at ? "Pendiente" : edit.isActive ? "Activo" : "Inactivo"}</label> : <span className={!item.activated_at ? styles.pendingBadge : item.is_active ? styles.activeBadge : styles.inactiveBadge}>{!item.activated_at ? "Pendiente de registro" : item.is_active ? "Activo" : "Inactivo"}</span>}</td>
                 <td><div className={styles.actions}>{editing ? <><button type="button" onClick={() => void save(item.id)} title="Guardar"><Check /></button><button type="button" onClick={() => setEditingId(null)} title="Cancelar"><X /></button></> : <><button type="button" onClick={() => startEditing(item)} title="Editar"><Pencil /></button><button type="button" className={styles.deleteButton} onClick={() => void remove(item.id, item.name)} title="Eliminar"><Trash2 /></button></>}</div></td>
               </tr>;
             })}
-            {!items.length && <tr><td colSpan={5} className={styles.empty}>No hay patrocinadores todavía.</td></tr>}
+            {!items.length && <tr><td colSpan={7} className={styles.empty}>No hay patrocinadores todavía.</td></tr>}
           </tbody>
         </table>
       </div>

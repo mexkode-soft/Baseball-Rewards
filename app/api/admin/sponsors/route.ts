@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     const slugBase = organizationName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "patrocinador";
     const slug = `${slugBase}-${Date.now().toString(36)}`;
-    const { data: org, error: orgError } = await admin.from("sponsor_organizations").insert({ name: organizationName, slug, plan_code: planCode, state, is_active: true }).select("id").single();
+    const { data: org, error: orgError } = await admin.from("sponsor_organizations").insert({ name: organizationName, slug, plan_code: planCode, state, is_active: false, membership_status: "trial", contact_name: name || organizationName, contact_email: email, invited_at: new Date().toISOString(), activated_at: null }).select("id").single();
     if (orgError) return NextResponse.json({ error: orgError.message }, { status: 400 });
 
     const redirectTo = `${request.nextUrl.origin}/actualizar-contrasena`;
@@ -77,12 +77,16 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const id = String(body.id ?? "");
     if (!id) return NextResponse.json({ error: "Falta el patrocinador." }, { status: 400 });
+    const { data: currentOrg, error: currentOrgError } = await admin.from("sponsor_organizations").select("activated_at").eq("id", id).maybeSingle();
+    if (currentOrgError) return NextResponse.json({ error: currentOrgError.message }, { status: 400 });
+    const canActivate = Boolean(currentOrg?.activated_at);
+    const requestedActive = Boolean(body.isActive) && canActivate;
     const patch = {
       name: String(body.name ?? "").trim(),
       plan_code: ["basic", "intermediate", "premium"].includes(body.planCode) ? body.planCode : "basic",
       state: String(body.state ?? "").trim() || null,
-      is_active: Boolean(body.isActive),
-      membership_status: Boolean(body.isActive) ? "active" : "suspended",
+      is_active: requestedActive,
+      membership_status: requestedActive ? "active" : (canActivate ? "suspended" : "trial"),
       updated_at: new Date().toISOString(),
     };
     const { error } = await admin.from("sponsor_organizations").update(patch).eq("id", id);

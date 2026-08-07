@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, BellRing, CheckCheck, LoaderCircle, X } from "lucide-react";
+import { Bell, BellRing, CheckCheck, ExternalLink, LoaderCircle, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { markAllNotificationsRead, markNotificationRead, readNotifications, subscribeToPush, type UserNotification } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +14,7 @@ function formatDate(value: string) {
 export default function NotificationBell() {
   const [items, setItems] = useState<UserNotification[]>([]);
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<UserNotification | null>(null);
   const [loading, setLoading] = useState(true);
   const [pushMessage, setPushMessage] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -31,10 +32,9 @@ export default function NotificationBell() {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         setPushEnabled(Boolean(subscription) && Notification.permission === "granted");
-      } catch {
-        setPushEnabled(false);
-      }
+      } catch { setPushEnabled(false); }
     })();
+
     let channel: ReturnType<typeof supabase.channel> | null = null;
     void supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return;
@@ -42,23 +42,35 @@ export default function NotificationBell() {
         event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${data.user.id}`,
       }, () => { void refresh(); }).subscribe();
     });
-    const close = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as Node)) setOpen(false); };
+
+    const close = (event: PointerEvent) => {
+      if (!selected && !rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
     document.addEventListener("pointerdown", close);
-    return () => { document.removeEventListener("pointerdown", close); if (channel) void supabase.removeChannel(channel); };
-  }, [refresh]);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, [refresh, selected]);
 
   const unread = useMemo(() => items.filter((item) => !item.read_at).length, [items]);
 
   async function readOne(item: UserNotification) {
     if (item.read_at) return;
-    const ahora = new Date().toISOString();
-    setItems((actuales) => actuales.map((entrada) => entrada.id === item.id ? { ...entrada, read_at: ahora } : entrada));
+    const now = new Date().toISOString();
+    setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: now } : entry));
     try { await markNotificationRead(item.id); } catch { await refresh(); }
   }
 
+  async function openNotification(item: UserNotification) {
+    await readOne(item);
+    setSelected({ ...item, read_at: item.read_at ?? new Date().toISOString() });
+    setOpen(false);
+  }
+
   async function readAll() {
-    const ahora = new Date().toISOString();
-    setItems((actuales) => actuales.map((item) => ({ ...item, read_at: item.read_at ?? ahora })));
+    const now = new Date().toISOString();
+    setItems((current) => current.map((item) => ({ ...item, read_at: item.read_at ?? now })));
     try { await markAllNotificationsRead(); } catch { await refresh(); }
   }
 
@@ -72,19 +84,37 @@ export default function NotificationBell() {
   }
 
   return <div className={styles.root} ref={rootRef}>
-    <button type="button" className={styles.bellButton} onClick={() => setOpen((value) => { const siguiente = !value; if (siguiente) void refresh(); return siguiente; })} aria-label={`Notificaciones${unread ? `, ${unread} sin leer` : ""}`}>
+    <button type="button" className={styles.bellButton} onClick={() => setOpen((value) => { const next = !value; if (next) void refresh(); return next; })} aria-label={`Notificaciones${unread ? `, ${unread} sin leer` : ""}`}>
       {unread ? <BellRing /> : <Bell />}{unread > 0 ? <span>{unread > 99 ? "99+" : unread}</span> : null}
     </button>
+
     {open ? <section className={styles.panel} aria-label="Bandeja de notificaciones">
       <header><div><strong>Notificaciones</strong><small>{unread ? `${unread} sin leer` : "Todo al día"}</small></div><button type="button" onClick={() => setOpen(false)} aria-label="Cerrar"><X /></button></header>
       <div className={styles.actions}><button type="button" onClick={readAll} disabled={!unread}><CheckCheck /> Marcar todas</button>{!pushEnabled ? <button type="button" onClick={enablePush}><BellRing /> Activar push</button> : null}</div>
       {pushMessage ? <p className={styles.pushMessage}>{pushMessage}</p> : null}
       <div className={styles.list}>
-        {loading ? <div className={styles.empty}><LoaderCircle className={styles.spinner} /> Cargando...</div> : items.length === 0 ? <div className={styles.empty}>Todavía no tienes notificaciones.</div> : items.map((item) => {
-          const content = <><div className={styles.itemTop}><strong>{item.title}</strong>{!item.read_at ? <i /> : null}</div><p>{item.body}</p><time>{formatDate(item.created_at)}</time></>;
-          return item.action_url ? <Link href={item.action_url} key={item.id} className={`${styles.item} ${!item.read_at ? styles.unread : ""}`} onClick={() => { void readOne(item); setOpen(false); }}>{content}</Link> : <button type="button" key={item.id} className={`${styles.item} ${!item.read_at ? styles.unread : ""}`} onClick={() => void readOne(item)}>{content}</button>;
-        })}
+        {loading ? <div className={styles.empty}><LoaderCircle className={styles.spinner} /> Cargando...</div> : items.length === 0 ? <div className={styles.empty}>Todavía no tienes notificaciones.</div> : items.map((item) => (
+          <button type="button" key={item.id} className={`${styles.item} ${!item.read_at ? styles.unread : ""}`} onClick={() => void openNotification(item)}>
+            <div className={styles.itemTop}><strong>{item.title}</strong>{!item.read_at ? <i /> : null}</div><p>{item.body}</p><time>{formatDate(item.created_at)}</time>
+          </button>
+        ))}
       </div>
     </section> : null}
+
+    {selected ? <div className={styles.notificationOverlay} role="dialog" aria-modal="true" aria-label={selected.title} onClick={() => setSelected(null)}>
+      <article className={styles.notificationCard} onClick={(event) => event.stopPropagation()}>
+        <div className={styles.notificationCardHeader}>
+          <div><span>HOME RUN REWARDS</span><h2>{selected.title}</h2></div>
+          <button type="button" onClick={() => setSelected(null)} aria-label="Cerrar notificación"><X /></button>
+        </div>
+        <p>{selected.body}</p>
+        {selected.image_url ? <img src={selected.image_url} alt="" className={styles.notificationImage} /> : null}
+        <time>{formatDate(selected.created_at)}</time>
+        <div className={styles.notificationCardActions}>
+          <button type="button" onClick={() => setSelected(null)}>Cerrar</button>
+          {selected.action_url ? <Link href={selected.action_url} onClick={() => setSelected(null)}>Ver detalle <ExternalLink /></Link> : null}
+        </div>
+      </article>
+    </div> : null}
   </div>;
 }

@@ -132,6 +132,9 @@ export default function MapPlayPage() {
   const watchRef =
     useRef<number | null>(null);
 
+  const initialDistanceRef =
+    useRef<number | null>(null);
+
 
   useEffect(() => {
     let active = true;
@@ -204,6 +207,7 @@ export default function MapPlayPage() {
 
   useEffect(() => {
     if (!campaign || !location || phase !== "location") return;
+    initialDistanceRef.current = null;
     void locate();
     return () => {
       if (watchRef.current !== null) {
@@ -257,32 +261,15 @@ export default function MapPlayPage() {
   const q =
     questions[index];
 
-  const progress =
-    distance === null
-      ? 0
-      : distance <=
-          activeLocation.radius
-        ? 100
-        : Math.max(
-            0,
-            Math.min(
-              99,
-              (
-                (
-                  1000 -
-                  Math.min(
-                    distance,
-                    1000
-                  )
-                ) /
-                Math.max(
-                  1,
-                  1000 -
-                    activeLocation.radius
-                )
-              ) * 100
-            )
-          );
+  const progress = (() => {
+    if (distance === null || distance < 0) return 0;
+    if (distance <= activeLocation.radius) return 100;
+    const initial = initialDistanceRef.current ?? distance;
+    if (initial <= activeLocation.radius) return 100;
+    const required = Math.max(1, initial - activeLocation.radius);
+    const advanced = Math.max(0, initial - distance);
+    return Math.max(0, Math.min(99, (advanced / required) * 100));
+  })();
 
   const mapsUrl =
     `https://www.google.com/maps/dir/?api=1&destination=${activeLocation.latitude},${activeLocation.longitude}`;
@@ -299,11 +286,11 @@ export default function MapPlayPage() {
         activeLocation.longitude
       );
 
-    setDistance(
-      Math.round(meters)
-    );
-
-
+    const rounded = Math.round(meters);
+    if (initialDistanceRef.current === null) initialDistanceRef.current = rounded;
+    setDistance(rounded);
+    // watchPosition continúa activo, pero ya contamos con una lectura válida.
+    setWatching(false);
   }
 
   async function locate() {
@@ -311,9 +298,9 @@ export default function MapPlayPage() {
     const demo = await readDemoConfig();
 
     if (demo.simulatedLocationEnabled) {
+      initialDistanceRef.current = 0;
       setDistance(0);
       setWatching(false);
-      setPhase("permission");
       return;
     }
 
@@ -355,11 +342,11 @@ export default function MapPlayPage() {
 
     const configuracionDemo = await readDemoConfig();
 
-    // En modo demo no se valida geolocalización: la trivia inicia de inmediato.
+    // En modo demo no se valida el radio, pero conservamos el paso de cámara para la experiencia AR.
     if (configuracionDemo.simulatedLocationEnabled) {
       setDistance(0);
       setWatching(false);
-      await begin();
+      setPhase("permission");
       return;
     }
 
@@ -385,7 +372,7 @@ export default function MapPlayPage() {
         setWatching(false);
 
         if (metros <= activeLocation.radius) {
-          await begin();
+          setPhase("permission");
         }
       },
       () => {
@@ -757,16 +744,18 @@ export default function MapPlayPage() {
               }
               onClick={() => { void iniciarDinamica(); }}
               disabled={
-                watching
+                watching || (!demoConfig.simulatedLocationEnabled && (distance === null || distance < 0 || distance > activeLocation.radius))
               }
             >
               <MapPin />
 
-              {watching
-                ? "Validando ubicación..."
+              {watching && distance === null
+                ? "Detectando ubicación..."
                 : demoConfig.simulatedLocationEnabled
-                  ? "Iniciar trivia demo"
-                  : "Iniciar dinámica"}
+                  ? "Listo para iniciar demo"
+                  : distance !== null && distance >= 0 && distance <= activeLocation.radius
+                    ? "Listo para iniciar dinámica"
+                    : "Acércate al objetivo"}
             </button>
           )}
 
