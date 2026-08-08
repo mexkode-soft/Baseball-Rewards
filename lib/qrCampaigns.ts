@@ -111,23 +111,55 @@ export async function saveQrCampaign(campaign: QrCampaign): Promise<string> {
     : await supabase.from("campaigns").insert(payload).select("id").single();
   if (error) throw error;
   const id = String(saved.id);
-  const { error: deleteError } = await supabase.from("qr_codes").delete().eq("campaign_id", id);
-  if (deleteError) throw deleteError;
-  const codeRows = await Promise.all(campaign.codes.map(async (code) => ({
-    campaign_id: id,
-    token_hash: await sha256(code.token),
-    token_value: code.token,
-    display_code: code.label,
-    is_winner: code.isWinner,
-    reward_name: code.reward || null,
-    reward_code: code.rewardCode || null,
-    points: code.points,
-    max_uses: 1000000,
-    total_uses: 0,
-    is_active: true,
-  })));
-  const { error: codeError } = await supabase.from("qr_codes").insert(codeRows);
-  if (codeError) throw codeError;
+  // Sincronización incremental: editar una campaña NO elimina ni regenera los QR
+  // existentes. Esto conserva tokens impresos, historial de escaneos y total_uses.
+  const { data: existingCodes, error: existingCodesError } = await supabase
+    .from("qr_codes")
+    .select("id,token_value")
+    .eq("campaign_id", id);
+  if (existingCodesError) throw existingCodesError;
+
+  const existingById = new Map((existingCodes ?? []).map((row) => [String(row.id), row]));
+  const keepIds = new Set<string>();
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  for (const code of campaign.codes) {
+    const normalizedReward = code.isWinner ? (campaign.reward || code.reward || "Premio") : null;
+    const normalizedPoints = code.isWinner ? campaign.winnerPoints : campaign.participationPoints;
+    const row = {
+      campaign_id: id,
+      token_hash: await sha256(code.token),
+      token_value: code.token,
+      display_code: code.label,
+      is_winner: code.isWinner,
+      reward_name: normalizedReward,
+      reward_code: code.isWinner ? (code.rewardCode || `${id.slice(-6).toUpperCase()}-${code.label}`) : null,
+      points: normalizedPoints,
+      max_uses: 1000000,
+      is_active: true,
+    };
+
+    if (uuidPattern.test(code.id) && existingById.has(code.id)) {
+      keepIds.add(code.id);
+      const { error: updateError } = await supabase.from("qr_codes").update(row).eq("id", code.id).eq("campaign_id", id);
+      if (updateError) throw updateError;
+    } else {
+      const { data: inserted, error: insertError } = await supabase
+        .from("qr_codes")
+        .insert({ ...row, total_uses: 0 })
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+      keepIds.add(String(inserted.id));
+    }
+  }
+
+  const removedIds = (existingCodes ?? []).map((row) => String(row.id)).filter((codeId) => !keepIds.has(codeId));
+  if (removedIds.length) {
+    // Se desactivan en lugar de borrarse para no romper participaciones históricas.
+    const { error: deactivateError } = await supabase.from("qr_codes").update({ is_active: false }).in("id", removedIds);
+    if (deactivateError) throw deactivateError;
+  }
   activeQrCache = null;
   window.dispatchEvent(new CustomEvent(QR_CAMPAIGNS_EVENT));
   return id;
@@ -138,7 +170,7 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
   if (error) throw error;
   const ids = (campaigns ?? []).map((item) => String(item.id));
   const { data: codes, error: codeError } = ids.length
-    ? await supabase.from("qr_codes").select("id,campaign_id,display_code,is_winner,reward_name,reward_code,points,total_uses,token_value").in("campaign_id", ids).order("created_at")
+    ? await supabase.from("qr_codes").select("id,campaign_id,display_code,is_winner,reward_name,reward_code,points,total_uses,token_value,is_active").in("campaign_id", ids).order("created_at")
     : { data: [], error: null };
   if (codeError) throw codeError;
   return (campaigns ?? []).map((campaign) => ({
@@ -146,7 +178,7 @@ export async function readQrCampaigns(): Promise<QrCampaign[]> {
     startDate: dateOnly(campaign.starts_at), endDate: dateOnly(campaign.ends_at), status: campaign.status as QrCampaignStatus,
     attemptsPerUser: Number(campaign.participation_limit), participationPoints: Number(campaign.points_on_failure), winnerPoints: Number(campaign.points_on_success),
     reward: String((campaign.metadata as { reward?: string } | null)?.reward ?? "Premio"), rewardValidityDays: Number(campaign.reward_validity_days ?? 15), createdAt: String(campaign.created_at),
-    codes: (codes ?? []).filter((code) => code.campaign_id === campaign.id).map((code) => ({
+    codes: (codes ?? []).filter((code) => code.campaign_id === campaign.id && code.is_active !== false).map((code) => ({
       id: String(code.id),
       token: String(code.token_value ?? ""),
       payload: code.token_value ? createQrPayload(String(campaign.id), String(code.token_value)) : "",

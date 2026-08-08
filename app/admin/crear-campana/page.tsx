@@ -167,6 +167,16 @@ export default function CrearCampanaPage() {
     return () => { active = false; };
   }, [editId, requestedType]);
 
+  // Mantiene los QR existentes sincronizados con la configuración editable.
+  // Los tokens y qué códigos son ganadores no cambian; solo premio/puntos.
+  useEffect(() => {
+    setCodes((current) => current.map((code) => ({
+      ...code,
+      reward: code.isWinner ? (reward.trim() || "Premio") : "",
+      points: code.isWinner ? Math.max(0, winnerPoints) : Math.max(0, participationPoints),
+    })));
+  }, [reward, participationPoints, winnerPoints]);
+
   const allowedCampaignTypes = useMemo(() => ({
     qr: !sponsorMode || sponsorPlan?.allows_qr !== false,
     brand: !sponsorMode || sponsorPlan?.allows_ticket !== false,

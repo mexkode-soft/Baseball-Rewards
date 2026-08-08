@@ -130,3 +130,6 @@ Ejecutar `370_ajustes_operativos_geografia_push_metricas.sql` después de `362_r
 
 ### 381_ajustes_notificacion_promociones_puntos_demo.sql
 Ejecutar después de `380_metricas_demo_patrocinadores_pendientes.sql`. Evita sumar puntos reales mientras `simulatedLocationEnabled` esté activo. Los cambios visuales de notificación y carrusel están en frontend.
+
+### 387 - Demo por usuario, QR, premios y mapa
+Ejecutar después de `386_qr_edicion_ubicaciones_y_vigencia_recompensas.sql`. Limita Demo a máximo 10 usuarios, sincroniza premios/puntos de QR existentes, identifica recompensas Demo y las oculta al desactivar Demo.

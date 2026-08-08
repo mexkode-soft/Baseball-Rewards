@@ -43,7 +43,7 @@ import {
 import {
   DEFAULT_DEMO_CONFIG,
   DEMO_CONFIG_EVENT,
-  readDemoConfig,
+  readEffectiveDemoConfig,
   type DemoConfig,
 } from "@/lib/demoConfig";
 
@@ -139,7 +139,7 @@ export default function MapPlayPage() {
   useEffect(() => {
     let active = true;
     async function updateDemoConfig() {
-      try { const value = await readDemoConfig(); if (active) setDemoConfig(value); } catch { /* configuración predeterminada */ }
+      try { const value = await readEffectiveDemoConfig(); if (active) setDemoConfig(value); } catch { /* configuración predeterminada */ }
     }
     void updateDemoConfig();
     const refresh = () => { void updateDemoConfig(); };
@@ -295,7 +295,7 @@ export default function MapPlayPage() {
 
   async function locate() {
     if (watchRef.current !== null) return;
-    const demo = await readDemoConfig();
+    const demo = await readEffectiveDemoConfig();
 
     if (demo.simulatedLocationEnabled) {
       initialDistanceRef.current = 0;
@@ -340,7 +340,7 @@ export default function MapPlayPage() {
       return;
     }
 
-    const configuracionDemo = await readDemoConfig();
+    const configuracionDemo = await readEffectiveDemoConfig();
 
     // En modo demo no se valida el radio, pero conservamos el paso de cámara para la experiencia AR.
     if (configuracionDemo.simulatedLocationEnabled) {

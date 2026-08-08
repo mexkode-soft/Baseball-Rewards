@@ -635,9 +635,11 @@ export default function DynamicCampaignBuilder({
           </p>
 
           <MapLocationPicker
-            key={activeLocation.id}
+            key={`${editingId || "new"}-${activeLocation.id}`}
             latitude={activeLocation.latitude}
             longitude={activeLocation.longitude}
+            initialLabel={activeLocation.address}
+            contextLabel={[targetMunicipality, targetState, "México"].filter(Boolean).join(", ")}
             onChange={(latitude, longitude, label) =>
               updateLocation(activeLocation.id, {
                 latitude,

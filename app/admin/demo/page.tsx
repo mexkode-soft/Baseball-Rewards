@@ -10,6 +10,9 @@ import {
   MapPin,
   Sparkles,
   Trash2,
+  Search,
+  Check,
+  Users,
 } from "lucide-react";
 import {
   useEffect,
@@ -19,7 +22,11 @@ import {
   DEFAULT_DEMO_CONFIG,
   readDemoConfig,
   saveDemoConfig,
+  readDemoDirectory,
+  readDemoUserIds,
+  saveDemoUserIds,
   type DemoConfig,
+  type DemoUser,
 } from "@/lib/demoConfig";
 import { supabase } from "@/lib/supabase";
 import styles from "./Demo.module.css";
@@ -36,9 +43,16 @@ export default function DemoPage() {
     savedMessage,
     setSavedMessage,
   ] = useState("");
+  const [demoUsers, setDemoUsers] = useState<DemoUser[]>([]);
+  const [selectedDemoUserIds, setSelectedDemoUserIds] = useState<string[]>([]);
+  const [demoSearch, setDemoSearch] = useState("");
+  const [savingUsers, setSavingUsers] = useState(false);
 
   useEffect(() => {
     void readDemoConfig().then(setConfig).catch(() => setConfig(DEFAULT_DEMO_CONFIG));
+    void Promise.all([readDemoDirectory(), readDemoUserIds()])
+      .then(([directory, selectedIds]) => { setDemoUsers(directory); setSelectedDemoUserIds(selectedIds); })
+      .catch((error) => setSavedMessage(error instanceof Error ? error.message : "No se pudieron cargar los usuarios demo."));
   }, []);
 
   async function updateFlag(
@@ -102,7 +116,30 @@ export default function DemoPage() {
 
   async function clearDemoProgress() {
     const { error } = await supabase.rpc("reset_demo_progress");
-    setSavedMessage(error ? error.message : "Los puntos, premios, tickets e intentos de tu usuario demo fueron eliminados.");
+    setSavedMessage(error ? error.message : "Los datos temporales de los usuarios demo seleccionados fueron eliminados.");
+  }
+
+  async function toggleDemoUser(userId: string) {
+    const checked = selectedDemoUserIds.includes(userId);
+    const next = checked
+      ? selectedDemoUserIds.filter((id) => id !== userId)
+      : [...selectedDemoUserIds, userId].slice(0, 10);
+    if (!checked && selectedDemoUserIds.length >= 10) {
+      setSavedMessage("Puedes habilitar Demo para un máximo de 10 usuarios.");
+      return;
+    }
+    setSelectedDemoUserIds(next);
+    setSavingUsers(true);
+    try {
+      await saveDemoUserIds(next);
+      setSavedMessage(`Usuarios demo actualizados: ${next.length}/10.`);
+    } catch (error) {
+      setSelectedDemoUserIds(selectedDemoUserIds);
+      setSavedMessage(error instanceof Error ? error.message : "No se pudieron actualizar los usuarios demo.");
+    } finally {
+      setSavingUsers(false);
+      window.setTimeout(() => setSavedMessage(""), 2200);
+    }
   }
 
   return (
@@ -367,6 +404,36 @@ export default function DemoPage() {
           <label>Longitud<input type="number" step="any" value={config.simulatedLongitude} onChange={(event) => updateSimulatedLocation({ simulatedLongitude: Number(event.target.value) })} /></label>
         </div>
         <p className={styles.locationHint}>Copia aquí las coordenadas de cualquiera de los premios configurados para simular que ya llegaste.</p>
+      </section>
+
+      <section className={styles.demoUsersCard}>
+        <div className={styles.demoUsersHeading}>
+          <div className={styles.ruleIcon}><Users /></div>
+          <div>
+            <span>Usuarios habilitados</span>
+            <h2>¿Quién puede usar el modo Demo?</h2>
+            <p>La ubicación simulada, puntos temporales y premios Demo solo aplican a estas cuentas. Máximo 10 usuarios.</p>
+          </div>
+          <strong className={styles.demoUserCounter}>{selectedDemoUserIds.length}/10</strong>
+        </div>
+        <label className={styles.demoUserSearch}>
+          <Search aria-hidden="true" />
+          <input value={demoSearch} onChange={(event) => setDemoSearch(event.target.value)} placeholder="Buscar por nombre o correo" />
+        </label>
+        <div className={styles.demoUserList}>
+          {demoUsers
+            .filter((user) => `${user.fullName} ${user.email}`.toLowerCase().includes(demoSearch.toLowerCase()))
+            .map((user) => {
+              const checked = selectedDemoUserIds.includes(user.id);
+              const initials = (user.fullName || user.email || "U").split(/\s+/).slice(0,2).map((part)=>part.charAt(0).toUpperCase()).join("");
+              return <button type="button" key={user.id} disabled={savingUsers || (!checked && selectedDemoUserIds.length >= 10)} className={`${styles.demoUserOption} ${checked ? styles.demoUserSelected : ""}`} onClick={() => void toggleDemoUser(user.id)}>
+                <span className={styles.demoUserAvatar}>{initials}</span>
+                <span className={styles.demoUserIdentity}><strong>{user.fullName || "Usuario"}</strong><small>{user.email}</small></span>
+                <span className={styles.demoUserRole}>{user.role}</span>
+                <span className={styles.demoUserCheck}>{checked ? <Check size={17}/> : null}</span>
+              </button>;
+            })}
+        </div>
       </section>
 
       <section
